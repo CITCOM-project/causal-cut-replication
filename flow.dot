@@ -1,0 +1,82 @@
+digraph dag {
+  rankdir="LR";
+
+  subgraph cluster_1 {
+    FIT101[type="sensor" color="blue"];
+    MV101[type="actuator" color="green"];
+    LIT101[type="sensor" color="blue"];
+    P101[type="actuator" color="green"];
+    P102[type="actuator" color="green"];
+  }
+  subgraph cluster_2 {
+    AIT201[type="sensor" color="blue"];
+    AIT202[type="sensor" color="blue"];
+    AIT203[type="sensor" color="blue"];
+    FIT201[type="sensor" color="blue"];
+    MV201[type="actuator" color="green"];
+    P201[type="actuator" color="green"];
+    P202[type="actuator" color="green"];
+    P203[type="actuator" color="green"];
+    P204[type="actuator" color="green"];
+    P205[type="actuator" color="green"];
+    P206[type="actuator" color="green"];
+  }
+  subgraph cluster_3 {
+    DPIT301[type="sensor" color="blue"];
+    FIT301[type="sensor" color="blue"];
+    LIT301[type="sensor" color="blue"];
+    AIT301[type="sensor" color="blue"];
+    AIT302[type="sensor" color="blue"];
+    AIT303[type="sensor" color="blue"];
+    MV302[type="actuator" color="green"];
+    MV301[type="actuator" color="green"];
+    P301[type="actuator" color="green"];
+    P302[type="actuator" color="green"];
+  }
+  subgraph cluster_4 {
+    AIT401[type="sensor" color="blue"];
+    AIT402[type="sensor" color="blue"];
+    FIT401[type="sensor" color="blue"];
+    LIT401[type="sensor" color="blue"];
+    P401[type="actuator" color="green"];
+    P402[type="actuator" color="green"];
+    P403[type="actuator" color="green"];
+    P404[type="actuator" color="green"];
+    UV401[type="actuator" color="green"];
+  }
+  subgraph cluster_5 {
+    AIT501[type="sensor" color="blue"];
+    AIT502[type="sensor" color="blue"];
+    AIT503[type="sensor" color="blue"];
+    AIT504[type="sensor" color="blue"];
+    FIT501[type="sensor" color="blue"];
+    FIT502[type="sensor" color="blue"];
+    FIT503[type="sensor" color="blue"];
+    FIT504[type="sensor" color="blue"];
+    P501[type="actuator" color="green"];
+    P502[type="actuator" color="green"];
+    PIT501[type="sensor" color="blue"];
+    PIT502[type="sensor" color="blue"];
+    PIT503[type="sensor" color="blue"];
+
+    MV501[type="actuator" color="green"];
+    MV502[type="actuator" color="green"];
+    MV503[type="actuator" color="green"];
+
+  }
+  subgraph cluster_6 {
+    FIT601[type="sensor" color="blue"];
+    P601[type="actuator" color="green"];
+    P602[type="actuator" color="green"];
+    P603[type="actuator" color="green"];
+  }
+
+  FIT101 -> MV101 -> LIT101 -> {P101;P102} ->
+  {FIT201;AIT201} -> {P201;P202;P203;P204;P205;P206;} -> {AIT202;AIT203} -> MV201 ->
+  LIT301-> {P301;P302} -> {FIT301;DPIT301} -> MV302 -> {AIT301;AIT302;AIT303;LIT401} ->
+  {P401;P402} -> {AIT401;FIT401;AIT402;AIT501;AIT502;AIT503;FIT501} -> {P501;P502} -> {AIT504;FIT502;FIT503};
+  {AIT504;FIT502} -> {/*MV501;*/MV503;MV502;P602;MV301} -> DPIT301;
+  FIT503 -> {MV502;P602;MV301} -> DPIT301;
+  {P403;P404} -> {AIT501;AIT502;AIT503;FIT501};
+
+}

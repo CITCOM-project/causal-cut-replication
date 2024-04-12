@@ -1,0 +1,52 @@
+{
+  "FIT101 (High)": [[["MV101", "open"]]],
+  "FIT101 (Low)":  [[["MV101", "close"]]],
+  "FIT201 (High)": [[["MV201", "open"], ["P101", "on"], ["P102", "on"]]],
+  "FIT201 (Low)":  [
+                      [["MV201", "close"]],
+                      [["P101", "off"], ["P102", "off"]]
+                   ],
+  "FIT301 (Low)":  [
+                     [["MV302", "close"]],
+                     [["P301", "off"], ["P302", "off"]]
+                   ],
+  "FIT401 (Low)":  [[["MV501", "close"]]],
+  "FIT501 (Low)":  [[["MV501", "close"], ["MV503", "close"], ["MV504", "close"]]],
+  "FIT601 (High)": [[["MV301", "open"], ["MV303", "open"], ["MV502", "open"], ["P602", "on"]]],
+  "FIT601 (Low)":  [[["P602", "off"]]],
+  "DPIT301 (Low)": [[["MV301", "open"], ["MV303", "open"], ["P602", "on"]],
+                      [["MV302", "close"]],
+                      [["P301", "off"], ["P302", "off"]]
+                   ],
+  "LIT101 (High)": [
+                      [["MV101", "open"]],
+                      [["MV101", "open"], ["P101", "off"], ["P102", "off"]],
+                      [["MV101", "open"], ["MV201", "close"]]
+                   ],
+  "LIT101 (Low)":  [
+                      [["MV101", "close"], ["MV201", "open"], ["P101", "on"]],
+                      [["MV101", "close"], ["MV201", "open"], ["P102", "on"]]
+                   ],
+  "LIT301 (Low)":  [
+                      [["MV201", "close"], ["MV302", "open"], ["P301", "on"]],
+                      [["MV201", "close"], ["MV302", "open"], ["P302", "on"]]
+                   ],
+  "LIT301 (High)": [
+                      [["MV201", "open"], ["P101", "on"]],
+                      [["MV201", "open"], ["P102", "on"]],
+                      [["MV201", "open"], ["P101", "on"], ["P301", "off"], ["P302", "off"]],
+                      [["MV201", "open"], ["P102", "on"], ["P301", "off"], ["P302", "off"]],
+                      [["MV201", "open"], ["P101", "on"], ["MV302", "close"]],
+                      [["MV201", "open"], ["P102", "on"], ["MV302", "close"]]
+                   ],
+  "LIT401 (High)": [
+                      [["MV302", "open"], ["P301", "on"]],
+                      [["MV302", "open"], ["P302", "on"]]
+                   ],
+  "LIT401 (Low)":  [
+                      [["MV302", "close"], ["P401", "on"]],
+                      [["P301", "off"], ["P302", "off"], ["P401", "on"]],
+                      [["MV302", "close"], ["P402", "on"]],
+                      [["P301", "off"], ["P302", "off"], ["P402", "open"]]
+                   ]
+}
