@@ -38,8 +38,8 @@ model = ols(f"{outcome['name']}_{outcome['time']} ~ {'+'.join(features)}", data)
 print("Estimates for capability MV101")
 trace_estimate = model.predict(pd.DataFrame([{k: 2 for k in features}]))[0]
 counterfactual_estimate = model.predict(pd.DataFrame([{k: 1 for k in features}]))[0]
-print("  Valve closed(?):", round(trace_estimate, 4), "Safe?", outcome["safe"](trace_estimate))
-print("  Valve open(?):  ", round(counterfactual_estimate, 4), "Safe?", outcome["safe"](counterfactual_estimate))
+print("  Valve open(?):", round(trace_estimate, 4), "Safe?", outcome["safe"](trace_estimate))
+print("  Valve closed(?):  ", round(counterfactual_estimate, 4), "Safe?", outcome["safe"](counterfactual_estimate))
 print()
 
 # Show that a spurious capability is non causal
