@@ -1,0 +1,145 @@
+digraph dag {
+AIT201_0 [pos="557.250,306.000",height="0.5",type="sensor",width="1.3179"]
+AIT201_15 [pos="1346.200,234.000",height="0.5",type="sensor",width="1.4443"]
+AIT201_30 [pos="570.250,162.000",height="0.5",type="sensor",width="1.4443"]
+AIT202_0 [pos="220.250,306.000",height="0.5",type="sensor",width="1.3179"]
+AIT203_0 [pos="333.250,306.000",height="0.5",type="sensor",width="1.3179"]
+FIT101_0 [pos="859.250,306.000",height="0.5",type="sensor",width="1.2818"]
+FIT101_15 [pos="988.250,234.000",height="0.5",type="sensor",width="1.3902"]
+FIT101_30 [pos="875.250,162.000",height="0.5",type="sensor",width="1.3902"]
+FIT201_0 [pos="445.250,306.000",height="0.5",type="sensor",width="1.2818"]
+FIT201_15 [pos="1226.200,234.000",height="0.5",type="sensor",width="1.3902"]
+FIT201_30 [pos="450.250,162.000",height="0.5",type="sensor",width="1.3902"]
+LIT101_0 [pos="749.250,306.000",height="0.5",type="sensor",width="1.2818"]
+LIT101_15 [pos="1107.200,234.000",height="0.5",type="sensor",width="1.4082"]
+LIT101_30 [pos="756.250,162.000",height="0.5",type="sensor",width="1.4082"]
+LIT101_45 [pos="1003.200,90.000",height="0.5",type="sensor",width="1.4082"]
+LIT101_60 [outcome,pos="728.250,18.000",height="0.5",type="sensor",width="1.4082"]
+MV101_0 [pos="971.250,306.000",height="0.5",type="actuator",width="1.3179"]
+MV101_15 [exposure,pos="868.250,234.000",height="0.5",type="actuator",width="1.4443"]
+MV101_30 [pos="1003.200,162.000",height="0.5",type="actuator",width="1.4443"]
+MV101_45 [pos="784.250,90.000",height="0.5",type="actuator",width="1.4443"]
+P101_0 [pos="1167.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P101_15 [pos="756.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P101_30 [exposure,pos="1223.200,162.000",height="0.5",type="actuator",width="1.1735"]
+P101_45 [pos="672.250,90.000",height="0.5",type="actuator",width="1.1735"]
+P102_0 [pos="1074.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P102_15 [pos="654.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P102_30 [pos="1119.200,162.000",height="0.5",type="actuator",width="1.1735"]
+P102_45 [exposure,pos="570.250,90.000",height="0.5",type="actuator",width="1.1735"]
+P201_0 [pos="1539.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P201_15 [pos="144.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P202_0 [pos="1260.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P202_15 [pos="450.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P203_0 [pos="1725.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P203_15 [pos="348.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P204_0 [pos="1446.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P204_15 [pos="42.246,234.000",height="0.5",type="actuator",width="1.1735"]
+P205_0 [pos="1632.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P205_15 [pos="246.250,234.000",height="0.5",type="actuator",width="1.1735"]
+P206_0 [pos="1353.200,306.000",height="0.5",type="actuator",width="1.0471"]
+P206_15 [pos="552.250,234.000",height="0.5",type="actuator",width="1.1735"]
+AIT201_0 -> AIT201_15
+AIT201_0 -> P101_15
+AIT201_0 -> P102_15
+AIT201_0 -> P201_15
+AIT201_0 -> P202_15
+AIT201_0 -> P203_15
+AIT201_0 -> P204_15
+AIT201_0 -> P205_15
+AIT201_0 -> P206_15
+AIT201_15 -> AIT201_30
+AIT201_15 -> P101_30
+AIT201_15 -> P102_30
+AIT201_30 -> P101_45
+AIT201_30 -> P102_45
+AIT202_0 -> P201_15
+AIT202_0 -> P202_15
+AIT202_0 -> P203_15
+AIT202_0 -> P204_15
+AIT202_0 -> P205_15
+AIT202_0 -> P206_15
+AIT203_0 -> P201_15
+AIT203_0 -> P202_15
+AIT203_0 -> P203_15
+AIT203_0 -> P204_15
+AIT203_0 -> P205_15
+AIT203_0 -> P206_15
+FIT101_0 -> FIT101_15
+FIT101_0 -> MV101_15
+FIT101_15 -> FIT101_30
+FIT101_15 -> MV101_30
+FIT101_30 -> MV101_45
+FIT201_0 -> FIT201_15
+FIT201_0 -> P101_15
+FIT201_0 -> P102_15
+FIT201_0 -> P201_15
+FIT201_0 -> P202_15
+FIT201_0 -> P203_15
+FIT201_0 -> P204_15
+FIT201_0 -> P205_15
+FIT201_0 -> P206_15
+FIT201_15 -> FIT201_30
+FIT201_15 -> P101_30
+FIT201_15 -> P102_30
+FIT201_30 -> P101_45
+FIT201_30 -> P102_45
+LIT101_0 -> LIT101_15
+LIT101_0 -> MV101_15
+LIT101_0 -> P101_15
+LIT101_0 -> P102_15
+LIT101_15 -> LIT101_30
+LIT101_15 -> MV101_30
+LIT101_15 -> P101_30
+LIT101_15 -> P102_30
+LIT101_30 -> LIT101_45
+LIT101_30 -> MV101_45
+LIT101_30 -> P101_45
+LIT101_30 -> P102_45
+LIT101_45 -> LIT101_60
+MV101_0 -> FIT101_15
+MV101_0 -> LIT101_15
+MV101_15 -> FIT101_30
+MV101_15 -> LIT101_30
+MV101_30 -> LIT101_45
+MV101_45 -> LIT101_60
+P101_0 -> AIT201_15
+P101_0 -> FIT201_15
+P101_0 -> LIT101_15
+P101_15 -> AIT201_30
+P101_15 -> FIT201_30
+P101_15 -> LIT101_30
+P101_30 -> LIT101_45
+P101_45 -> LIT101_60
+P102_0 -> AIT201_15
+P102_0 -> FIT201_15
+P102_0 -> LIT101_15
+P102_15 -> AIT201_30
+P102_15 -> FIT201_30
+P102_15 -> LIT101_30
+P102_30 -> LIT101_45
+P102_45 -> LIT101_60
+P201_0 -> AIT201_15
+P201_0 -> FIT201_15
+P201_15 -> AIT201_30
+P201_15 -> FIT201_30
+P202_0 -> AIT201_15
+P202_0 -> FIT201_15
+P202_15 -> AIT201_30
+P202_15 -> FIT201_30
+P203_0 -> AIT201_15
+P203_0 -> FIT201_15
+P203_15 -> AIT201_30
+P203_15 -> FIT201_30
+P204_0 -> AIT201_15
+P204_0 -> FIT201_15
+P204_15 -> AIT201_30
+P204_15 -> FIT201_30
+P205_0 -> AIT201_15
+P205_0 -> FIT201_15
+P205_15 -> AIT201_30
+P205_15 -> FIT201_30
+P206_0 -> AIT201_15
+P206_0 -> FIT201_15
+P206_15 -> AIT201_30
+P206_15 -> FIT201_30}

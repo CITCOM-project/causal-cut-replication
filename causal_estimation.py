@@ -8,15 +8,13 @@ Created on Fri Feb  2 14:28:31 2024
 
 import pandas as pd
 import numpy as np
-import time
-import matplotlib.pyplot as plt
 
 from causal_testing.data_collection.data_collector import ObservationalDataCollector
 from causal_testing.generation.abstract_causal_test_case import AbstractCausalTestCase
 from causal_testing.specification.causal_dag import CausalDAG
 from causal_testing.specification.causal_specification import CausalSpecification
 from causal_testing.specification.scenario import Scenario
-from causal_testing.specification.variable import Input, Meta, Output
+from causal_testing.specification.variable import Input, Output
 from causal_testing.testing.causal_test_case import CausalTestCase
 from causal_testing.testing.causal_test_result import CausalTestResult
 from causal_testing.testing.estimators import Estimator, LinearRegressionEstimator, LogisticRegressionEstimator
@@ -27,12 +25,15 @@ from causal_testing.testing.causal_test_outcome import SomeEffect
 from rpy2.robjects.packages import importr
 
 from config import *
+from safe_ranges import safe_ranges
 
-start = time.time()
-
+data_path = data_path.replace(".csv", "_end.csv")
 
 df = pd.read_csv(data_path, index_col=0)
 
+within_safe_range = np.ones(len(df)).astype(bool)
+
+dag_path = "dags/dag_3_reduced.dot"
 causal_dag = CausalDAG(dag_path)
 
 dtypes = {np.dtype("float64"): float, np.dtype("int64"): int}
@@ -49,8 +50,14 @@ scenario.setup_treatment_variables()
 causal_specification = CausalSpecification(scenario, causal_dag)
 data_collector = ObservationalDataCollector(scenario, data)
 
-treatment = "MV101_1"
-outcome = f"{outcome}_{timesteps}"
+treatment_var = "MV101"
+start = 15
+end = 30
+# Can we collapse these in the DAG?
+treatment = f"{treatment_var}_{start}"
+# outcome = f"{outcome}_{timesteps}"
+outcome = "LIT101_60"
+print("Outcome", outcome)
 
 
 base_test_case = BaseTestCase(
@@ -68,11 +75,27 @@ causal_test_case = CausalTestCase(
 
 estimator_kwargs = {}
 print("Identifying")
+
 dagitty = importr("dagitty")
 dagitty_dag = dagitty.dagitty("dag {" + ";\n".join([f"{x} -> {y}" for x, y in causal_dag.graph.edges]) + "}")
-[adjustment_set] = list(dagitty.adjustmentSets(dagitty_dag, exposure=treatment, outcome=outcome, max_results=1))
+[adjustment_set] = list(
+    dagitty.adjustmentSets(dagitty_dag, exposure=treatment, outcome=outcome, max_results=1, effect="total")
+)
 minimal_adjustment_set = set(adjustment_set)
-# minimal_adjustment_set = causal_specification.causal_dag.identification(causal_test_case.base_test_case, max_results=1)
+print("R Identified", minimal_adjustment_set)
+
+
+minimal_adjustment_set = causal_dag.identification(causal_test_case.base_test_case, max_results=10)
+
+parents = set(
+    filter(
+        lambda n: int(n.split("_")[1]) == start - timesteps_per_intervention,
+        causal_dag.graph.nodes,
+    )
+)
+
+minimal_adjustment_set = parents
+
 print("Identified", minimal_adjustment_set)
 estimator_kwargs["adjustment_set"] = minimal_adjustment_set
 
@@ -83,31 +106,14 @@ estimator_kwargs["outcome"] = causal_test_case.outcome_variable.name
 estimator_kwargs["effect_modifiers"] = causal_test_case.effect_modifier_configuration
 estimator_kwargs["alpha"] = 0.05
 
-normal_data = df.query("not Attack")
-assert len(normal_data) > 0
-normal_estimation_estimator = LinearRegressionEstimator(**estimator_kwargs | {"df": normal_data})
-normal_causal_test_result = causal_test_case.execute_test(
-    estimator=normal_estimation_estimator, data_collector=data_collector
-)
-print(normal_causal_test_result)
+normal_data = df.query("not attack")
 
-attack_data = df.query("Attack")
-assert len(attack_data) > 0
-attack_estimation_estimator = LinearRegressionEstimator(**estimator_kwargs | {"df": attack_data})
-attack_causal_test_result = causal_test_case.execute_test(
-    estimator=attack_estimation_estimator, data_collector=data_collector
-)
-print(attack_causal_test_result)
-
-prediction_model = LinearRegressionEstimator(**estimator_kwargs | {"df": df}).model().fit()
-
-
-end = time.time()
-print(end - start)
-
-fig, [ax1, ax2] = plt.subplots(1, 2, sharey=True)
-ax1.scatter(normal_data[treatment], normal_data[outcome])
-ax2.scatter(attack_data[treatment], attack_data[outcome])
-ax1.set_title("Normal")
-ax2.set_title("Attack")
-plt.show()
+prediction_model = LinearRegressionEstimator(**estimator_kwargs | {"df": df})._run_linear_regression()
+print(prediction_model.params)
+normal_trace = normal_data.iloc[[4]].copy()
+print("    Observed value", normal_trace[outcome])
+prediction = prediction_model.predict(normal_trace)
+print("    Normal Prediction", prediction[4])
+normal_trace[treatment] = 2
+prediction = prediction_model.predict(normal_trace)
+print("    Attack Prediction", prediction[4])

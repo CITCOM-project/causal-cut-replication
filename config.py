@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 data_path = "data/timestep_data.csv"
 dag_path = "dags/dag_3.dot"
 
@@ -5,7 +7,7 @@ dag_path = "dags/dag_3.dot"
 outcome = "LIT101"
 
 # Interventions we apply along the way
-interventions = ["MV101", "P101", "P102"]
+interventions = OrderedDict([("MV101", 1), ("P101", 0), ("P102", 0)])
 
 timesteps_per_intervention = 15
 # Need the +1 because we need to wait timesteps between applying the last intervention and observing the outcome

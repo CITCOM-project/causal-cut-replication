@@ -42,7 +42,8 @@ for t in range(timesteps):
     for cause in flow.nodes():
         dag.add_node(f"{cause}_{t}", type=cause.attr["type"])
         dag.add_node(f"{cause}_{t+1}", type=cause.attr["type"])
-        dag.add_edge(f"{cause}_{t}", f"{cause}_{t+1}")
+        if cause.attr["type"] == "sensor":
+            dag.add_edge(f"{cause}_{t}", f"{cause}_{t+1}")
         for effect in flow.nodes():
             if add_edge(memo, cause, effect):
                 dag.add_node(f"{effect}_{t+1}", type=effect.attr["type"])
