@@ -29,22 +29,12 @@ novCEA.loc[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 0), "pxo2"] = 
 # IPCW step 3: For each individual at each time, compute the inverse probability of remaining uncensored
 # Estimate the probabilities of remaining ‘un-switched’ and hence the weights
 
-novCEA["num"] = nan
-novCEA["denom"] = nan
-for subj, temp_subset in novCEA.groupby("id"):
-    temp_subset = novCEA.loc[novCEA.id == subj].sort_values("time")
-    temp_subset.at[temp_subset.index[0], "num"] = 1 - temp_subset.at[temp_subset.index[0], "pxo1"]
-    temp_subset.at[temp_subset.index[0], "denom"] = 1 - temp_subset.at[temp_subset.index[0], "pxo2"]
+novCEA["num"] = 1 - novCEA["pxo1"]
+novCEA["denom"] = 1 - novCEA["pxo2"]
+prod = novCEA.sort_values(["id", "time"]).groupby("id")[["num", "denom"]].cumprod()
+novCEA["num"] = prod["num"]
+novCEA["denom"] = prod["denom"]
 
-    if len(temp_subset) > 1:
-        for i in temp_subset.index[1:]:
-            temp_subset.at[i, "num"] = temp_subset.at[i - 1, "num"] * (1 - temp_subset.at[i, "pxo1"])
-            temp_subset.at[i, "denom"] = temp_subset.at[i - 1, "denom"] * (1 - temp_subset.at[i, "pxo2"])
-    num = temp_subset["num"]
-    denom = temp_subset["denom"]
-    novCEA.loc[novCEA.id == subj] = temp_subset
-
-novCEA.to_csv("/tmp/novCEA.csv")
 assert not novCEA["num"].isnull().any(), f"{len(novCEA['num'].isnull())} null numerator values"
 assert not novCEA["denom"].isnull().any(), f"{len(novCEA['denom'].isnull())} null denom values"
 
