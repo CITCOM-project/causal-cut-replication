@@ -1,5 +1,17 @@
+"""
+This module puts timestep data into "long format", i.e. each row represents one
+timestep of one run.
+"""
 import pandas as pd
-import config
+import argparse
+
+parser = argparse.ArgumentParser(prog="long_format_data", description="Converts timestep data to long format.")
+parser.add_argument("timesteps", type=int, help="The number of timesteps per run.")
+parser.add_argument("-s", "--timeskip", type=int, help="The amount of time in between runs.")
+args = parser.parse_args()
+
+if args.timeskip is None:
+    args.timeskip = args.timesteps
 
 actuators = [
     "MV101",
@@ -38,16 +50,16 @@ for actuator in actuators:
 
 
 def setup_subject(i):
-    subject = data.iloc[i : i + config.timesteps + 1].copy()
-    assert len(subject == config.timesteps)
+    subject = data.iloc[i : i + args.timesteps + 1].copy()
+    assert len(subject == args.timesteps)
     subject["id"] = i
-    subject["time"] = list(range(config.timesteps + 1))
+    subject["time"] = list(range(args.timesteps + 1))
     subject["Attack"] = [x == "Attack" for x in subject["Normal/Attack"]]
     subject = subject.loc[subject.time % 15 == 0]
     return subject
 
 
-individuals = range(0, len(data) - config.timesteps, config.timesteps)
+individuals = range(0, len(data) - args.timesteps, args.timeskip)
 subjects = (setup_subject(i) for i in individuals)
 
 data = pd.concat(subjects)
