@@ -10,6 +10,44 @@ from collections import OrderedDict
 from tqdm import tqdm
 
 
+class Capability:
+    def __init__(self, variable, value, time):
+        self.variable = variable
+        self.value = value
+        self.time = time
+
+    def __eq__(self, other):
+        return self.variable == other.variable and self.value == other.value and self.time == other.time
+
+    def __repr__(self):
+        return f"({self.variable}, {self.value}, {self.time})"
+
+
+class CapabilityList:
+    def __init__(self, timesteps_per_intervention, capabilities):
+        self.timesteps_per_intervention = timesteps_per_intervention
+        self.capabilities = [
+            Capability(var, val, t)
+            for (var, val), t in zip(
+                capabilities,
+                range(
+                    timesteps_per_intervention,
+                    (len(capabilities) * timesteps_per_intervention) + 1,
+                    timesteps_per_intervention,
+                ),
+            )
+        ]
+
+    def set_value(self, inx, value):
+        print(f"Setting capability {inx} to value {value}: {self.capabilities}")
+        self.capabilities[inx].value = value
+
+    def treatment_strategy(self, inx, value):
+        strategy = CapabilityList(self.timesteps_per_intervention, [(c.variable, c.value) for c in self.capabilities])
+        strategy.set_value(inx, value)
+        return strategy
+
+
 def setup_xo_t_do(strategy_assigned, strategy_followed):
     censored = False
     result = []
@@ -68,8 +106,8 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
         individual = individual.loc[individual.time % timesteps_per_intervention == 0].copy()
 
         strategy = [
-            (time, (var, individual.loc[individual.time == time, var].values[0]))
-            for time, (var, _) in treatment_strategy
+            Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
+            for c in treatment_strategy.capabilities
         ]
         individual["fault_t_do"] = setup_fault_t_do(
             individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]
@@ -94,17 +132,17 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
         # Control flow:
         # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
         # Individuals that don't start off in either arm need leaving out (hence two ifs rather than elif or else)
-        if strategy[0] == control_strategy[0]:
+        if strategy[0] == control_strategy.capabilities[0]:
             individual["id"] = id
             id += 1
             individual["trtrand"] = 0
-            individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy)
+            individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
             individuals.append(individual.loc[individual.time <= fault_time].copy())
-        if strategy[0] == treatment_strategy[0]:
+        if strategy[0] == treatment_strategy.capabilities[0]:
             individual["id"] = id
             id += 1
             individual["trtrand"] = 1
-            individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy)
+            individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
             individuals.append(individual.loc[individual.time <= fault_time].copy())
     df = pd.concat(individuals)
     df.to_csv("data/long_preprocessed.csv")
@@ -182,26 +220,11 @@ def estimate_hazard_ratio(novCEA, timesteps_per_intervention, fitBLswitch_formul
 
 if __name__ == "__main__":
     df = pd.read_csv("data/long_data.csv")
-    control = OrderedDict([("MV101", 1), ("P101", 0), ("P102", 0)])
     timesteps_per_intervention = 15
-    timesteps = (len(control) + 1) * timesteps_per_intervention
+    control_strategy = CapabilityList(15, [("MV101", 1), ("P101", 0), ("P102", 0)])
+    treatment_strategy = control_strategy.treatment_strategy(1, 1)
     outcome = "LIT101"
 
-    treatment = control.copy()
-    treatment["P101"] = 1
-
-    control_strategy = list(
-        zip(
-            range(timesteps_per_intervention, timesteps + 1, timesteps_per_intervention),
-            control.items(),
-        )
-    )
-    treatment_strategy = list(
-        zip(
-            range(timesteps_per_intervention, timesteps + 1, timesteps_per_intervention),
-            treatment.items(),
-        )
-    )
     print(treatment_strategy)
     preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
     novCEA = pd.read_csv("data/long_preprocessed.csv")
