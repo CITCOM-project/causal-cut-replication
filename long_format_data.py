@@ -43,7 +43,12 @@ actuators = [
     "P603",
 ]
 
-data = pd.concat([pd.read_csv("data/SWaT_Dataset_Normal_v0.csv"), pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")])
+data = pd.concat(
+    [
+        # pd.read_csv("data/SWaT_Dataset_Normal_v0.csv"),
+        pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")
+    ]
+)
 
 for actuator in actuators:
     data[actuator] = [int(x > 1) for x in data[actuator]]
@@ -55,7 +60,7 @@ def setup_subject(i):
     subject["id"] = i
     subject["time"] = list(range(args.timesteps + 1))
     subject["Attack"] = [x == "Attack" for x in subject["Normal/Attack"]]
-    subject = subject.loc[subject.time % 15 == 0]
+    # subject = subject.loc[subject.time % 15 == 0]
     return subject
 
 
