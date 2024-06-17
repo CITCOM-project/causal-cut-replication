@@ -2,18 +2,12 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from numpy import exp, append, nan
 from lifelines import CoxPHFitter, CoxTimeVaryingFitter
-from lifelines.exceptions import ConvergenceError
 import matplotlib.pyplot as plt
 import argparse
 from safe_ranges import safe_ranges
+import random
 from collections import OrderedDict
 from tqdm import tqdm
-from scipy.stats import kurtosis
-import networkx as nx
-import numpy as np
-from multiprocessing import Pool
-import warnings
-import jsonpickle
 
 
 class Capability:
@@ -45,15 +39,13 @@ class CapabilityList:
         ]
 
     def set_value(self, inx, value):
+        print(f"Setting capability {inx} to value {value}: {self.capabilities}")
         self.capabilities[inx].value = value
 
     def treatment_strategy(self, inx, value):
         strategy = CapabilityList(self.timesteps_per_intervention, [(c.variable, c.value) for c in self.capabilities])
         strategy.set_value(inx, value)
         return strategy
-
-    def total_time(self):
-        return (len(self.capabilities) + 1) * self.timesteps_per_intervention
 
 
 def setup_xo_t_do(strategy_assigned, strategy_followed):
@@ -111,9 +103,7 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     print("Preprocessing groups")
     for id, individual in tqdm(df.groupby("id")):
         fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
-        individual = individual.loc[
-            (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
-        ].copy()
+        individual = individual.loc[individual.time % timesteps_per_intervention == 0].copy()
 
         strategy = [
             Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
@@ -158,9 +148,7 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     df.to_csv("data/long_preprocessed.csv")
 
 
-def estimate_hazard_ratio(
-    novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=False
-):
+def estimate_hazard_ratio(novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula):
     # Use logistic regression to predict switching given baseline covariates
     fitBLswitch = smf.logit(fitBLswitch_formula, data=novCEA[novCEA.trtrand == 0]).fit()
 
@@ -217,100 +205,29 @@ def estimate_hazard_ratio(
     #  IPCW step 4: Use these weights in a weighted analysis of the outcome model
     # Estimate the KM graph and IPCW hazard ratio using Cox regression.
     cox_ph = CoxPHFitter()
-    try:
-        cox_ph.fit(
-            df=novCEA_KM,
-            duration_col="tout",
-            event_col="fault_t_do",
-            weights_col="weight",
-            cluster_col="id",
-            robust=True,
-            formula="trtrand",
-            entry_col="tin",
-        )
-    except ConvergenceError:
-        print("ConvergenceError: Unable to estimate hazard ratio")
-        return None, None
-    if print_summary:
-        cox_ph.print_summary()
-    return cox_ph.params_, cox_ph.confidence_intervals_
+    cox_ph.fit(
+        df=novCEA_KM,
+        duration_col="tout",
+        event_col="fault_t_do",
+        weights_col="weight",
+        cluster_col="id",
+        robust=True,
+        formula="trtrand",
+        entry_col="tin",
+    )
+    cox_ph.print_summary()
 
 
 if __name__ == "__main__":
     df = pd.read_csv("data/long_data.csv")
-    dag = nx.nx_pydot.read_dot("flow_raw.dot")
-    num_repeats = 100
-    with open("successful_attacks.json") as f:
-        successful_attacks = jsonpickle.decode("".join(f.readlines()))
-    data = []
-
     timesteps_per_intervention = 15
+    control_strategy = CapabilityList(15, [("MV101", 1), ("P101", 0), ("P102", 0)])
+    treatment_strategy = control_strategy.treatment_strategy(1, 1)
+    outcome = "LIT101"
 
-    successful_attacks = {
-        "LIT101 (High)": [[["MV101", 1]], [["MV101", 1], ["P101", 0], ["P102", 0]], [["MV101", 1], ["MV201", 0]]],
-    }
-
-    for outcome in successful_attacks:
-        for capabilities in successful_attacks[outcome]:
-            control_strategy = CapabilityList(timesteps_per_intervention, capabilities)
-            outcome = outcome.split(" ")[0]
-
-            print(control_strategy.capabilities)
-
-            for i, capability in enumerate(control_strategy.capabilities):
-                datum = {"control_strategy": control_strategy.capabilities}
-                datum = {"outcome": outcome}
-
-                # Treatment strategy is the same, but with one capability negated
-                # i.e. we examine the counterfactual "What if we had not done that?"
-                treatment_strategy = control_strategy.treatment_strategy(i, int(not capability.value))
-                datum["treatment_strategy"] = treatment_strategy.capabilities
-                preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
-                novCEA = pd.read_csv("data/long_preprocessed.csv")
-                fitBLswitch_formula = "xo_t_do ~ time + I(time**2)"
-
-                neighbours = list(dag.predecessors(capability.variable))
-                neighbours += list(dag.successors(capability.variable))
-                assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
-
-                fitBLTDswitch_formula = f"{fitBLswitch_formula} + {' + '.join(neighbours)}"
-                datum["fitBLTDswitch_formula"] = fitBLTDswitch_formula
-
-                params, confidence_intervals = estimate_hazard_ratio(
-                    novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula
-                )
-                if params is None:
-                    "FAILURE: Params was None"
-                    continue
-
-                def estimate_hazard_ratio_parallel(ids):
-                    try:
-                        params, _ = estimate_hazard_ratio(
-                            novCEA[novCEA["id"].isin(ids)].copy(),
-                            timesteps_per_intervention,
-                            fitBLswitch_formula,
-                            fitBLTDswitch_formula,
-                        )
-                        return params
-                    except np.linalg.LinAlgError:
-                        return None
-                    except ValueError:
-                        return None
-
-                ids = list(set(novCEA["id"]))
-
-                pool = Pool()
-                params_repeats = pool.map(
-                    estimate_hazard_ratio_parallel,
-                    [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
-                )
-                params_repeats = [x for x in params_repeats if x is not None]
-                datum["params_repeats"] = [p.to_dict() for p in params_repeats]
-
-                datum["Total Effect"] = params.to_dict()
-                datum["Mean effect"] = (sum(params_repeats) / len(params_repeats)).to_dict()
-                datum["Kurtosis"] = kurtosis(params_repeats).tolist()
-                datum["Successes"] = len(params_repeats)
-                data.append(datum)
-                with open("output.json", "w") as f:
-                    print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
+    print(treatment_strategy)
+    preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
+    novCEA = pd.read_csv("data/long_preprocessed.csv")
+    fitBLswitch_formula = "xo_t_do ~ time + I(time**2)"
+    fitBLTDswitch_formula = f"{fitBLswitch_formula} + FIT201 + MV101 + LIT101"
+    estimate_hazard_ratio(novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula)

@@ -1,14 +1,20 @@
 safe_ranges = {
     "FIT101": {"lolo": 0, "lo": 1.0, "hi": 3.0, "hihi": 4.0},
     "FIT201": {"lolo": 0, "lo": 0.4, "hi": 2.0, "hihi": 3.5},
-    "FIT301": {"lolo": 0, "hihi": 2},
-    "FIT401": {"lolo": 0, "hihi": 1},
-    "FIT501": {"lolo": 0, "hihi": 1},
+    # "FIT301": {"lolo": 0, "hihi": 2},
+    "FIT301": {"lolo": 0.0, "lo": 0.0, "hi": 3.0, "hihi": 3.5},
+    # "FIT401": {"lolo": 0, "hihi": 1},
+    "FIT401": {"lolo": 0.5, "lo": 1.0, "hi": 2.0, "hihi": 3.0},
+    # "FIT501": {"lolo": 0, "hihi": 1},
+    "FIT501": {"lolo": 0.0, "lo": 1.0, "hi": 2.0, "hihi": 3.0},
     # "FIT601": {"lolo": 0, "hihi": 1.5},
-    "DPIT301": {"lolo": 0, "hihi": 10},
+    # "DPIT301": {"lolo": 0, "hihi": 10},
+    "DPIT301": {"lolo": 10.0, "lo": 15.0, "hi": 40.0, "hihi": 100.0},
     "LIT101": {"lolo": 0, "lo": 250, "hi": 550, "hihi": 600},
-    "LIT301": {"lolo": 0, "hihi": 1000},
-    "LIT401": {"lolo": 0, "hihi": 800},
+    # "LIT301": {"lolo": 0, "hihi": 1000},
+    "LIT301": {"lolo": 250.0, "lo": 800.0, "hi": 1000.0, "hihi": 1200.0},
+    # "LIT401": {"lolo": 0, "hihi": 800},
+    "LIT401": {"lolo": 250.0, "lo": 800.0, "hi": 1000.0, "hihi": 1100.0},
 }
 
 # safe_ranges = {
