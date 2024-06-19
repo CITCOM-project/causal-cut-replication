@@ -43,12 +43,7 @@ actuators = [
     "P603",
 ]
 
-data = pd.concat(
-    [
-        # pd.read_csv("data/SWaT_Dataset_Normal_v0.csv"),
-        pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")
-    ]
-)
+data = pd.concat([pd.read_csv("data/SWaT_Dataset_Normal_v0.csv"), pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")])
 
 for actuator in actuators:
     data[actuator] = [int(x > 1) for x in data[actuator]]

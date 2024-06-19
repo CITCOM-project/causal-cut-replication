@@ -8,6 +8,7 @@ safe_ranges = {
     # "FIT501": {"lolo": 0, "hihi": 1},
     "FIT501": {"lolo": 0.0, "lo": 1.0, "hi": 2.0, "hihi": 3.0},
     # "FIT601": {"lolo": 0, "hihi": 1.5},
+    "FIT601": {"lolo": 0.5, "lo": 1.0, "hi": 2.0, "hihi": 3.0},
     # "DPIT301": {"lolo": 0, "hihi": 10},
     "DPIT301": {"lolo": 10.0, "lo": 15.0, "hi": 40.0, "hihi": 100.0},
     "LIT101": {"lolo": 0, "lo": 250, "hi": 550, "hihi": 600},

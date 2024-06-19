@@ -14,6 +14,7 @@ import numpy as np
 from multiprocessing import Pool
 import warnings
 import jsonpickle
+from patsy import dmatrix
 
 
 class Capability:
@@ -75,8 +76,7 @@ def setup_fault_t_do(values, min, max):
     for value in values:
         fault = not (min <= value <= max)
         result.append((not fault_occurred) and fault)
-        if (not fault_occurred) and fault:
-            fault_occurred == True
+        fault_occurred = fault_occurred or fault
     return [int(x) for x in result]
 
 
@@ -108,9 +108,15 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
 
     individuals = []
     new_id = 0
-    print("Preprocessing groups")
+    print("  Preprocessing groups")
     for id, individual in tqdm(df.groupby("id")):
         fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
+        if fault_time is None:
+            fault_time = individual.time.max() + timesteps_per_intervention
+        fault_time -= 0.001
+        if fault_time <= 0:
+            continue
+        individual["fault_time"] = fault_time
         individual = individual.loc[
             (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
         ].copy()
@@ -122,6 +128,10 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
         individual["fault_t_do"] = setup_fault_t_do(
             individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]
         )
+        individual.to_csv("/tmp/fault.csv")
+        assert (
+            sum(individual["fault_t_do"]) <= 1
+        ), f"Error initialising fault_t_do for id {id} with fault at {fault_time}"
         individual["now_prog_t_dc"] = setup_fault_t_do(
             individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
         )
@@ -130,11 +140,6 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
             ~individual[outcome].between(safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]),
             "time",
         ]
-
-        if fault_time is None:
-            fault_time = individual.time.max() + timesteps_per_intervention
-        fault_time -= 0.001
-        individual["fault_time"] = fault_time
 
         if fault_time <= 0:
             continue
@@ -155,19 +160,25 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
             individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
             individuals.append(individual.loc[individual.time <= fault_time].copy())
     df = pd.concat(individuals)
-    df.to_csv("data/long_preprocessed.csv")
+    df.to_csv("data/long_preprocessed.csv", index=False)
 
 
 def estimate_hazard_ratio(
     novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=False
 ):
     # Use logistic regression to predict switching given baseline covariates
+    print(f"  predict switching given baseline covariates: {fitBLswitch_formula}")
     fitBLswitch = smf.logit(fitBLswitch_formula, data=novCEA[novCEA.trtrand == 0]).fit()
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo1"] = fitBLswitch.predict(novCEA)
 
     # Use logistic regression to predict switching given baseline and time-updated covariates (model S12)
+    print(f"  predict switching given baseline and time-updated covariates: {fitBLTDswitch_formula}")
+    # Covariance matrix to examine colinearities
+    # relevant_features = fitBLTDswitch_formula.split(" ~ ")[1].split(" + ")
+    # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
+
     fitBLTDswitch = smf.logit(
         fitBLTDswitch_formula,
         data=novCEA[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
@@ -243,19 +254,54 @@ if __name__ == "__main__":
     with open("successful_attacks.json") as f:
         successful_attacks = jsonpickle.decode("".join(f.readlines()))
     data = []
+    adequacy = False
 
     timesteps_per_intervention = 15
 
-    successful_attacks = {
-        "LIT101 (High)": [[["MV101", 1]], [["MV101", 1], ["P101", 0], ["P102", 0]], [["MV101", 1], ["MV201", 0]]],
-    }
+    # These all work
+    # successful_attacks = {
+    #     "LIT101 (High)": [[["MV101", 1]], [["MV101", 1], ["P101", 0], ["P102", 0]], [["MV101", 1], ["MV201", 0]]],
+    # }
 
-    for outcome in successful_attacks:
-        for capabilities in successful_attacks[outcome]:
+    for outcome, attacks in successful_attacks.items():
+        print()
+        print("OUTCOME", outcome)
+        outcome = outcome.split(" ")[0]
+
+        if outcome not in df:
+            print(f"Missing data for {outcome}")
+            continue
+
+        if (
+            len(df.loc[(df[outcome] < safe_ranges[outcome]["lolo"]) | (df[outcome] > safe_ranges[outcome]["hihi"])])
+            == 0
+        ):
+            print(
+                f"  No faults with {outcome}. Cannot perform estimation.\n"
+                f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
+                f"  Safe range {safe_ranges[outcome]}"
+            )
+            continue
+        if len(
+            df.loc[(df[outcome] < safe_ranges[outcome]["lolo"]) | (df[outcome] > safe_ranges[outcome]["hihi"])]
+        ) == len(df):
+            print(
+                f"  All faults with {outcome}. Cannot perform estimation.\n"
+                f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
+                f"  Safe range {safe_ranges[outcome]}"
+            )
+            continue
+
+        for capabilities in attacks:
             control_strategy = CapabilityList(timesteps_per_intervention, capabilities)
-            outcome = outcome.split(" ")[0]
+            print("  CONTROL STRATEGY", control_strategy.capabilities)
 
-            print(control_strategy.capabilities)
+            if any(c.variable not in df for c in control_strategy.capabilities):
+                print("  Missing data for control_strategy")
+                continue
+            if any(c.variable not in dag.nodes for c in control_strategy.capabilities):
+                print("  Missing node for control_strategy")
+                break
 
             for i, capability in enumerate(control_strategy.capabilities):
                 datum = {"control_strategy": control_strategy.capabilities}
@@ -264,13 +310,27 @@ if __name__ == "__main__":
                 # Treatment strategy is the same, but with one capability negated
                 # i.e. we examine the counterfactual "What if we had not done that?"
                 treatment_strategy = control_strategy.treatment_strategy(i, int(not capability.value))
+                print("  TREATMENT STRATEGY", treatment_strategy.capabilities)
                 datum["treatment_strategy"] = treatment_strategy.capabilities
                 preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
+
                 novCEA = pd.read_csv("data/long_preprocessed.csv")
-                fitBLswitch_formula = "xo_t_do ~ time + I(time**2)"
+
+                print(f"  {novCEA['fault_t_do'].sum()}/{len(novCEA.groupby('id'))} faulty runs observed")
+
+                for id, group in novCEA.groupby("id"):
+                    assert sum(group["fault_t_do"]) <= 1, f"Multiple fault times for id {id}\n{group}"
+
+                fitBLswitch_formula = "xo_t_do ~ time"
 
                 neighbours = list(dag.predecessors(capability.variable))
                 neighbours += list(dag.successors(capability.variable))
+
+                if capability.variable == "P402":
+                    neighbours.remove("FIT501")
+                    neighbours.remove("AIT402")
+                    neighbours.remove("FIT401")
+
                 assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
 
                 fitBLTDswitch_formula = f"{fitBLswitch_formula} + {' + '.join(neighbours)}"
@@ -280,37 +340,40 @@ if __name__ == "__main__":
                     novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula
                 )
                 if params is None:
-                    "FAILURE: Params was None"
+                    print("  FAILURE: Params was None")
                     continue
-
-                def estimate_hazard_ratio_parallel(ids):
-                    try:
-                        params, _ = estimate_hazard_ratio(
-                            novCEA[novCEA["id"].isin(ids)].copy(),
-                            timesteps_per_intervention,
-                            fitBLswitch_formula,
-                            fitBLTDswitch_formula,
-                        )
-                        return params
-                    except np.linalg.LinAlgError:
-                        return None
-                    except ValueError:
-                        return None
-
-                ids = list(set(novCEA["id"]))
-
-                pool = Pool()
-                params_repeats = pool.map(
-                    estimate_hazard_ratio_parallel,
-                    [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
-                )
-                params_repeats = [x for x in params_repeats if x is not None]
-                datum["params_repeats"] = [p.to_dict() for p in params_repeats]
-
                 datum["Total Effect"] = params.to_dict()
-                datum["Mean effect"] = (sum(params_repeats) / len(params_repeats)).to_dict()
-                datum["Kurtosis"] = kurtosis(params_repeats).tolist()
-                datum["Successes"] = len(params_repeats)
+
+                if adequacy:
+
+                    def estimate_hazard_ratio_parallel(ids):
+                        try:
+                            params, _ = estimate_hazard_ratio(
+                                novCEA[novCEA["id"].isin(ids)].copy(),
+                                timesteps_per_intervention,
+                                fitBLswitch_formula,
+                                fitBLTDswitch_formula,
+                            )
+                            return params
+                        except np.linalg.LinAlgError:
+                            return None
+                        except ValueError:
+                            return None
+
+                    ids = list(set(novCEA["id"]))
+
+                    pool = Pool()
+                    params_repeats = pool.map(
+                        estimate_hazard_ratio_parallel,
+                        [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
+                    )
+                    params_repeats = [x for x in params_repeats if x is not None]
+                    datum["params_repeats"] = [p.to_dict() for p in params_repeats]
+
+                    datum["Mean effect"] = (sum(params_repeats) / len(params_repeats)).to_dict()
+                    datum["Kurtosis"] = kurtosis(params_repeats).tolist()
+                    datum["Successes"] = len(params_repeats)
                 data.append(datum)
+                print(" ", datum)
                 with open("output.json", "w") as f:
                     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)

@@ -28,9 +28,6 @@ digraph dag{
     DPIT301[type = "sensor" color = "blue"];
     FIT301[type = "sensor" color = "blue"];
     LIT301[type = "sensor" color = "blue"];
-    AIT301[type = "sensor" color = "blue"];
-    AIT302[type = "sensor" color = "blue"];
-    AIT303[type = "sensor" color = "blue"];
     MV302[type = "actuator" color = "green"];
     MV301[type = "actuator" color = "green"];
     P301[type = "actuator" color = "green"];
@@ -80,12 +77,6 @@ digraph dag{
   AIT201 -> P206;
   AIT202 -> MV201;
   AIT203 -> MV201;
-  AIT301 -> P401;
-  AIT301 -> P402;
-  AIT302 -> P401;
-  AIT302 -> P402;
-  AIT303 -> P401;
-  AIT303 -> P402;
   AIT401 -> P501;
   AIT401 -> P502;
   AIT402 -> P501;
@@ -129,9 +120,6 @@ digraph dag{
   MV101 -> LIT101;
   MV201 -> LIT301;
   MV301 -> DPIT301;
-  MV302 -> AIT301;
-  MV302 -> AIT302;
-  MV302 -> AIT303;
   MV302 -> LIT401;
   MV502 -> DPIT301;
   MV503 -> DPIT301;
