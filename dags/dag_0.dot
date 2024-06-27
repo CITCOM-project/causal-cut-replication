@@ -118,6 +118,10 @@ strict digraph "" {
 	DPIT301_0 -> P301_1;
 	P302_1	[type=actuator];
 	DPIT301_0 -> P302_1;
+	MV502_1	[type=actuator];
+	DPIT301_0 -> MV502_1;
+	MV503_1	[type=actuator];
+	DPIT301_0 -> MV503_1;
 	P602_1	[type=actuator];
 	DPIT301_0 -> P602_1;
 	FIT301_0	[type=sensor];
@@ -242,6 +246,8 @@ strict digraph "" {
 	AIT503_0 -> P404_1;
 	AIT504_0	[type=sensor];
 	AIT504_0 -> MV301_1;
+	AIT504_0 -> MV502_1;
+	AIT504_0 -> MV503_1;
 	AIT504_0 -> P602_1;
 	AIT504_0 -> AIT504_1;
 	AIT504_0 -> P501_1;
@@ -256,6 +262,8 @@ strict digraph "" {
 	FIT501_0 -> P404_1;
 	FIT502_0	[type=sensor];
 	FIT502_0 -> MV301_1;
+	FIT502_0 -> MV502_1;
+	FIT502_0 -> MV503_1;
 	FIT502_0 -> P602_1;
 	FIT502_0 -> FIT502_1;
 	FIT502_0 -> P501_1;
@@ -264,6 +272,7 @@ strict digraph "" {
 	FIT502_0 -> P601_1;
 	FIT503_0	[type=sensor];
 	FIT503_0 -> MV301_1;
+	FIT503_0 -> MV502_1;
 	FIT503_0 -> P602_1;
 	FIT503_0 -> FIT503_1;
 	FIT503_0 -> P501_1;
@@ -290,6 +299,15 @@ strict digraph "" {
 	P502_0 -> AIT502_1;
 	P502_0 -> AIT503_1;
 	P502_0 -> FIT501_1;
+	MV502_0	[type=actuator];
+	MV502_0 -> DPIT301_1;
+	MV502_0 -> AIT504_1;
+	MV502_0 -> FIT502_1;
+	MV502_0 -> FIT503_1;
+	MV503_0	[type=actuator];
+	MV503_0 -> DPIT301_1;
+	MV503_0 -> AIT504_1;
+	MV503_0 -> FIT502_1;
 	P601_0	[type=actuator];
 	P601_0 -> FIT502_1;
 	P602_0	[type=actuator];

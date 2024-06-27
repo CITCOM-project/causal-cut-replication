@@ -66,9 +66,9 @@ nx.drawing.nx_agraph.write_dot(dag, f"dags/dag_{len(interventions)}.dot")
 #     dag.remove_edges_from([(node, f"{intervention}_{t}") for node in dag.predecessors(f"{intervention}_{t}")])
 #     nx.set_node_attributes(dag, {f"{intervention}_{t}": {"fillcolor": "red", "style": "filled"}})
 
-print(data.columns)
-nodes_to_delete = [node for node in dag.nodes if node not in data.columns]
-for node in nodes_to_delete:
-    dag.remove_node(node)
+# print(data.columns)
+# nodes_to_delete = [node for node in dag.nodes if node not in data.columns]
+# for node in nodes_to_delete:
+#     dag.remove_node(node)
 
 nx.drawing.nx_agraph.write_dot(dag, f"dags/dag_{len(interventions)}.dot")
