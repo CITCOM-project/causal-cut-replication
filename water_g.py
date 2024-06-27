@@ -98,6 +98,44 @@ def setup_recent_prog_t_dc(now_prog_t_dc):
     return result
 
 
+def process_individual(individual, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
+    fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
+    if fault_time is None:
+        fault_time = individual.time.max() + timesteps_per_intervention
+    fault_time -= 0.001
+    if fault_time <= 0:
+        return None
+
+    individual["fault_time"] = fault_time
+    individual = individual.loc[
+        (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
+        ].copy()
+
+    strategy = [
+        Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
+        for c in treatment_strategy.capabilities
+    ]
+    individual["fault_t_do"] = setup_fault_t_do(
+        individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]
+    )
+    assert sum(individual["fault_t_do"]) <= 1, f"Error initialising fault_t_do with fault at {fault_time}"
+    individual["now_prog_t_dc"] = setup_fault_t_do(
+        individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
+    )
+    individual["recent_prog_t_dc"] = setup_recent_prog_t_dc(individual["now_prog_t_dc"])
+
+    if strategy[0] == control_strategy.capabilities[0]:
+        individual["trtrand"] = 0
+        individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
+        return individual.loc[individual.time <= fault_time].copy()
+
+    if strategy[0] == treatment_strategy.capabilities[0]:
+        individual["trtrand"] = 1
+        individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
+        return individual.loc[individual.time <= fault_time].copy()
+
+    return None
+
 def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
     df["trtrand"] = None  # treatment/control arm
     df["fault_t_do"] = None  # did a fault occur here?
@@ -106,62 +144,13 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
     df["fault_time"] = None  # when did a fault occur?
 
-    individuals = []
-    new_id = 0
-    print("  Preprocessing groups")
-    for id, individual in tqdm(df.groupby("id")):
-        fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
-        if fault_time is None:
-            fault_time = individual.time.max() + timesteps_per_intervention
-        fault_time -= 0.001
-        if fault_time <= 0:
-            continue
-        individual["fault_time"] = fault_time
-        individual = individual.loc[
-            (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
-        ].copy()
+    tqdm.pandas(desc=" Processing groups")
 
-        strategy = [
-            Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
-            for c in treatment_strategy.capabilities
-        ]
-        individual["fault_t_do"] = setup_fault_t_do(
-            individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]
-        )
-        individual.to_csv("/tmp/fault.csv")
-        assert (
-            sum(individual["fault_t_do"]) <= 1
-        ), f"Error initialising fault_t_do for id {id} with fault at {fault_time}"
-        individual["now_prog_t_dc"] = setup_fault_t_do(
-            individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
-        )
-        individual["recent_prog_t_dc"] = setup_recent_prog_t_dc(individual["now_prog_t_dc"])
-        faulty = individual.loc[
-            ~individual[outcome].between(safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"]),
-            "time",
-        ]
+    processed_groups = df.groupby("id").progress_apply(
+        lambda group: process_individual(group, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
+    )
 
-        if fault_time <= 0:
-            continue
-
-        # Control flow:
-        # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
-        # Individuals that don't start off in either arm need leaving out (hence two ifs rather than elif or else)
-        if strategy[0] == control_strategy.capabilities[0]:
-            individual["id"] = id
-            id += 1
-            individual["trtrand"] = 0
-            individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
-            individuals.append(individual.loc[individual.time <= fault_time].copy())
-        if strategy[0] == treatment_strategy.capabilities[0]:
-            individual["id"] = id
-            id += 1
-            individual["trtrand"] = 1
-            individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
-            individuals.append(individual.loc[individual.time <= fault_time].copy())
-    df = pd.concat(individuals)
-    df.to_csv("data/long_preprocessed.csv", index=False)
-
+    processed_groups.to_csv("data/long_preprocessed.csv", index=False)
 
 def estimate_hazard_ratio(
     novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=False
@@ -216,7 +205,7 @@ def estimate_hazard_ratio(
         axis=1
     )
 
-    novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
+    #novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
 
     assert (
         novCEA_KM["tin"] <= novCEA_KM["tout"]
