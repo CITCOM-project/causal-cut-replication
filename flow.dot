@@ -52,12 +52,8 @@ digraph dag {
     FIT501[type="sensor" color="blue"];
     FIT502[type="sensor" color="blue"];
     FIT503[type="sensor" color="blue"];
-    FIT504[type="sensor" color="blue"];
     P501[type="actuator" color="green"];
     P502[type="actuator" color="green"];
-    PIT501[type="sensor" color="blue"];
-    PIT502[type="sensor" color="blue"];
-    PIT503[type="sensor" color="blue"];
 
     MV501[type="actuator" color="green"];
     MV502[type="actuator" color="green"];
