@@ -46,8 +46,8 @@ actuators = [
 data = pd.concat(
     [
         # pd.read_csv("data/SWaT_Dataset_Normal_v0.csv"),
-        # pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")
-        pd.read_csv("data/simulator_training_data.csv")
+        pd.read_csv("data/SWaT_Dataset_Attack_v0.csv")
+        # pd.read_csv("data/simulator_training_data.csv")
     ]
 )
 
