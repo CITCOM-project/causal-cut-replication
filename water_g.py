@@ -16,7 +16,6 @@ import warnings
 import jsonpickle
 from patsy import dmatrix
 
-
 class Capability:
     def __init__(self, variable, value, time):
         self.variable = variable
@@ -97,8 +96,8 @@ def setup_recent_prog_t_dc(now_prog_t_dc):
         result.append(prog)
     return result
 
-
 def process_individual(individual, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
+
     fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
     if fault_time is None:
         fault_time = individual.time.max() + timesteps_per_intervention
@@ -136,19 +135,23 @@ def process_individual(individual, control_strategy, treatment_strategy, outcome
 
     return None
 
+
 def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
-    df["trtrand"] = None  # treatment/control arm
-    df["fault_t_do"] = None  # did a fault occur here?
-    df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
-    df["now_prog_t_dc"] = None  # has the situation progressed now?
-    df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
-    df["fault_time"] = None  # when did a fault occur?
+    # df["trtrand"] = None  # treatment/control arm
+    # df["fault_t_do"] = None  # did a fault occur here?
+    # df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
+    # df["now_prog_t_dc"] = None  # has the situation progressed now?
+    # df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
+    # df["fault_time"] = None  # when did a fault occur?
+
+    new_columns = ["trtrand", "fault_t_do", "xo_t_do", "now_prog_t_dc", "recent_prog_t_dc", "fault_time"]
+
+    df[new_columns] = np.nan
 
     tqdm.pandas(desc=" Processing groups")
 
     processed_groups = df.groupby("id").progress_apply(
-        lambda group: process_individual(group, control_strategy, treatment_strategy, outcome, timesteps_per_intervention)
-    )
+        lambda group: process_individual(group, control_strategy, treatment_strategy, outcome, timesteps_per_intervention))
 
     processed_groups.to_csv("data/long_preprocessed.csv", index=False)
 
