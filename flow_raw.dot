@@ -1,11 +1,5 @@
 digraph dag {
 	graph [rankdir=LR];
-	subgraph cluster_6 {
-		P601	[color=green,
-			type=actuator];
-		P602	[color=green,
-			type=actuator];
-	}
 	subgraph cluster_5 {
 		AIT501	[color=blue,
 			type=sensor];
@@ -48,16 +42,10 @@ digraph dag {
 		P404	[color=green,
 			type=actuator];
 	}
-	subgraph cluster_1 {
-		FIT101	[color=blue,
-			type=sensor];
-		MV101	[color=green,
+	subgraph cluster_6 {
+		P601	[color=green,
 			type=actuator];
-		LIT101	[color=blue,
-			type=sensor];
-		P101	[color=green,
-			type=actuator];
-		P102	[color=green,
+		P602	[color=green,
 			type=actuator];
 	}
 	subgraph cluster_2 {
@@ -98,6 +86,18 @@ digraph dag {
 		P301	[color=green,
 			type=actuator];
 		P302	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_1 {
+		FIT101	[color=blue,
+			type=sensor];
+		MV101	[color=green,
+			type=actuator];
+		LIT101	[color=blue,
+			type=sensor];
+		P101	[color=green,
+			type=actuator];
+		P102	[color=green,
 			type=actuator];
 	}
 	FIT101 -> MV101;
