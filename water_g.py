@@ -172,15 +172,14 @@ def estimate_hazard_ratio(
     # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
 
     fitBLTDswitch = smf.logit(
-        fitBLTDswitch_formula,
-        data=novCEA[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
+        fitBLTDswitch_formula, data=novCEA  # [(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
     ).fit()
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo2"] = fitBLTDswitch.predict(novCEA)
 
     # set prob of switching to zero where progtypetdc==0
-    novCEA.loc[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 0), "pxo2"] = 0
+    # novCEA.loc[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 0), "pxo2"] = 0
 
     # IPCW step 3: For each individual at each time, compute the inverse probability of remaining uncensored
     # Estimate the probabilities of remaining ‘un-switched’ and hence the weights
@@ -264,19 +263,16 @@ if __name__ == "__main__":
             print(f"Missing data for {outcome}")
             continue
 
-        if (
-            len(df.loc[(df[outcome] < safe_ranges[outcome]["lolo"]) | (df[outcome] > safe_ranges[outcome]["hihi"])])
-            == 0
-        ):
+        if len(df.loc[(df[outcome] < safe_ranges[outcome]["lo"]) | (df[outcome] > safe_ranges[outcome]["hi"])]) == 0:
             print(
                 f"  No faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
             continue
-        if len(
-            df.loc[(df[outcome] < safe_ranges[outcome]["lolo"]) | (df[outcome] > safe_ranges[outcome]["hihi"])]
-        ) == len(df):
+        if len(df.loc[(df[outcome] < safe_ranges[outcome]["lo"]) | (df[outcome] > safe_ranges[outcome]["hi"])]) == len(
+            df
+        ):
             print(
                 f"  All faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
@@ -334,7 +330,8 @@ if __name__ == "__main__":
                 if params is None:
                     print("  FAILURE: Params was None")
                     continue
-                datum["Total Effect"] = params.to_dict()
+                datum["risk_ratio"] = params.to_dict()
+                datum["risk_ratio"] = confidence_intervals.to_dict()
 
                 if adequacy:
 
@@ -362,10 +359,10 @@ if __name__ == "__main__":
                     params_repeats = [x for x in params_repeats if x is not None]
                     datum["params_repeats"] = [p.to_dict() for p in params_repeats]
 
-                    datum["Mean effect"] = (sum(params_repeats) / len(params_repeats)).to_dict()
-                    datum["Kurtosis"] = kurtosis(params_repeats).tolist()
-                    datum["Successes"] = len(params_repeats)
+                    datum["mean_risk_ratio"] = (sum(params_repeats) / len(params_repeats)).to_dict()
+                    datum["kurtosis"] = kurtosis(params_repeats).tolist()
+                    datum["successes"] = len(params_repeats)
                 data.append(datum)
                 print(" ", datum)
-                with open("output.json", "w") as f:
+                with open("logs/output_no_filter_lo_hi_sim.json", "w") as f:
                     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
