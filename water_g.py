@@ -16,6 +16,7 @@ import warnings
 import jsonpickle
 from patsy import dmatrix
 
+
 class Capability:
     def __init__(self, variable, value, time):
         self.variable = variable
@@ -88,16 +89,7 @@ def setup_fault_time(values, min, max):
     return None
 
 
-def setup_recent_prog_t_dc(now_prog_t_dc):
-    result = []
-    prog = False
-    for value in now_prog_t_dc:
-        prog = prog or value
-        result.append(prog)
-    return result
-
 def process_individual(individual, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
-
     fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lolo"], safe_ranges[outcome]["hihi"])
     if fault_time is None:
         fault_time = individual.time.max() + timesteps_per_intervention
@@ -108,7 +100,7 @@ def process_individual(individual, control_strategy, treatment_strategy, outcome
     individual["fault_time"] = fault_time
     individual = individual.loc[
         (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
-        ].copy()
+    ].copy()
 
     strategy = [
         Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
@@ -121,7 +113,6 @@ def process_individual(individual, control_strategy, treatment_strategy, outcome
     individual["now_prog_t_dc"] = setup_fault_t_do(
         individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
     )
-    individual["recent_prog_t_dc"] = setup_recent_prog_t_dc(individual["now_prog_t_dc"])
 
     if strategy[0] == control_strategy.capabilities[0]:
         individual["trtrand"] = 0
@@ -141,19 +132,22 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     # df["fault_t_do"] = None  # did a fault occur here?
     # df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
     # df["now_prog_t_dc"] = None  # has the situation progressed now?
-    # df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
     # df["fault_time"] = None  # when did a fault occur?
 
-    new_columns = ["trtrand", "fault_t_do", "xo_t_do", "now_prog_t_dc", "recent_prog_t_dc", "fault_time"]
+    new_columns = ["trtrand", "fault_t_do", "xo_t_do", "now_prog_t_dc", "fault_time"]
 
     df[new_columns] = np.nan
 
     tqdm.pandas(desc=" Processing groups")
 
     processed_groups = df.groupby("id").progress_apply(
-        lambda group: process_individual(group, control_strategy, treatment_strategy, outcome, timesteps_per_intervention))
+        lambda group: process_individual(
+            group, control_strategy, treatment_strategy, outcome, timesteps_per_intervention
+        )
+    )
 
     processed_groups.to_csv("data/long_preprocessed.csv", index=False)
+
 
 def estimate_hazard_ratio(
     novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=False
@@ -171,15 +165,10 @@ def estimate_hazard_ratio(
     # relevant_features = fitBLTDswitch_formula.split(" ~ ")[1].split(" + ")
     # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
 
-    fitBLTDswitch = smf.logit(
-        fitBLTDswitch_formula, data=novCEA  # [(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
-    ).fit()
+    fitBLTDswitch = smf.logit(fitBLTDswitch_formula, data=novCEA).fit()
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo2"] = fitBLTDswitch.predict(novCEA)
-
-    # set prob of switching to zero where progtypetdc==0
-    # novCEA.loc[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 0), "pxo2"] = 0
 
     # IPCW step 3: For each individual at each time, compute the inverse probability of remaining uncensored
     # Estimate the probabilities of remaining ‘un-switched’ and hence the weights
@@ -207,7 +196,7 @@ def estimate_hazard_ratio(
         axis=1
     )
 
-    #novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
+    # novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
 
     assert (
         novCEA_KM["tin"] <= novCEA_KM["tout"]
