@@ -92,6 +92,14 @@ def setup_fault_time(values, min, max):
     return fault_time
 
 
+def setup_fault_time_fast(individual, perturbation=-0.001):
+    print(individual)
+    assert False
+    fault = individual[individual["within_safe_range"] == False]
+    fault_time = fault.index[0] if not fault.empty else (individual.time.max() + timesteps_per_intervention)
+    return fault_time + perturbation
+
+
 def setup_recent_prog_t_dc(now_prog_t_dc):
     result = []
     prog = False
@@ -107,24 +115,27 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
     df["now_prog_t_dc"] = None  # has the situation progressed now?
     df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
-    df["fault_time"] = None  # when did a fault occur?
+    # df["fault_time"] = None  # when did a fault occur?
+
+    df["within_safe_range"] = df[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
+    df["fault_time"] = df.groupby("id")["within_safe_range"].transform(setup_fault_time_fast)
 
     individuals = []
     new_id = 0
     print("  Preprocessing groups")
     for id, individual in tqdm(df.groupby("id")):
-        fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
+        # fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
+        assert len(set(individual["fault_time"])) == 1
+        fault_time = individual["fault_time"].iloc[0]
         if fault_time <= 0:  # Skip individuals who are faulty at time 0 (analogous to a patient who is already dead)
             continue
-        individual["fault_time"] = fault_time
+        # individual["fault_time"] = fault_time
+        # individual["fault_time_fast"] = fault_time_fast
+
         individual = individual.loc[
             (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
         ].copy()
 
-        strategy = [
-            Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
-            for c in treatment_strategy.capabilities
-        ]
         individual["fault_t_do"] = setup_fault_t_do(
             individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
         )
@@ -146,6 +157,10 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
         # Control flow:
         # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
         # Individuals that don't start off in either arm need leaving out (hence two ifs rather than elif or else)
+        strategy = [
+            Capability(c.variable, individual.loc[individual.time == c.time, c.variable].values[0], c.time)
+            for c in treatment_strategy.capabilities
+        ]
         if strategy[0] == control_strategy.capabilities[0]:
             individual["id"] = id
             id += 1
