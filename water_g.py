@@ -58,16 +58,14 @@ class CapabilityList:
 
 
 def setup_xo_t_do(strategy_assigned, strategy_followed):
-    censored = False
-    result = []
-    for x, y in zip(strategy_assigned, strategy_followed):
-        if censored:
-            result.append(None)
-        else:
-            result.append((not censored) and x != y)
-            censored = x != y
-    # First and last can't be censored
-    return [0] + [int(x) if x is not None else None for x in result] + [0 if result[-1] is not None else None]
+    mask = pd.Series(strategy_assigned) != pd.Series(strategy_followed)
+    false = mask.loc[mask == True]
+    if false.empty:
+        return np.zeros(len(mask) + 2)
+    else:
+        mask.loc[false.index[0] + 1 :] = None
+        mask = (mask * 1).replace(np.nan, None).to_list()
+        return [0] + mask + [None]
 
 
 def setup_fault_t_do(values, min, max):
@@ -83,10 +81,15 @@ def setup_fault_t_do(values, min, max):
 def setup_fault_time(values, min, max):
     fault_occurred = False
     result = []
+    fault_time = None
     for inx, value in values.items():
         if not (min <= value <= max):
-            return inx
-    return None
+            fault_time = inx
+            break
+    if fault_time is None:
+        fault_time = individual.time.max() + timesteps_per_intervention
+    fault_time -= 0.001
+    return fault_time
 
 
 def setup_recent_prog_t_dc(now_prog_t_dc):
@@ -111,10 +114,7 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     print("  Preprocessing groups")
     for id, individual in tqdm(df.groupby("id")):
         fault_time = setup_fault_time(individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
-        if fault_time is None:
-            fault_time = individual.time.max() + timesteps_per_intervention
-        fault_time -= 0.001
-        if fault_time <= 0:
+        if fault_time <= 0:  # Skip individuals who are faulty at time 0 (analogous to a patient who is already dead)
             continue
         individual["fault_time"] = fault_time
         individual = individual.loc[
@@ -178,9 +178,12 @@ def estimate_hazard_ratio(
     # relevant_features = fitBLTDswitch_formula.split(" ~ ")[1].split(" + ")
     # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
 
-    fitBLTDswitch = smf.logit(
-        fitBLTDswitch_formula, data=novCEA  # [(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
-    ).fit()
+    try:
+        fitBLTDswitch = smf.logit(
+            fitBLTDswitch_formula, data=novCEA  # [(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
+        ).fit()
+    except np.linalg.LinAlgError:
+        return None, None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo2"] = fitBLTDswitch.predict(novCEA)
