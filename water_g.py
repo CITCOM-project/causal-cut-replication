@@ -99,45 +99,29 @@ def setup_fault_time(individual, timesteps_per_intervention=15, perturbation=-0.
     return pd.DataFrame({"fault_time": np.repeat(fault_time + perturbation, len(individual))})
 
 
-def setup_recent_prog_t_dc(now_prog_t_dc):
-    result = []
-    prog = False
-    for value in now_prog_t_dc:
-        prog = prog or value
-        result.append(prog)
-    return result
-
-
 def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
     df["trtrand"] = None  # treatment/control arm
     df["fault_t_do"] = None  # did a fault occur here?
     df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
-    df["now_prog_t_dc"] = None  # has the situation progressed now?
-    df["recent_prog_t_dc"] = None  # has the situation progressed in the past?
-    # df["fault_time"] = None  # when did a fault occur?
 
+    # when did a fault occur?
     df["within_safe_range"] = df[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
     df["fault_time"] = df.groupby("id")[["within_safe_range", "time"]].apply(setup_fault_time).values
     assert not pd.isnull(df["fault_time"]).any()
 
-    individuals = []
-    new_id = 0
-    print("  Preprocessing groups")
-    for id, individual in tqdm(df.query("fault_time > 0").groupby("id")):
-        individual = individual.loc[
-            (individual.time % timesteps_per_intervention == 0) & (individual.time <= control_strategy.total_time())
-        ].copy()
+    living_runs = df.query("fault_time > 0").loc[
+        (df.time % timesteps_per_intervention == 0) & (df.time <= control_strategy.total_time())
+    ]
 
+    individuals = []
+    print("  Preprocessing groups")
+    for id, individual in tqdm(living_runs.groupby("id")):
         individual["fault_t_do"] = setup_fault_t_do(
             individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
         )
         assert (
             sum(individual["fault_t_do"]) <= 1
         ), f"Error initialising fault_t_do for id {id} with fault at {individual.fault_time.iloc[0]}"
-        individual["now_prog_t_dc"] = setup_fault_t_do(
-            individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
-        )
-        individual["recent_prog_t_dc"] = setup_recent_prog_t_dc(individual["now_prog_t_dc"])
         faulty = individual.loc[
             ~individual[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]),
             "time",
@@ -154,15 +138,16 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
             )
             for c in treatment_strategy.capabilities
         ]
+        new_id = 0
         if strategy[0] == control_strategy.capabilities[0]:
-            individual["id"] = id
-            id += 1
+            individual["id"] = new_id
+            new_id += 1
             individual["trtrand"] = 0
             individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
             individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
         if strategy[0] == treatment_strategy.capabilities[0]:
-            individual["id"] = id
-            id += 1
+            individual["id"] = new_id
+            new_id += 1
             individual["trtrand"] = 1
             individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
             individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
@@ -194,16 +179,13 @@ def estimate_hazard_ratio(
     try:
         fitBLTDswitch = smf.logit(
             fitBLTDswitch_formula,
-            data=novCEA,  # [(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 1)],
+            data=novCEA,
         ).fit()
     except np.linalg.LinAlgError:
         return None, None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo2"] = fitBLTDswitch.predict(novCEA)
-
-    # set prob of switching to zero where progtypetdc==0
-    # novCEA.loc[(novCEA.trtrand == 0) & (novCEA["recent_prog_t_dc"] == 0), "pxo2"] = 0
 
     # IPCW step 3: For each individual at each time, compute the inverse probability of remaining uncensored
     # Estimate the probabilities of remaining ‘un-switched’ and hence the weights
@@ -355,12 +337,15 @@ if __name__ == "__main__":
                 fitBLTDswitch_formula = f"{fitBLswitch_formula} + {' + '.join(neighbours)}"
                 datum["fitBLTDswitch_formula"] = fitBLTDswitch_formula
 
-                params, confidence_intervals = estimate_hazard_ratio(
-                    novCEA,
-                    timesteps_per_intervention,
-                    fitBLswitch_formula,
-                    fitBLTDswitch_formula,
-                )
+                try:
+                    params, confidence_intervals = estimate_hazard_ratio(
+                        novCEA,
+                        timesteps_per_intervention,
+                        fitBLswitch_formula,
+                        fitBLTDswitch_formula,
+                    )
+                except np.linalg.LinAlgError:
+                    continue
                 if params is None:
                     print("  FAILURE: Params was None")
                     continue
