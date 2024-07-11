@@ -66,29 +66,18 @@ def setup_xo_t_do(strategy_assigned, strategy_followed):
     if false.empty:
         return np.zeros(len(mask) + 2)
     else:
-        mask.loc[false.index[0] + 1 :] = None
-        mask = (mask * 1).replace(np.nan, None).to_list()
-        return [0] + mask + [None]
+        mask = (mask * 1).tolist()
+        cutoff = false.index[0] + 1
+        return [0] + mask[:cutoff] + ([None] * (len(mask) - cutoff + 1))
 
 
-def setup_fault_t_do(values, min, max):
-    fault_occurred = False
-    result = []
-    for value in values:
-        fault = not (min <= value <= max)
-        result.append((not fault_occurred) and fault)
-        fault_occurred = fault_occurred or fault
-    return [int(x) for x in result]
-
-
-def setup_fault_time(values, min, max):
-    fault_occurred = False
-    result = []
-    fault_time = None
-    for inx, value in values.items():
-        if not (min <= value <= max):
-            return inx
-    return fault_time
+def setup_fault_t_do(individual, timesteps_per_intervention=15, perturbation=-0.001):
+    fault = individual[individual["within_safe_range"] == False]
+    fault_t_do = np.zeros(len(individual))
+    if not fault.empty:
+        fault_time = individual.index.get_loc(fault.index[0])
+        fault_t_do[fault_time] = 1
+    return pd.DataFrame({"fault_t_do": fault_t_do})
 
 
 def setup_fault_time(individual, timesteps_per_intervention=15, perturbation=-0.001):
@@ -101,12 +90,12 @@ def setup_fault_time(individual, timesteps_per_intervention=15, perturbation=-0.
 
 def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
     df["trtrand"] = None  # treatment/control arm
-    df["fault_t_do"] = None  # did a fault occur here?
     df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
 
     # when did a fault occur?
     df["within_safe_range"] = df[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
     df["fault_time"] = df.groupby("id")[["within_safe_range", "time"]].apply(setup_fault_time).values
+    df["fault_t_do"] = df.groupby("id")[["within_safe_range", "time"]].apply(setup_fault_t_do).values
     assert not pd.isnull(df["fault_time"]).any()
 
     living_runs = df.query("fault_time > 0").loc[
@@ -116,9 +105,6 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     individuals = []
     print("  Preprocessing groups")
     for id, individual in tqdm(living_runs.groupby("id")):
-        individual["fault_t_do"] = setup_fault_t_do(
-            individual[outcome], safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
-        )
         assert (
             sum(individual["fault_t_do"]) <= 1
         ), f"Error initialising fault_t_do for id {id} with fault at {individual.fault_time.iloc[0]}"
