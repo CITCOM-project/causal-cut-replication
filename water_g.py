@@ -122,10 +122,6 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
         assert (
             sum(individual["fault_t_do"]) <= 1
         ), f"Error initialising fault_t_do for id {id} with fault at {individual.fault_time.iloc[0]}"
-        faulty = individual.loc[
-            ~individual[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]),
-            "time",
-        ]
 
         # Control flow:
         # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
