@@ -120,19 +120,24 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
             )
             for c in treatment_strategy.capabilities
         ]
+
         new_id = 0
-        if strategy[0] == control_strategy.capabilities[0]:
-            individual["id"] = new_id
-            new_id += 1
-            individual["trtrand"] = 0
-            individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
-            individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
-        if strategy[0] == treatment_strategy.capabilities[0]:
-            individual["id"] = new_id
-            new_id += 1
-            individual["trtrand"] = 1
-            individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
-            individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
+
+        # Rewrite the two if-statements into one
+
+        strategies = [
+            (control_strategy.capabilities, 0),
+            (treatment_strategy.capabilities, 1)
+        ]
+
+        for capability, trtrand in strategies:
+            if strategy[0] == capability[0]:
+                individual["id"] = new_id
+                new_id += 1
+                individual["trtrand"] = trtrand
+                individual["xo_t_do"] = setup_xo_t_do(strategy, capability)
+                individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
+
     print(df[[outcome, "within_safe_range", "fault_time"]])
     df = pd.concat(individuals)
     df.to_csv("data/long_preprocessed.csv", index=False)
@@ -195,7 +200,7 @@ def estimate_hazard_ratio(
         axis=1
     )
 
-    novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
+    #novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
 
     assert (
         novCEA_KM["tin"] <= novCEA_KM["tout"]
@@ -365,5 +370,5 @@ if __name__ == "__main__":
                     datum["successes"] = len(params_repeats)
                 data.append(datum)
                 print(" ", datum)
-                with open("logs/output_no_filter_lo_hi_sim.json", "w") as f:
-                    print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
+                # with open("logs/output_no_filter_lo_hi_sim.json", "w") as f:
+                #     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
