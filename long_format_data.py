@@ -51,9 +51,11 @@ data = pd.concat(
     ]
 )
 
+# manually check no "object" datatypes
 for k, v in data.dtypes.items():
     print(k.ljust(8), v)
 
+# Make boolean instead of [0..2] where 0 and 1 are both "off"
 for actuator in actuators:
     data[actuator] = [int(x > 1) for x in data[actuator]]
 
@@ -74,3 +76,4 @@ subjects = (setup_subject(i) for i in individuals)
 
 data = pd.concat(subjects)
 data.to_csv("data/long_data.csv", index=False)
+data.to_parquet("data/long_data.pqt", index=False)

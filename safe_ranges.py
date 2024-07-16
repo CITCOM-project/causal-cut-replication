@@ -1,6 +1,6 @@
 safe_ranges = {
     "FIT101": {"lolo": 0, "lo": 1.0, "hi": 3.0, "hihi": 4.0},
-    "FIT201": {"lolo": 0, "lo": 0.4, "hi": 2.0, "hihi": 3.5},
+    "FIT201": {"lolo": 0, "lo": 0.4, "hi": 2.0, "hihi": 3.5, "eligibility": "P101 == 1 | P201 == 1"},
     # "FIT301": {"lolo": 0, "hihi": 2},
     "FIT301": {"lolo": 0.0, "lo": 0.0, "hi": 3.0, "hihi": 3.5},
     # "FIT401": {"lolo": 0, "hihi": 1},

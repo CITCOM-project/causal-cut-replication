@@ -11,15 +11,15 @@ class TestWaterG(unittest.TestCase):
         self.followed_2 = [["MV101", 1], ["P101", 0], ["P102", 1]]
 
     def test_setup_xo_t_do_eq(self):
-        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.assigned)
+        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.assigned, pd.Series(np.ones(5)).astype(bool))
         np.testing.assert_array_equal(xo_t_do, [0, 0, 0, 0, 0])
 
     def test_setup_xo_t_do_sensor_1(self):
-        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.followed_1)
+        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.followed_1, pd.Series(np.ones(5)).astype(bool))
         np.testing.assert_array_equal(xo_t_do, [0, 0, 1, None, None])
 
     def test_setup_xo_t_do_sensor_2(self):
-        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.followed_2)
+        xo_t_do = water_g.setup_xo_t_do(self.assigned, self.followed_2, pd.Series(np.ones(5)).astype(bool))
         np.testing.assert_array_equal(xo_t_do, [0, 0, 0, 1, None])
 
     def test_setup_fault_time(self):
@@ -54,6 +54,14 @@ class TestWaterG(unittest.TestCase):
     def test_setup_fault_t_do(self):
         min, max = 1, 2
         df = pd.DataFrame({"values": [1, 1, 1, 0], "time": [0, 15, 30, 45]})
+        df["within_safe_range"] = df["values"].between(min, max)
+        df["fault_time"] = [35.999] * 4
+        df["fault_t_do"] = water_g.setup_fault_t_do(df)
+        np.testing.assert_array_equal(df["fault_t_do"], [0, 0, 0, 1])
+
+    def test_setup_fault_t_do(self):
+        min, max = 1, 2
+        df = pd.DataFrame({"values": [1, 1, 1, 0], "time": [0, 15, 30, 45]}, index=[45, 46, 47, 48])
         df["within_safe_range"] = df["values"].between(min, max)
         df["fault_time"] = [35.999] * 4
         df["fault_t_do"] = water_g.setup_fault_t_do(df)

@@ -1,0 +1,2 @@
+lifelines>=0.29.0
+pyarrow>=16.1.0

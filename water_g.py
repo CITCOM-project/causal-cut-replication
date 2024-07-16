@@ -15,6 +15,14 @@ from multiprocessing import Pool
 import warnings
 import jsonpickle
 from patsy import dmatrix
+import logging
+from math import ceil
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(message)s",
+    handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
+)
 
 
 class Capability:
@@ -60,23 +68,39 @@ class CapabilityList:
         return (len(self.capabilities) + 1) * self.timesteps_per_intervention
 
 
-def setup_xo_t_do(strategy_assigned, strategy_followed):
-    mask = (pd.Series(strategy_assigned) != pd.Series(strategy_followed)).astype("boolean")
+def setup_xo_t_do(strategy_assigned: list, strategy_followed: list, eligible: pd.Series):
+    strategy_assigned = [1] + strategy_assigned + [1]
+    strategy_followed = [1] + strategy_followed + [1]
+
+    mask = (
+        pd.Series(strategy_assigned, index=eligible.index) != pd.Series(strategy_followed, index=eligible.index)
+    ).astype("boolean")
+    mask = mask | ~eligible
+    mask.reset_index(inplace=True, drop=True)
     false = mask.loc[mask == True]
     if false.empty:
-        return np.zeros(len(mask) + 2)
+        return np.zeros(len(mask))
     else:
         mask = (mask * 1).tolist()
         cutoff = false.index[0] + 1
-        return [0] + mask[:cutoff] + ([None] * (len(mask) - cutoff + 1))
+        return mask[:cutoff] + ([None] * (len(mask) - cutoff))
 
 
 def setup_fault_t_do(individual, timesteps_per_intervention=15, perturbation=-0.001):
     fault = individual[individual["within_safe_range"] == False]
-    fault_t_do = np.zeros(len(individual))
+    fault_t_do = pd.Series(np.zeros(len(individual)), index=individual.index)
+
     if not fault.empty:
-        fault_time = individual.index.get_loc(fault.index[0])
-        fault_t_do[fault_time] = 1
+        fault_time = individual["time"].loc[fault.index[0]]
+        # Ceiling to nearest observation point
+        fault_time = ceil(fault_time / timesteps_per_intervention) * timesteps_per_intervention
+        # Set the correct observation point to be the fault time of doing (fault_t_do)
+        observations = individual.loc[
+            (individual.time % timesteps_per_intervention == 0) & (individual.time < fault_time)
+        ]
+        if not observations.empty:
+            fault_t_do.loc[observations.index[0]] = 1
+
     return pd.DataFrame({"fault_t_do": fault_t_do})
 
 
@@ -88,14 +112,17 @@ def setup_fault_time(individual, timesteps_per_intervention=15, perturbation=-0.
     return pd.DataFrame({"fault_time": np.repeat(fault_time + perturbation, len(individual))})
 
 
-def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps_per_intervention):
+def preprocess_data(
+    df, control_strategy, treatment_strategy, outcome, min, max, timesteps_per_intervention, eligibility=None
+):
     df["trtrand"] = None  # treatment/control arm
     df["xo_t_do"] = None  # did the individual deviate from the treatment of interest here?
+    df["eligible"] = df.eval(eligibility) if eligibility is not None else True
 
     # when did a fault occur?
-    df["within_safe_range"] = df[outcome].between(safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
+    df["within_safe_range"] = df[outcome].between(min, max)
     df["fault_time"] = df.groupby("id")[["within_safe_range", "time"]].apply(setup_fault_time).values
-    df["fault_t_do"] = df.groupby("id")[["within_safe_range", "time"]].apply(setup_fault_t_do).values
+    df["fault_t_do"] = df.groupby("id")[["id", "time", "within_safe_range"]].apply(setup_fault_t_do).values
     assert not pd.isnull(df["fault_time"]).any()
 
     living_runs = df.query("fault_time > 0").loc[
@@ -103,11 +130,12 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
     ]
 
     individuals = []
-    print("  Preprocessing groups")
-    for id, individual in tqdm(living_runs.groupby("id")):
+    new_id = 0
+    logging.debug("  Preprocessing groups")
+    for id, individual in living_runs.groupby("id"):
         assert (
             sum(individual["fault_t_do"]) <= 1
-        ), f"Error initialising fault_t_do for id {id} with fault at {individual.fault_time.iloc[0]}"
+        ), f"Error initialising fault_t_do for individual\n{individual[['id', 'time', 'fault_time', 'fault_t_do']]}\nwith fault at {individual.fault_time.iloc[0]}"
 
         # Control flow:
         # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
@@ -120,22 +148,27 @@ def preprocess_data(df, control_strategy, treatment_strategy, outcome, timesteps
             )
             for c in treatment_strategy.capabilities
         ]
-        new_id = 0
-        if strategy[0] == control_strategy.capabilities[0]:
+
+        if strategy[0] == control_strategy.capabilities[0] and individual.eligible.iloc[0]:
+            individual["old_id"] = individual["id"]
             individual["id"] = new_id
             new_id += 1
             individual["trtrand"] = 0
-            individual["xo_t_do"] = setup_xo_t_do(strategy, control_strategy.capabilities)
+            individual["xo_t_do"] = setup_xo_t_do(control_strategy.capabilities, strategy, individual.eligible)
             individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
-        if strategy[0] == treatment_strategy.capabilities[0]:
+        if strategy[0] == treatment_strategy.capabilities[0] and individual.eligible.iloc[0]:
+            individual["old_id"] = individual["id"]
             individual["id"] = new_id
             new_id += 1
             individual["trtrand"] = 1
-            individual["xo_t_do"] = setup_xo_t_do(strategy, treatment_strategy.capabilities)
+            individual["xo_t_do"] = setup_xo_t_do(treatment_strategy.capabilities, strategy, individual.eligible)
             individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
-    print(df[[outcome, "within_safe_range", "fault_time"]])
+    if len(individuals) == 0:
+        logging.debug("No individuals followed either strategy.")
+        return None
     df = pd.concat(individuals)
     df.to_csv("data/long_preprocessed.csv", index=False)
+    return df
 
 
 def estimate_hazard_ratio(
@@ -146,14 +179,18 @@ def estimate_hazard_ratio(
     print_summary=False,
 ):
     # Use logistic regression to predict switching given baseline covariates
-    print(f"  predict switching given baseline covariates: {fitBLswitch_formula}")
-    fitBLswitch = smf.logit(fitBLswitch_formula, data=novCEA).fit()
+    logging.debug(f"  predict switching given baseline covariates: {fitBLswitch_formula}")
+    try:
+        fitBLswitch = smf.logit(fitBLswitch_formula, data=novCEA).fit()
+    except np.linalg.LinAlgError:
+        logging.error("Could not predict switching given baseline covariates")
+        return None, None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo1"] = fitBLswitch.predict(novCEA)
 
     # Use logistic regression to predict switching given baseline and time-updated covariates (model S12)
-    print(f"  predict switching given baseline and time-updated covariates: {fitBLTDswitch_formula}")
+    logging.debug(f"  predict switching given baseline and time-updated covariates: {fitBLTDswitch_formula}")
     # Covariance matrix to examine colinearities
     # relevant_features = fitBLTDswitch_formula.split(" ~ ")[1].split(" + ")
     # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
@@ -164,6 +201,7 @@ def estimate_hazard_ratio(
             data=novCEA,
         ).fit()
     except np.linalg.LinAlgError:
+        logging.error("Could not predict switching given baseline and time-updated covariates")
         return None, None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
@@ -219,7 +257,7 @@ def estimate_hazard_ratio(
             entry_col="tin",
         )
     except ConvergenceError:
-        print("ConvergenceError: Unable to estimate hazard ratio")
+        logging.error("ConvergenceError: Unable to estimate hazard ratio")
         return None, None
     if print_summary:
         cox_ph.print_summary()
@@ -227,7 +265,8 @@ def estimate_hazard_ratio(
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("data/long_data.csv")
+    # df = pd.read_csv("data/long_data.csv")
+    df = pd.read_parquet("data/long_data.pqt")
     dag = nx.nx_pydot.read_dot("flow_raw.dot")
     num_repeats = 100
     with open("successful_attacks.json") as f:
@@ -243,25 +282,25 @@ if __name__ == "__main__":
     # }
 
     for outcome, attacks in successful_attacks.items():
-        print()
-        print("OUTCOME", outcome)
         outcome = outcome.split(" ")[0]
-
+        logging.debug(f"\nOUTCOME: {outcome}")
         if outcome not in df:
-            print(f"Missing data for {outcome}")
+            logging.warning(f"Missing data for {outcome}")
             continue
 
-        if len(df.loc[(df[outcome] < safe_ranges[outcome]["lo"]) | (df[outcome] > safe_ranges[outcome]["hi"])]) == 0:
-            print(
+        min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
+        # if not (~df[outcome].between(min, max)).any():
+        #     logging.warning("USING WEAKER BOUNDS")
+        #     min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
+        if not (~df[outcome].between(min, max)).any():
+            logging.error(
                 f"  No faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
             continue
-        if len(df.loc[(df[outcome] < safe_ranges[outcome]["lo"]) | (df[outcome] > safe_ranges[outcome]["hi"])]) == len(
-            df
-        ):
-            print(
+        if df[outcome].between(min, max).all():
+            logging.error(
                 f"  All faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
@@ -270,13 +309,13 @@ if __name__ == "__main__":
 
         for capabilities in attacks:
             control_strategy = CapabilityList(timesteps_per_intervention, capabilities)
-            print("  CONTROL STRATEGY", control_strategy.capabilities)
+            logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
 
             if any(c.variable not in df for c in control_strategy.capabilities):
-                print("  Missing data for control_strategy")
+                logging.error("  Missing data for control_strategy")
                 continue
             if any(c.variable not in dag.nodes for c in control_strategy.capabilities):
-                print("  Missing node for control_strategy")
+                logging.error("  Missing node for control_strategy")
                 break
 
             for i, capability in enumerate(control_strategy.capabilities):
@@ -286,20 +325,33 @@ if __name__ == "__main__":
                 # Treatment strategy is the same, but with one capability negated
                 # i.e. we examine the counterfactual "What if we had not done that?"
                 treatment_strategy = control_strategy.treatment_strategy(i, int(not capability.value))
-                print("  TREATMENT STRATEGY", treatment_strategy.capabilities)
+                logging.debug(f"  TREATMENT STRATEGY {treatment_strategy.capabilities}")
                 datum["treatment_strategy"] = treatment_strategy.capabilities
-                print("SAFE RANGE", safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"])
-                preprocess_data(
+                logging.debug(f"  OUTCOME {outcome}")
+                logging.debug(f"  SAFE RANGE {min} {max}")
+                novCEA = preprocess_data(
                     df,
                     control_strategy,
                     treatment_strategy,
                     outcome,
+                    min,
+                    max,
                     timesteps_per_intervention,
+                    None
+                    # safe_ranges[outcome].get("eligibility", None),
+                )
+                if novCEA is None:
+                    logging.error("No eligible individuals")
+                    continue
+
+                # novCEA = pd.read_csv("data/long_preprocessed.csv")
+                logging.debug(
+                    f'  NOVCEA\n{novCEA[["id", "time",capability.variable,outcome, "xo_t_do", "fault_time", "fault_t_do"]]}'
                 )
 
-                novCEA = pd.read_csv("data/long_preprocessed.csv")
-
-                print(f"  {novCEA['fault_t_do'].sum()}/{len(novCEA.groupby('id'))} faulty runs observed")
+                logging.debug(f"  {int(novCEA['fault_t_do'].sum())}/{len(novCEA.groupby('id'))} faulty runs observed")
+                if novCEA["fault_t_do"].sum() == 0:
+                    break
 
                 for id, group in novCEA.groupby("id"):
                     assert sum(group["fault_t_do"]) <= 1, f"Multiple fault times for id {id}\n{group}"
@@ -319,20 +371,18 @@ if __name__ == "__main__":
                 fitBLTDswitch_formula = f"{fitBLswitch_formula} + {' + '.join(neighbours)}"
                 datum["fitBLTDswitch_formula"] = fitBLTDswitch_formula
 
-                try:
-                    params, confidence_intervals = estimate_hazard_ratio(
-                        novCEA,
-                        timesteps_per_intervention,
-                        fitBLswitch_formula,
-                        fitBLTDswitch_formula,
-                    )
-                except np.linalg.LinAlgError:
-                    continue
+                params, confidence_intervals = estimate_hazard_ratio(
+                    novCEA,
+                    timesteps_per_intervention,
+                    fitBLswitch_formula,
+                    fitBLTDswitch_formula,
+                )
                 if params is None:
-                    print("  FAILURE: Params was None")
+                    logging.error("  FAILURE: Params was None")
                     continue
                 datum["risk_ratio"] = params.to_dict()
                 datum["risk_ratio"] = confidence_intervals.to_dict()
+                datum["capability"] = {"index": i} | capability.__dict__
 
                 if adequacy:
 
@@ -364,6 +414,6 @@ if __name__ == "__main__":
                     datum["kurtosis"] = kurtosis(params_repeats).tolist()
                     datum["successes"] = len(params_repeats)
                 data.append(datum)
-                print(" ", datum)
+                logging.debug(f"  {datum}")
                 with open("logs/output_no_filter_lo_hi_sim.json", "w") as f:
                     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
