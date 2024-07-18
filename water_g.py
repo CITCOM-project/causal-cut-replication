@@ -1,7 +1,7 @@
 import pandas as pd
 import statsmodels.formula.api as smf
 from numpy import exp, append, nan
-from lifelines import CoxPHFitter, CoxTimeVaryingFitter
+from lifelines import CoxPHFitter
 from lifelines.exceptions import ConvergenceError
 import matplotlib.pyplot as plt
 import argparse
