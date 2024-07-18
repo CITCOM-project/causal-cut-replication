@@ -233,7 +233,7 @@ def estimate_hazard_ratio(
         axis=1
     )
 
-    novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
+    # novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
 
     assert (
         novCEA_KM["tin"] <= novCEA_KM["tout"]
