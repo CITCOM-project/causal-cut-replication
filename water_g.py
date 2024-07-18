@@ -18,6 +18,8 @@ from patsy import dmatrix
 import logging
 from math import ceil
 
+np.random.seed(0)
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(message)s",
@@ -184,7 +186,7 @@ def estimate_hazard_ratio(
         fitBLswitch = smf.logit(fitBLswitch_formula, data=novCEA).fit()
     except np.linalg.LinAlgError:
         logging.error("Could not predict switching given baseline covariates")
-        return None, None
+        return None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo1"] = fitBLswitch.predict(novCEA)
@@ -202,7 +204,7 @@ def estimate_hazard_ratio(
         ).fit()
     except np.linalg.LinAlgError:
         logging.error("Could not predict switching given baseline and time-updated covariates")
-        return None, None
+        return None
 
     # Estimate the probability of switching for each patient-observation included in the regression.
     novCEA["pxo2"] = fitBLTDswitch.predict(novCEA)
@@ -219,13 +221,8 @@ def estimate_hazard_ratio(
     assert not novCEA["num"].isnull().any(), f"{len(novCEA['num'].isnull())} null numerator values"
     assert not novCEA["denom"].isnull().any(), f"{len(novCEA['denom'].isnull())} null denom values"
 
-    isControl = novCEA.trtrand == 0
-    novCEA.loc[isControl, "weight"] = 1 / novCEA.denom[isControl]
-    novCEA.loc[isControl, "sweight"] = novCEA.num[isControl] / novCEA.denom[isControl]
-
-    # set the weights to 1 in the treatment arm
-    novCEA.loc[~isControl, "weight"] = 1
-    novCEA.loc[~isControl, "sweight"] = 1
+    novCEA["weight"] = 1 / novCEA.denom
+    novCEA["sweight"] = novCEA.num / novCEA.denom
 
     novCEA_KM = novCEA.loc[novCEA.xo_t_do == 0].copy()
     novCEA_KM["tin"] = novCEA_KM.time
@@ -258,10 +255,10 @@ def estimate_hazard_ratio(
         )
     except ConvergenceError:
         logging.error("ConvergenceError: Unable to estimate hazard ratio")
-        return None, None
+        return None
     if print_summary:
         cox_ph.print_summary()
-    return cox_ph.hazard_ratios_, np.exp(cox_ph.confidence_intervals_)
+    return pd.concat([cox_ph.hazard_ratios_, np.exp(cox_ph.confidence_intervals_)], axis=1)
 
 
 if __name__ == "__main__":
@@ -272,7 +269,7 @@ if __name__ == "__main__":
     with open("successful_attacks.json") as f:
         successful_attacks = jsonpickle.decode("".join(f.readlines()))
     data = []
-    adequacy = False
+    adequacy = True
 
     timesteps_per_intervention = 15
 
@@ -319,14 +316,10 @@ if __name__ == "__main__":
                 break
 
             for i, capability in enumerate(control_strategy.capabilities):
-                datum = {"control_strategy": control_strategy.capabilities}
-                datum = {"outcome": outcome}
-
                 # Treatment strategy is the same, but with one capability negated
                 # i.e. we examine the counterfactual "What if we had not done that?"
                 treatment_strategy = control_strategy.treatment_strategy(i, int(not capability.value))
                 logging.debug(f"  TREATMENT STRATEGY {treatment_strategy.capabilities}")
-                datum["treatment_strategy"] = treatment_strategy.capabilities
                 logging.debug(f"  OUTCOME {outcome}")
                 logging.debug(f"  SAFE RANGE {min} {max}")
                 novCEA = preprocess_data(
@@ -369,31 +362,40 @@ if __name__ == "__main__":
                 assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
 
                 fitBLTDswitch_formula = f"{fitBLswitch_formula} + {' + '.join(neighbours)}"
-                datum["fitBLTDswitch_formula"] = fitBLTDswitch_formula
+                datum = {
+                    "outcome": outcome,
+                    "safe_range": (min, max),
+                    "control_strategy": control_strategy.capabilities,
+                    "treatment_strategy": treatment_strategy.capabilities,
+                    "fitBLTDswitch_formula": fitBLTDswitch_formula,
+                }
 
-                params, confidence_intervals = estimate_hazard_ratio(
-                    novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=True
-                )
-                if params is None:
+                datum["hazard_ratio"] = estimate_hazard_ratio(
+                    novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula
+                ).T.to_dict()
+                if datum["hazard_ratio"] is None:
                     logging.error("  FAILURE: Params was None")
                     continue
-                datum["hazard_ratio"] = params.to_dict() | confidence_intervals.to_dict()
-                datum["capability"] = {"index": i} | capability.__dict__
+                datum["significant"] = (
+                    datum["hazard_ratio"]["trtrand"]["95% lower-bound"]
+                    < 1
+                    < datum["hazard_ratio"]["trtrand"]["95% upper-bound"]
+                )
 
                 if adequacy:
 
                     def estimate_hazard_ratio_parallel(ids):
                         try:
-                            params, _ = estimate_hazard_ratio(
+                            ratio = estimate_hazard_ratio(
                                 novCEA[novCEA["id"].isin(ids)].copy(),
                                 timesteps_per_intervention,
                                 fitBLswitch_formula,
                                 fitBLTDswitch_formula,
                             )
-                            return params
+                            return ratio["exp(coef)"]["trtrand"] if ratio is not None else None
                         except np.linalg.LinAlgError:
                             return None
-                        except ValueError:
+                        except ZeroDivisionError:
                             return None
 
                     ids = list(set(novCEA["id"]))
@@ -403,11 +405,11 @@ if __name__ == "__main__":
                         estimate_hazard_ratio_parallel,
                         [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
                     )
-                    params_repeats = [x for x in params_repeats if x is not None]
-                    datum["params_repeats"] = [p.to_dict() for p in params_repeats]
+                    params_repeats = [float(x) for x in params_repeats if x is not None]
+                    datum["params_repeats"] = params_repeats
 
-                    datum["mean_risk_ratio"] = (sum(params_repeats) / len(params_repeats)).to_dict()
-                    datum["kurtosis"] = kurtosis(params_repeats).tolist()
+                    datum["mean_risk_ratio"] = sum(params_repeats) / len(params_repeats)
+                    datum["kurtosis"] = float(kurtosis(params_repeats))
                     datum["successes"] = len(params_repeats)
                 data.append(datum)
                 logging.debug(f"  {datum}")
