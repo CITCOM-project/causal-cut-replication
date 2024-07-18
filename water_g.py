@@ -261,7 +261,7 @@ def estimate_hazard_ratio(
         return None, None
     if print_summary:
         cox_ph.print_summary()
-    return cox_ph.params_, cox_ph.confidence_intervals_
+    return cox_ph.hazard_ratios_, np.exp(cox_ph.confidence_intervals_)
 
 
 if __name__ == "__main__":
@@ -372,16 +372,12 @@ if __name__ == "__main__":
                 datum["fitBLTDswitch_formula"] = fitBLTDswitch_formula
 
                 params, confidence_intervals = estimate_hazard_ratio(
-                    novCEA,
-                    timesteps_per_intervention,
-                    fitBLswitch_formula,
-                    fitBLTDswitch_formula,
+                    novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula, print_summary=True
                 )
                 if params is None:
                     logging.error("  FAILURE: Params was None")
                     continue
-                datum["risk_ratio"] = params.to_dict()
-                datum["risk_ratio"] = confidence_intervals.to_dict()
+                datum["hazard_ratio"] = params.to_dict() | confidence_intervals.to_dict()
                 datum["capability"] = {"index": i} | capability.__dict__
 
                 if adequacy:
