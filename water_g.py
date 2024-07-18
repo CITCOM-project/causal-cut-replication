@@ -370,12 +370,13 @@ if __name__ == "__main__":
                     "fitBLTDswitch_formula": fitBLTDswitch_formula,
                 }
 
-                datum["hazard_ratio"] = estimate_hazard_ratio(
+                hazard_ratio = estimate_hazard_ratio(
                     novCEA, timesteps_per_intervention, fitBLswitch_formula, fitBLTDswitch_formula
-                ).T.to_dict()
-                if datum["hazard_ratio"] is None:
+                )
+                if hazard_ratio is None:
                     logging.error("  FAILURE: Params was None")
                     continue
+                datum["hazard_ratio"] = hazard_ratio.T.to_dict()
                 datum["significant"] = (
                     datum["hazard_ratio"]["trtrand"]["95% lower-bound"]
                     < 1
