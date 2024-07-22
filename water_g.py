@@ -28,23 +28,30 @@ logging.basicConfig(
 
 
 class Capability:
-    def __init__(self, variable, value, time):
+    def __init__(self, variable, value, start_time, end_time):
         self.variable = variable
         self.value = value
-        self.time = time
+        self.start_time = start_time
+        self.end_time = end_time
 
     def __eq__(self, other):
-        return self.variable == other.variable and self.value == other.value and self.time == other.time
+        return (
+            type(other) == type(self)
+            and self.variable == other.variable
+            and self.value == other.value
+            and self.start_time == other.start_time
+            and self.end_time == other.end_time
+        )
 
     def __repr__(self):
-        return f"({self.variable}, {self.value}, {self.time})"
+        return f"({self.variable}, {self.value}, {self.start_time}-{self.end_time})"
 
 
 class CapabilityList:
     def __init__(self, timesteps_per_intervention, capabilities):
         self.timesteps_per_intervention = timesteps_per_intervention
         self.capabilities = [
-            Capability(var, val, t)
+            Capability(var, val, t, t + timesteps_per_intervention)
             for (var, val), t in zip(
                 capabilities,
                 range(
@@ -98,10 +105,11 @@ def setup_fault_t_do(individual, timesteps_per_intervention=15, perturbation=-0.
         fault_time = ceil(fault_time / timesteps_per_intervention) * timesteps_per_intervention
         # Set the correct observation point to be the fault time of doing (fault_t_do)
         observations = individual.loc[
-            (individual.time % timesteps_per_intervention == 0) & (individual.time < fault_time)
+            (individual["time"] % timesteps_per_intervention == 0) & (individual["time"] < fault_time)
         ]
         if not observations.empty:
             fault_t_do.loc[observations.index[0]] = 1
+    assert sum(fault_t_do) <= 1, f"Multiple fault times for\n{individual}"
 
     return pd.DataFrame({"fault_t_do": fault_t_do})
 
@@ -109,7 +117,9 @@ def setup_fault_t_do(individual, timesteps_per_intervention=15, perturbation=-0.
 def setup_fault_time(individual, timesteps_per_intervention=15, perturbation=-0.001):
     fault = individual[individual["within_safe_range"] == False]
     fault_time = (
-        individual.time.loc[fault.index[0]] if not fault.empty else (individual.time.max() + timesteps_per_intervention)
+        individual["time"].loc[fault.index[0]]
+        if not fault.empty
+        else (individual["time"].max() + timesteps_per_intervention)
     )
     return pd.DataFrame({"fault_time": np.repeat(fault_time + perturbation, len(individual))})
 
@@ -128,7 +138,7 @@ def preprocess_data(
     assert not pd.isnull(df["fault_time"]).any()
 
     living_runs = df.query("fault_time > 0").loc[
-        (df.time % timesteps_per_intervention == 0) & (df.time <= control_strategy.total_time())
+        (df["time"] % timesteps_per_intervention == 0) & (df["time"] <= control_strategy.total_time())
     ]
 
     individuals = []
@@ -139,38 +149,32 @@ def preprocess_data(
             sum(individual["fault_t_do"]) <= 1
         ), f"Error initialising fault_t_do for individual\n{individual[['id', 'time', 'fault_time', 'fault_t_do']]}\nwith fault at {individual.fault_time.iloc[0]}"
 
-        # Control flow:
-        # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statements)
-        # Individuals that don't start off in either arm need leaving out (hence two ifs rather than elif or else)
-        strategy = [
+        strategy_followed = [
             Capability(
                 c.variable,
-                individual.loc[individual.time == c.time, c.variable].values[0],
-                c.time,
+                individual.loc[individual["time"] == c.start_time, c.variable].values[0],
+                c.start_time,
+                c.end_time,
             )
             for c in treatment_strategy.capabilities
         ]
 
-        if strategy[0] == control_strategy.capabilities[0] and individual.eligible.iloc[0]:
-            individual["old_id"] = individual["id"]
-            individual["id"] = new_id
-            new_id += 1
-            individual["trtrand"] = 0
-            individual["xo_t_do"] = setup_xo_t_do(control_strategy.capabilities, strategy, individual.eligible)
-            individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
-        if strategy[0] == treatment_strategy.capabilities[0] and individual.eligible.iloc[0]:
-            individual["old_id"] = individual["id"]
-            individual["id"] = new_id
-            new_id += 1
-            individual["trtrand"] = 1
-            individual["xo_t_do"] = setup_xo_t_do(treatment_strategy.capabilities, strategy, individual.eligible)
-            individuals.append(individual.loc[individual.time <= individual.fault_time].copy())
+        # Control flow:
+        # Individuals that start off in both arms, need cloning (hence incrementing the ID within the if statement)
+        # Individuals that don't start off in either arm are left out
+        for inx, strategy_assigned in [(0, control_strategy), (1, treatment_strategy)]:
+            if strategy_assigned.capabilities[0] == strategy_followed[0] and individual.eligible.iloc[0]:
+                individual["id"] = new_id
+                new_id += 1
+                individual["trtrand"] = inx
+                individual["xo_t_do"] = setup_xo_t_do(
+                    strategy_assigned.capabilities, strategy_followed, individual["eligible"]
+                )
+                individuals.append(individual.loc[individual["time"] <= individual["fault_time"]].copy())
     if len(individuals) == 0:
         logging.debug("No individuals followed either strategy.")
         return None
-    df = pd.concat(individuals)
-    df.to_csv("data/long_preprocessed.csv", index=False)
-    return df
+    return pd.concat(individuals)
 
 
 def estimate_hazard_ratio(
@@ -193,9 +197,6 @@ def estimate_hazard_ratio(
 
     # Use logistic regression to predict switching given baseline and time-updated covariates (model S12)
     logging.debug(f"  predict switching given baseline and time-updated covariates: {fitBLTDswitch_formula}")
-    # Covariance matrix to examine colinearities
-    # relevant_features = fitBLTDswitch_formula.split(" ~ ")[1].split(" + ")
-    # novCEA[relevant_features].corr().round(3).to_csv("/tmp/corr.csv")
 
     try:
         fitBLTDswitch = smf.logit(
@@ -221,14 +222,14 @@ def estimate_hazard_ratio(
     assert not novCEA["num"].isnull().any(), f"{len(novCEA['num'].isnull())} null numerator values"
     assert not novCEA["denom"].isnull().any(), f"{len(novCEA['denom'].isnull())} null denom values"
 
-    novCEA["weight"] = 1 / novCEA.denom
-    novCEA["sweight"] = novCEA.num / novCEA.denom
+    novCEA["weight"] = 1 / novCEA["denom"]
+    novCEA["sweight"] = novCEA["num"] / novCEA["denom"]
 
-    novCEA_KM = novCEA.loc[novCEA.xo_t_do == 0].copy()
-    novCEA_KM["tin"] = novCEA_KM.time
-    novCEA_KM["tout"] = pd.concat([(novCEA_KM.time + timesteps_per_intervention), novCEA_KM.fault_time], axis=1).min(
-        axis=1
-    )
+    novCEA_KM = novCEA.loc[novCEA["xo_t_do"] == 0].copy()
+    novCEA_KM["tin"] = novCEA_KM["time"]
+    novCEA_KM["tout"] = pd.concat(
+        [(novCEA_KM["time"] + timesteps_per_intervention), novCEA_KM["fault_time"]], axis=1
+    ).min(axis=1)
 
     # novCEA_KM.to_csv("/tmp/novCEA_KM.csv")
 
@@ -272,11 +273,6 @@ if __name__ == "__main__":
     adequacy = True
 
     timesteps_per_intervention = 15
-
-    # These all work
-    # successful_attacks = {
-    #     "LIT101 (High)": [[["MV101", 1]], [["MV101", 1], ["P101", 0], ["P102", 0]], [["MV101", 1], ["MV201", 0]]],
-    # }
 
     for outcome, attacks in successful_attacks.items():
         outcome = outcome.split(" ")[0]
@@ -337,17 +333,9 @@ if __name__ == "__main__":
                     logging.error("No eligible individuals")
                     continue
 
-                # novCEA = pd.read_csv("data/long_preprocessed.csv")
-                logging.debug(
-                    f'  NOVCEA\n{novCEA[["id", "time",capability.variable,outcome, "xo_t_do", "fault_time", "fault_t_do"]]}'
-                )
-
                 logging.debug(f"  {int(novCEA['fault_t_do'].sum())}/{len(novCEA.groupby('id'))} faulty runs observed")
                 if novCEA["fault_t_do"].sum() == 0:
                     break
-
-                for id, group in novCEA.groupby("id"):
-                    assert sum(group["fault_t_do"]) <= 1, f"Multiple fault times for id {id}\n{group}"
 
                 fitBLswitch_formula = "xo_t_do ~ time"
 
