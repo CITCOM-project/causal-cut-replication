@@ -147,8 +147,12 @@ if __name__ == "__main__":
                 )
 
                 causal_test_result = causal_test_case.execute_test(estimation_model, None)
-                print("RESULT")
-                print(causal_test_result)
+
+                if causal_test_result.test_value.value is None:
+                    datum["error"] = "Failed to estimate hazard_ratio."
+                    data.append(datum)
+                    continue
+
                 if adequacy:
                     adequacy_metric = DataAdequacy(causal_test_case, estimation_model, None, group_by="id")
                     adequacy_metric.measure_adequacy()
@@ -170,32 +174,32 @@ if __name__ == "__main__":
                     < datum["hazard_ratio"]["trtrand"]["95% upper-bound"]
                 )
 
-                if adequacy:
-
-                    def estimate_hazard_ratio_parallel(ids):
-                        try:
-                            par_estimator = deepcopy(estimator)
-                            par_estimator.df = par_estimator.df[par_estimator.df["id"].isin(ids)].copy()
-                            ratio = par_estimator.estimate_hazard_ratio()
-                            return ratio["exp(coef)"]["trtrand"] if ratio is not None else None
-                        except np.linalg.LinAlgError:
-                            return None
-                        except ZeroDivisionError:
-                            return None
-
-                    ids = list(set(estimator.df["id"]))
-
-                    pool = Pool()
-                    params_repeats = pool.map(
-                        estimate_hazard_ratio_parallel,
-                        [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
-                    )
-                    params_repeats = [float(x) for x in params_repeats if x is not None]
-                    datum["params_repeats"] = params_repeats
-
-                    datum["mean_risk_ratio"] = sum(params_repeats) / len(params_repeats)
-                    datum["kurtosis"] = float(kurtosis(params_repeats))
-                    datum["successes"] = len(params_repeats)
+                # if adequacy:
+                #
+                #     def estimate_hazard_ratio_parallel(ids):
+                #         try:
+                #             par_estimator = deepcopy(estimator)
+                #             par_estimator.df = par_estimator.df[par_estimator.df["id"].isin(ids)].copy()
+                #             ratio = par_estimator.estimate_hazard_ratio()
+                #             return ratio["exp(coef)"]["trtrand"] if ratio is not None else None
+                #         except np.linalg.LinAlgError:
+                #             return None
+                #         except ZeroDivisionError:
+                #             return None
+                #
+                #     ids = list(set(estimator.df["id"]))
+                #
+                #     pool = Pool()
+                #     params_repeats = pool.map(
+                #         estimate_hazard_ratio_parallel,
+                #         [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
+                #     )
+                #     params_repeats = [float(x) for x in params_repeats if x is not None]
+                #     datum["params_repeats"] = params_repeats
+                #
+                #     datum["mean_risk_ratio"] = sum(params_repeats) / len(params_repeats)
+                #     datum["kurtosis"] = float(kurtosis(params_repeats))
+                #     datum["successes"] = len(params_repeats)
                 data.append(datum)
                 logging.debug(f"  {datum}")
                 with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
