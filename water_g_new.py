@@ -52,17 +52,22 @@ if __name__ == "__main__":
     for outcome, attacks in successful_attacks.items():
         outcome, attack = outcome.split(" ")
         logging.debug(f"\nOUTCOME: {outcome}")
-        if outcome not in df:
-            logging.warning(f"Missing data for {outcome}")
-            continue
 
         min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
+
+        datum = {
+            "outcome": outcome,
+            "attack": attack,
+            "safe_range": (min, max),
+        }
         if not (~df[outcome].between(min, max)).any():
             logging.error(
                 f"  No faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
+            datum.error = "No faults observed. P(error) = 0"
+            data.append(datum)
             continue
         if df[outcome].between(min, max).all():
             logging.error(
@@ -70,17 +75,24 @@ if __name__ == "__main__":
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
+            datum.error = "Only faults observed. P(error) = 1"
+            data.append(datum)
             continue
 
         for capabilities in attacks:
             control_strategy = TreatmentSequence(timesteps_per_intervention, capabilities)
             logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
+            datum["control_strategy"] = control_strategy.capabilities
 
             if any(c.variable not in df for c in control_strategy.capabilities):
                 logging.error("  Missing data for control_strategy")
+                datum["error"] = "Missing data for control_strategy"
+                data.append(datum)
                 continue
             if any(c.variable not in dag.nodes for c in control_strategy.capabilities):
                 logging.error("  Missing node for control_strategy")
+                datum["error"] = "Missing node for control_strategy"
+                data.append(datum)
                 break
 
             for i, capability in enumerate(control_strategy.capabilities):
@@ -88,6 +100,7 @@ if __name__ == "__main__":
                 # i.e. we examine the counterfactual "What if we had not done that?"
                 treatment_strategy = control_strategy.copy()
                 treatment_strategy.set_value(i, int(not capability.value))
+                datum["treatment_strategy"] = treatment_strategy.capabilities
 
                 base_test_case = BaseTestCase(
                     treatment_variable=control_strategy,
@@ -140,21 +153,15 @@ if __name__ == "__main__":
                     adequacy_metric = DataAdequacy(causal_test_case, estimation_model, None, group_by="id")
                     adequacy_metric.measure_adequacy()
                     causal_test_result.adequacy = adequacy_metric.to_dict()
-                    print(causal_test_result)
-                assert False
+                datum = datum | causal_test_result.to_dict()
 
-                datum = {
-                    "outcome": outcome,
-                    "attack": attack,
-                    "safe_range": (min, max),
-                    "control_strategy": control_strategy.capabilities,
-                    "treatment_strategy": treatment_strategy.capabilities,
-                    "fitBLTDswitch_formula": estimator.fitBLTDswitch_formula,
-                }
+                datum["fitBLTDswitch_formula"] = (estimator.fitBLTDswitch_formula,)
                 try:
                     hazard_ratio = estimator.estimate_hazard_ratio()
                 except Exception as e:
                     logging.error(f"  FAILURE: {e}")
+                    datum["error"] = str(e)
+                    data.append(datum)
                     continue
                 datum["hazard_ratio"] = hazard_ratio.T.to_dict()
                 datum["significant"] = (
