@@ -11,7 +11,6 @@ from scipy.stats import kurtosis
 import networkx as nx
 import numpy as np
 from multiprocessing import Pool
-import warnings
 import jsonpickle
 from patsy import dmatrix
 import logging
@@ -66,7 +65,7 @@ if __name__ == "__main__":
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
-            datum.error = "No faults observed. P(error) = 0"
+            datum["error"] = "No faults observed. P(error) = 0"
             data.append(datum)
             continue
         if df[outcome].between(min, max).all():
@@ -75,7 +74,7 @@ if __name__ == "__main__":
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
-            datum.error = "Only faults observed. P(error) = 1"
+            datum["error"] = "Only faults observed. P(error) = 1"
             data.append(datum)
             continue
 
@@ -132,21 +131,30 @@ if __name__ == "__main__":
 
                 fitBLswitch_formula = "xo_t_do ~ time"
 
+                df["within_safe_range"] = df[outcome].between(min, max)
+
                 estimation_model = IPCWEstimator(
                     df,
                     timesteps_per_intervention,
                     control_strategy,
                     treatment_strategy,
                     outcome,
-                    min,
-                    max,
-                    fitBLswitch_formula=fitBLswitch_formula,
-                    fitBLTDswitch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
+                    "within_safe_range",
+                    fit_bl_switch_formula=fitBLswitch_formula,
+                    fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
                     eligibility=None
-                    # elligibility = safe_ranges[outcome].get("eligibility", None),,
+                    # elligibility = safe_ranges[outcome].get("eligibility", None),
                 )
 
-                causal_test_result = causal_test_case.execute_test(estimation_model, None)
+                try:
+                    causal_test_result = causal_test_case.execute_test(estimation_model, None)
+                except np.linalg.LinAlgError:
+                    datum["error"] = "LinalgError"
+                    data.append("datum")
+                    continue
+                except Exception as e:
+                    assert False, f"EXCEPTION: {e}"
+                    continue
 
                 if causal_test_result.test_value.value is None:
                     datum["error"] = "Failed to estimate hazard_ratio."
@@ -154,52 +162,14 @@ if __name__ == "__main__":
                     continue
 
                 if adequacy:
-                    adequacy_metric = DataAdequacy(causal_test_case, estimation_model, None, group_by="id")
+                    adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
                     adequacy_metric.measure_adequacy()
-                    causal_test_result.adequacy = adequacy_metric.to_dict()
-                datum = datum | causal_test_result.to_dict()
+                    causal_test_result.adequacy = adequacy_metric
+                datum = datum | causal_test_result.to_dict(json=True)
+                datum["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
 
-                datum["fitBLTDswitch_formula"] = (estimator.fitBLTDswitch_formula,)
-                try:
-                    hazard_ratio = estimator.estimate_hazard_ratio()
-                except Exception as e:
-                    logging.error(f"  FAILURE: {e}")
-                    datum["error"] = str(e)
-                    data.append(datum)
-                    continue
-                datum["hazard_ratio"] = hazard_ratio.T.to_dict()
-                datum["significant"] = (
-                    datum["hazard_ratio"]["trtrand"]["95% lower-bound"]
-                    < 1
-                    < datum["hazard_ratio"]["trtrand"]["95% upper-bound"]
-                )
+                datum["fitBLTDswitch_formula"] = estimation_model.fitBLTDswitch_formula
 
-                # if adequacy:
-                #
-                #     def estimate_hazard_ratio_parallel(ids):
-                #         try:
-                #             par_estimator = deepcopy(estimator)
-                #             par_estimator.df = par_estimator.df[par_estimator.df["id"].isin(ids)].copy()
-                #             ratio = par_estimator.estimate_hazard_ratio()
-                #             return ratio["exp(coef)"]["trtrand"] if ratio is not None else None
-                #         except np.linalg.LinAlgError:
-                #             return None
-                #         except ZeroDivisionError:
-                #             return None
-                #
-                #     ids = list(set(estimator.df["id"]))
-                #
-                #     pool = Pool()
-                #     params_repeats = pool.map(
-                #         estimate_hazard_ratio_parallel,
-                #         [np.random.choice(ids, len(ids), replace=True) for x in range(num_repeats)],
-                #     )
-                #     params_repeats = [float(x) for x in params_repeats if x is not None]
-                #     datum["params_repeats"] = params_repeats
-                #
-                #     datum["mean_risk_ratio"] = sum(params_repeats) / len(params_repeats)
-                #     datum["kurtosis"] = float(kurtosis(params_repeats))
-                #     datum["successes"] = len(params_repeats)
                 data.append(datum)
                 logging.debug(f"  {datum}")
                 with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
