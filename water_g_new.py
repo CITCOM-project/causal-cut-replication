@@ -168,7 +168,7 @@ if __name__ == "__main__":
                 datum = datum | causal_test_result.to_dict(json=True)
                 datum["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
 
-                datum["fitBLTDswitch_formula"] = estimation_model.fitBLTDswitch_formula
+                datum["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 
                 data.append(datum)
                 logging.debug(f"  {datum}")
