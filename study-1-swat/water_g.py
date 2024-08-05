@@ -32,13 +32,13 @@ np.random.seed(0)
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(message)s",
-    handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
+    handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
 )
 
 
 if __name__ == "__main__":
     # df = pd.read_csv("data/long_data.csv")
-    df = pd.read_parquet("data/long_data.pqt")
+    df = pd.read_parquet("../data/long_data.pqt")
     dag = nx.nx_pydot.read_dot("flow_raw.dot")
     num_repeats = 100
     with open("successful_attacks.json") as f:
