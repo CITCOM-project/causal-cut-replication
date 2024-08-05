@@ -130,7 +130,9 @@ if __name__ == "__main__":
 
                 assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
 
-                fitBLswitch_formula = "xo_t_do ~ time"
+                fitBLswitch_formula = (
+                    "xo_t_do ~ time + kjs + kgj + kjl + kgl + kxg + kxgi + kxi + τ + η + kλ + kμ + Gprod0"
+                )
 
                 df["within_safe_range"] = df[outcome].between(min, max)
 
