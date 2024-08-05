@@ -16,6 +16,7 @@ from patsy import dmatrix
 import logging
 from math import ceil
 from copy import deepcopy
+import os
 
 
 from causal_testing.testing.estimators import IPCWEstimator
@@ -29,10 +30,12 @@ from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
 np.random.seed(0)
 
+os.makedirs("logs", exist_ok=True)
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(message)s",
-    handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
+    handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
 )
 
 
@@ -174,3 +177,5 @@ if __name__ == "__main__":
                 logging.debug(f"  {datum}")
                 with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
                     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
+    with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
+        print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
