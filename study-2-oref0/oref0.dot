@@ -1,0 +1,16 @@
+digraph oref0 {
+  cob -> rate;
+  iob -> rate;
+  bg -> rate;
+
+  eat -> cob;
+  bolus -> iob;
+
+  bg -> eat;
+  bg -> bolus;
+  eat -> bolus;
+
+  cob -> bg;
+  rate -> iob;
+  iob -> bg;
+}
