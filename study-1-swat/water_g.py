@@ -31,6 +31,7 @@ from causal_testing.testing.causal_test_adequacy import DataAdequacy
 parser = argparse.ArgumentParser(
     prog="water_g", description="Causal testing for the water system."
 )
+parser.add_argument("-o", "--outfile", type=str, help="Path JSON results file.")
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
 os.makedirs("logs", exist_ok=True)
@@ -188,7 +189,7 @@ if __name__ == "__main__":
 
                 data.append(datum)
                 logging.debug(f"  {datum}")
-                with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
+                with open(args.outfile, "w") as f:
                     print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
-    with open("logs/output_no_filter_lo_hi_sim_ctf.json", "w") as f:
+    with open(args.outfile, "w") as f:
         print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
