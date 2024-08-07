@@ -18,6 +18,7 @@ from math import ceil
 from copy import deepcopy
 import os
 import argparse
+import lifelines
 
 
 from causal_testing.testing.estimators import IPCWEstimator
@@ -172,6 +173,14 @@ if __name__ == "__main__":
                     )
                     datum["error"] = (
                         "LinAlgError when executing test: Could not estimate hazard_ratio."
+                    )
+                    data.append("datum")
+                except lifelines.exceptions.ConvergenceError:
+                    logging.error(
+                        "ConvergenceError when executing test: Could not estimate hazard_ratio."
+                    )
+                    datum["error"] = (
+                        "ConvergenceError when executing test: Could not estimate hazard_ratio."
                     )
                     data.append("datum")
                     continue
