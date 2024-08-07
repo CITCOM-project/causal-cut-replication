@@ -162,9 +162,19 @@ if __name__ == "__main__":
                     # elligibility = safe_ranges[outcome].get("eligibility", None),
                 )
 
-                causal_test_result = causal_test_case.execute_test(
-                    estimation_model, None
-                )
+                try:
+                    causal_test_result = causal_test_case.execute_test(
+                        estimation_model, None
+                    )
+                except np.linalg.LinAlgError:
+                    logging.error(
+                        "LinAlgError when executing test: Could not estimate hazard_ratio."
+                    )
+                    datum["error"] = (
+                        "LinAlgError when executing test: Could not estimate hazard_ratio."
+                    )
+                    data.append("datum")
+                    continue
 
                 if causal_test_result.test_value.value is None:
                     logging.error("Error: Causal effect not estimated.")
