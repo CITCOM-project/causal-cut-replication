@@ -26,7 +26,7 @@ parser.add_argument(
 parser.add_argument(
     "-o", "--outfile", type=str, help="Where to save the resulting data.", required=True
 )
-parser.add_argument("datafiles", nargs="+", help="<Required> Set flag")
+parser.add_argument("datafiles", nargs="+", help="Paths to the data files to format.")
 
 
 actuators = [

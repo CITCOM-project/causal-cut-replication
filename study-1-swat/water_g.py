@@ -17,6 +17,7 @@ import logging
 from math import ceil
 from copy import deepcopy
 import os
+import argparse
 
 
 from causal_testing.testing.estimators import IPCWEstimator
@@ -27,8 +28,10 @@ from causal_testing.testing.base_test_case import BaseTestCase
 from causal_testing.specification.capabilities import TreatmentSequence
 from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
-
-np.random.seed(0)
+parser = argparse.ArgumentParser(
+    prog="water_g", description="Causal testing for the water system."
+)
+parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
 os.makedirs("logs", exist_ok=True)
 
@@ -40,8 +43,13 @@ logging.basicConfig(
 
 
 if __name__ == "__main__":
-    # df = pd.read_csv("data/long_data.csv")
-    df = pd.read_parquet("../data/long_data.pqt")
+    args = parser.parse_args()
+    if args.datafile.endswith(".pqt"):
+        df = pd.read_parquet(args.datafile)
+    elif args.datafile.endswith(".csv"):
+        df = pd.read_csv(args.datafile)
+    else:
+        raise ValueError("datafile must be .csv or .pqt")
     dag = nx.nx_pydot.read_dot("flow_raw.dot")
     num_repeats = 100
     with open("successful_attacks.json") as f:
@@ -82,7 +90,9 @@ if __name__ == "__main__":
             continue
 
         for capabilities in attacks:
-            control_strategy = TreatmentSequence(timesteps_per_intervention, capabilities)
+            control_strategy = TreatmentSequence(
+                timesteps_per_intervention, capabilities
+            )
             logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
             datum["control_strategy"] = control_strategy.capabilities
 
@@ -130,7 +140,9 @@ if __name__ == "__main__":
                     neighbours.remove("AIT402")
                     neighbours.remove("FIT401")
 
-                assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
+                assert (
+                    len(neighbours) > 0
+                ), f"No neighbours for node {capability.variable}"
 
                 fitBLswitch_formula = "xo_t_do ~ time"
 
@@ -145,33 +157,34 @@ if __name__ == "__main__":
                     "within_safe_range",
                     fit_bl_switch_formula=fitBLswitch_formula,
                     fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
-                    eligibility=None
+                    eligibility=None,
                     # elligibility = safe_ranges[outcome].get("eligibility", None),
                 )
 
-                try:
-                    causal_test_result = causal_test_case.execute_test(estimation_model, None)
-                except np.linalg.LinAlgError:
-                    datum["error"] = "LinalgError"
-                    data.append("datum")
-                    continue
-                except Exception as e:
-                    assert False, f"EXCEPTION: {e}"
-                    continue
+                causal_test_result = causal_test_case.execute_test(
+                    estimation_model, None
+                )
 
                 if causal_test_result.test_value.value is None:
+                    logging.error("Error: Causal effect not estimated.")
                     datum["error"] = "Failed to estimate hazard_ratio."
                     data.append(datum)
                     continue
 
                 if adequacy:
-                    adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
+                    adequacy_metric = DataAdequacy(
+                        causal_test_case, estimation_model, group_by="id"
+                    )
                     adequacy_metric.measure_adequacy()
                     causal_test_result.adequacy = adequacy_metric
                 datum = datum | causal_test_result.to_dict(json=True)
-                datum["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
+                datum["passed"] = causal_test_case.expected_causal_effect.apply(
+                    causal_test_result
+                )
 
-                datum["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
+                datum["fit_bltd_switch_formula"] = (
+                    estimation_model.fit_bltd_switch_formula
+                )
 
                 data.append(datum)
                 logging.debug(f"  {datum}")
