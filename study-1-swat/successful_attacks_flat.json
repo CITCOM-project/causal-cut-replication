@@ -1,0 +1,504 @@
+[
+  {
+    "attack": [
+      [
+        "P602",
+        0
+      ]
+    ],
+    "outcome": "FIT601",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV301",
+        1
+      ],
+      [
+        "MV303",
+        1
+      ],
+      [
+        "MV502",
+        1
+      ],
+      [
+        "P602",
+        1
+      ]
+    ],
+    "outcome": "FIT601",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        1
+      ]
+    ],
+    "outcome": "FIT101",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        0
+      ]
+    ],
+    "outcome": "FIT101",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P101",
+        1
+      ],
+      [
+        "P102",
+        1
+      ]
+    ],
+    "outcome": "FIT201",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        0
+      ]
+    ],
+    "outcome": "FIT201",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "P101",
+        0
+      ],
+      [
+        "P102",
+        0
+      ]
+    ],
+    "outcome": "FIT201",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        0
+      ]
+    ],
+    "outcome": "FIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ]
+    ],
+    "outcome": "FIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV501",
+        0
+      ]
+    ],
+    "outcome": "FIT401",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV501",
+        0
+      ],
+      [
+        "MV503",
+        0
+      ],
+      [
+        "MV504",
+        0
+      ]
+    ],
+    "outcome": "FIT501",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV301",
+        1
+      ],
+      [
+        "MV303",
+        1
+      ],
+      [
+        "P602",
+        1
+      ]
+    ],
+    "outcome": "DPIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        0
+      ]
+    ],
+    "outcome": "DPIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ]
+    ],
+    "outcome": "DPIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        1
+      ]
+    ],
+    "outcome": "LIT101",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        1
+      ],
+      [
+        "P101",
+        0
+      ],
+      [
+        "P102",
+        0
+      ]
+    ],
+    "outcome": "LIT101",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        1
+      ],
+      [
+        "MV201",
+        0
+      ]
+    ],
+    "outcome": "LIT101",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        0
+      ],
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P101",
+        1
+      ]
+    ],
+    "outcome": "LIT101",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV101",
+        0
+      ],
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P102",
+        1
+      ]
+    ],
+    "outcome": "LIT101",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        0
+      ],
+      [
+        "MV302",
+        1
+      ],
+      [
+        "P301",
+        1
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        0
+      ],
+      [
+        "MV302",
+        1
+      ],
+      [
+        "P302",
+        1
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P101",
+        1
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P102",
+        1
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P101",
+        1
+      ],
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P102",
+        1
+      ],
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P101",
+        1
+      ],
+      [
+        "MV302",
+        0
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV201",
+        1
+      ],
+      [
+        "P102",
+        1
+      ],
+      [
+        "MV302",
+        0
+      ]
+    ],
+    "outcome": "LIT301",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        1
+      ],
+      [
+        "P301",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        1
+      ],
+      [
+        "P302",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(High)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        0
+      ],
+      [
+        "P401",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ],
+      [
+        "P401",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "MV302",
+        0
+      ],
+      [
+        "P402",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(Low)"
+  },
+  {
+    "attack": [
+      [
+        "P301",
+        0
+      ],
+      [
+        "P302",
+        0
+      ],
+      [
+        "P402",
+        1
+      ]
+    ],
+    "outcome": "LIT401",
+    "failure": "(Low)"
+  }
+]

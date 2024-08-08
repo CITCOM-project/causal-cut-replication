@@ -32,7 +32,9 @@ from causal_testing.testing.causal_test_adequacy import DataAdequacy
 parser = argparse.ArgumentParser(
     prog="water_g", description="Causal testing for the water system."
 )
-parser.add_argument("-o", "--outfile", type=str, help="Path JSON results file.")
+parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.")
+parser.add_argument("-o", "--outfile", type=str, help="Path to safe JSON results file.")
+parser.add_argument("-A", "--adequacy", action="store_true")
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
 os.makedirs("logs", exist_ok=True)
@@ -54,32 +56,26 @@ if __name__ == "__main__":
         raise ValueError("datafile must be .csv or .pqt")
     dag = nx.nx_pydot.read_dot("flow_raw.dot")
     num_repeats = 100
-    with open("successful_attacks.json") as f:
-        successful_attacks = jsonpickle.decode("".join(f.readlines()))
-    data = []
-    adequacy = True
+    with open(args.attacks) as f:
+        attacks = jsonpickle.decode("".join(f.readlines()))
 
     timesteps_per_intervention = 15
 
-    for outcome, attacks in successful_attacks.items():
-        outcome, attack = outcome.split(" ")
+    for inx, attack in enumerate(attacks, 1):
+        outcome = attack["outcome"]
         logging.debug(f"\nOUTCOME: {outcome}")
 
         min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
 
-        datum = {
-            "outcome": outcome,
-            "attack": attack,
-            "safe_range": (min, max),
-        }
+        attack["safe_range"] = (min, max)
+
         if not (~df[outcome].between(min, max)).any():
             logging.error(
                 f"  No faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
-            datum["error"] = "No faults observed. P(error) = 0"
-            data.append(datum)
+            attack["error"] = "No faults observed. P(error) = 0"
             continue
         if df[outcome].between(min, max).all():
             logging.error(
@@ -87,128 +83,120 @@ if __name__ == "__main__":
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
                 f"  Safe range {safe_ranges[outcome]}"
             )
-            datum["error"] = "Only faults observed. P(error) = 1"
-            data.append(datum)
+            attack["error"] = "Only faults observed. P(error) = 1"
             continue
 
-        for capabilities in attacks:
-            control_strategy = TreatmentSequence(
-                timesteps_per_intervention, capabilities
+        control_strategy = TreatmentSequence(
+            timesteps_per_intervention, attack["attack"]
+        )
+        logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
+        attack["control_strategy"] = control_strategy.capabilities
+
+        if any(c.variable not in df for c in control_strategy.capabilities):
+            logging.error("  Missing data for control_strategy")
+            attack["error"] = "Missing data for control_strategy"
+            continue
+        if any(c.variable not in dag.nodes for c in control_strategy.capabilities):
+            logging.error("  Missing node for control_strategy")
+            attack["error"] = "Missing node for control_strategy"
+            continue
+
+        for i, capability in enumerate(control_strategy.capabilities):
+            if "treatment_strategies" not in attack:
+                attack["treatment_strategies"] = []
+            # Treatment strategy is the same, but with one capability negated
+            # i.e. we examine the counterfactual "What if we had not done that?"
+            treatment_strategy = control_strategy.copy()
+            treatment_strategy.set_value(i, int(not capability.value))
+            result = {"treatment_strategies": treatment_strategy.capabilities}
+            attack["treatment_strategies"].append(result)
+
+            base_test_case = BaseTestCase(
+                treatment_variable=control_strategy,
+                outcome_variable=outcome,
+                effect="temporal",
             )
-            logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
-            datum["control_strategy"] = control_strategy.capabilities
 
-            if any(c.variable not in df for c in control_strategy.capabilities):
-                logging.error("  Missing data for control_strategy")
-                datum["error"] = "Missing data for control_strategy"
-                data.append(datum)
+            causal_test_case = CausalTestCase(
+                base_test_case=base_test_case,
+                expected_causal_effect=SomeEffect(),
+                control_value=control_strategy,
+                treatment_value=treatment_strategy,
+                estimate_type="hazard_ratio",
+            )
+
+            logging.debug(f"  TREATMENT STRATEGY {treatment_strategy.capabilities}")
+            logging.debug(f"  OUTCOME {outcome}")
+            logging.debug(f"  SAFE RANGE {min} {max}")
+
+            neighbours = list(dag.predecessors(capability.variable))
+            neighbours += list(dag.successors(capability.variable))
+
+            if capability.variable == "P402":
+                neighbours.remove("FIT501")
+                neighbours.remove("AIT402")
+                neighbours.remove("FIT401")
+
+            assert len(neighbours) > 0, f"No neighbours for node {capability.variable}"
+
+            fitBLswitch_formula = "xo_t_do ~ time"
+
+            df["within_safe_range"] = df[outcome].between(min, max)
+
+            estimation_model = IPCWEstimator(
+                df,
+                timesteps_per_intervention,
+                control_strategy,
+                treatment_strategy,
+                outcome,
+                "within_safe_range",
+                fit_bl_switch_formula=fitBLswitch_formula,
+                fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
+                eligibility=None,
+                # elligibility = safe_ranges[outcome].get("eligibility", None),
+            )
+
+            try:
+                causal_test_result = causal_test_case.execute_test(
+                    estimation_model, None
+                )
+            except np.linalg.LinAlgError:
+                logging.error(
+                    "LinAlgError when executing test: Could not estimate hazard_ratio."
+                )
+                result["error"] = (
+                    "LinAlgError when executing test: Could not estimate hazard_ratio."
+                )
                 continue
-            if any(c.variable not in dag.nodes for c in control_strategy.capabilities):
-                logging.error("  Missing node for control_strategy")
-                datum["error"] = "Missing node for control_strategy"
-                data.append(datum)
-                break
-
-            for i, capability in enumerate(control_strategy.capabilities):
-                # Treatment strategy is the same, but with one capability negated
-                # i.e. we examine the counterfactual "What if we had not done that?"
-                treatment_strategy = control_strategy.copy()
-                treatment_strategy.set_value(i, int(not capability.value))
-                datum["treatment_strategy"] = treatment_strategy.capabilities
-
-                base_test_case = BaseTestCase(
-                    treatment_variable=control_strategy,
-                    outcome_variable=outcome,
-                    effect="temporal",
+            except lifelines.exceptions.ConvergenceError:
+                logging.error(
+                    "ConvergenceError when executing test: Could not estimate hazard_ratio."
                 )
-
-                causal_test_case = CausalTestCase(
-                    base_test_case=base_test_case,
-                    expected_causal_effect=SomeEffect(),
-                    control_value=control_strategy,
-                    treatment_value=treatment_strategy,
-                    estimate_type="hazard_ratio",
+                result["error"] = (
+                    "ConvergenceError when executing test: Could not estimate hazard_ratio."
                 )
+                continue
 
-                logging.debug(f"  TREATMENT STRATEGY {treatment_strategy.capabilities}")
-                logging.debug(f"  OUTCOME {outcome}")
-                logging.debug(f"  SAFE RANGE {min} {max}")
+            if causal_test_result.test_value.value is None:
+                logging.error("Error: Causal effect not estimated.")
+                result["error"] = "Failed to estimate hazard_ratio."
+                continue
 
-                neighbours = list(dag.predecessors(capability.variable))
-                neighbours += list(dag.successors(capability.variable))
-
-                if capability.variable == "P402":
-                    neighbours.remove("FIT501")
-                    neighbours.remove("AIT402")
-                    neighbours.remove("FIT401")
-
-                assert (
-                    len(neighbours) > 0
-                ), f"No neighbours for node {capability.variable}"
-
-                fitBLswitch_formula = "xo_t_do ~ time"
-
-                df["within_safe_range"] = df[outcome].between(min, max)
-
-                estimation_model = IPCWEstimator(
-                    df,
-                    timesteps_per_intervention,
-                    control_strategy,
-                    treatment_strategy,
-                    outcome,
-                    "within_safe_range",
-                    fit_bl_switch_formula=fitBLswitch_formula,
-                    fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
-                    eligibility=None,
-                    # elligibility = safe_ranges[outcome].get("eligibility", None),
+            if args.adequacy:
+                adequacy_metric = DataAdequacy(
+                    causal_test_case, estimation_model, group_by="id"
                 )
+                adequacy_metric.measure_adequacy()
+                causal_test_result.adequacy = adequacy_metric
+            result = result | causal_test_result.to_dict(json=True)
+            result["passed"] = causal_test_case.expected_causal_effect.apply(
+                causal_test_result
+            )
 
-                try:
-                    causal_test_result = causal_test_case.execute_test(
-                        estimation_model, None
-                    )
-                except np.linalg.LinAlgError:
-                    logging.error(
-                        "LinAlgError when executing test: Could not estimate hazard_ratio."
-                    )
-                    datum["error"] = (
-                        "LinAlgError when executing test: Could not estimate hazard_ratio."
-                    )
-                    data.append("datum")
-                except lifelines.exceptions.ConvergenceError:
-                    logging.error(
-                        "ConvergenceError when executing test: Could not estimate hazard_ratio."
-                    )
-                    datum["error"] = (
-                        "ConvergenceError when executing test: Could not estimate hazard_ratio."
-                    )
-                    data.append("datum")
-                    continue
+            result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 
-                if causal_test_result.test_value.value is None:
-                    logging.error("Error: Causal effect not estimated.")
-                    datum["error"] = "Failed to estimate hazard_ratio."
-                    data.append(datum)
-                    continue
-
-                if adequacy:
-                    adequacy_metric = DataAdequacy(
-                        causal_test_case, estimation_model, group_by="id"
-                    )
-                    adequacy_metric.measure_adequacy()
-                    causal_test_result.adequacy = adequacy_metric
-                datum = datum | causal_test_result.to_dict(json=True)
-                datum["passed"] = causal_test_case.expected_causal_effect.apply(
-                    causal_test_result
-                )
-
-                datum["fit_bltd_switch_formula"] = (
-                    estimation_model.fit_bltd_switch_formula
-                )
-
-                data.append(datum)
-                logging.debug(f"  {datum}")
-                with open(args.outfile, "w") as f:
-                    print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
-    with open(args.outfile, "w") as f:
-        print(jsonpickle.encode(data, indent=2, unpicklable=False), file=f)
+            logging.debug(f"  {result}")
+        with open(args.outfile, "w") as f:
+            print(jsonpickle.encode(attacks[:inx], indent=2, unpicklable=False), file=f)
+with open(args.outfile, "w") as f:
+    print(jsonpickle.encode(attacks, indent=2, unpicklable=False), file=f)
