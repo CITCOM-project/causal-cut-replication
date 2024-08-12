@@ -139,18 +139,23 @@ if __name__ == "__main__":
 
             df["within_safe_range"] = df[outcome].between(min, max)
 
-            estimation_model = IPCWEstimator(
-                df,
-                timesteps_per_intervention,
-                control_strategy,
-                treatment_strategy,
-                outcome,
-                "within_safe_range",
-                fit_bl_switch_formula=fitBLswitch_formula,
-                fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
-                eligibility=None,
-                # elligibility = safe_ranges[outcome].get("eligibility", None),
-            )
+            try:
+                estimation_model = IPCWEstimator(
+                    df,
+                    timesteps_per_intervention,
+                    control_strategy,
+                    treatment_strategy,
+                    outcome,
+                    "within_safe_range",
+                    fit_bl_switch_formula=fitBLswitch_formula,
+                    fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
+                    eligibility=None,
+                    # elligibility = safe_ranges[outcome].get("eligibility", None),
+                )
+            except ValueError as e:
+                logging.error(f"ValueError: {e}")
+                result["error"] = f"ValueError: {e}"
+                continue
 
             try:
                 causal_test_result = causal_test_case.execute_test(estimation_model, None)
