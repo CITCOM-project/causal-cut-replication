@@ -29,9 +29,7 @@ from causal_testing.testing.base_test_case import BaseTestCase
 from causal_testing.specification.capabilities import TreatmentSequence
 from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
-parser = argparse.ArgumentParser(
-    prog="water_g", description="Causal testing for the water system."
-)
+parser = argparse.ArgumentParser(prog="water_g", description="Causal testing for the water system.")
 parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.")
 parser.add_argument("-o", "--outfile", type=str, help="Path to safe JSON results file.")
 parser.add_argument("-A", "--adequacy", action="store_true")
@@ -86,9 +84,7 @@ if __name__ == "__main__":
             attack["error"] = "Only faults observed. P(error) = 1"
             continue
 
-        control_strategy = TreatmentSequence(
-            timesteps_per_intervention, attack["attack"]
-        )
+        control_strategy = TreatmentSequence(timesteps_per_intervention, attack["attack"])
         logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
         attack["control_strategy"] = control_strategy.capabilities
 
@@ -108,7 +104,7 @@ if __name__ == "__main__":
             # i.e. we examine the counterfactual "What if we had not done that?"
             treatment_strategy = control_strategy.copy()
             treatment_strategy.set_value(i, int(not capability.value))
-            result = {"treatment_strategies": treatment_strategy.capabilities}
+            result = {"treatment_strategy": treatment_strategy.capabilities}
             attack["treatment_strategies"].append(result)
 
             base_test_case = BaseTestCase(
@@ -157,24 +153,14 @@ if __name__ == "__main__":
             )
 
             try:
-                causal_test_result = causal_test_case.execute_test(
-                    estimation_model, None
-                )
+                causal_test_result = causal_test_case.execute_test(estimation_model, None)
             except np.linalg.LinAlgError:
-                logging.error(
-                    "LinAlgError when executing test: Could not estimate hazard_ratio."
-                )
-                result["error"] = (
-                    "LinAlgError when executing test: Could not estimate hazard_ratio."
-                )
+                logging.error("LinAlgError when executing test: Could not estimate hazard_ratio.")
+                result["error"] = "LinAlgError when executing test: Could not estimate hazard_ratio."
                 continue
             except lifelines.exceptions.ConvergenceError:
-                logging.error(
-                    "ConvergenceError when executing test: Could not estimate hazard_ratio."
-                )
-                result["error"] = (
-                    "ConvergenceError when executing test: Could not estimate hazard_ratio."
-                )
+                logging.error("ConvergenceError when executing test: Could not estimate hazard_ratio.")
+                result["error"] = "ConvergenceError when executing test: Could not estimate hazard_ratio."
                 continue
 
             if causal_test_result.test_value.value is None:
@@ -183,15 +169,11 @@ if __name__ == "__main__":
                 continue
 
             if args.adequacy:
-                adequacy_metric = DataAdequacy(
-                    causal_test_case, estimation_model, group_by="id"
-                )
+                adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
                 adequacy_metric.measure_adequacy()
                 causal_test_result.adequacy = adequacy_metric
             result = result | causal_test_result.to_dict(json=True)
-            result["passed"] = causal_test_case.expected_causal_effect.apply(
-                causal_test_result
-            )
+            result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
 
             result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 

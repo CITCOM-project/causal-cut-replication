@@ -5,10 +5,9 @@ timestep of one run.
 
 import pandas as pd
 import argparse
+from actuators import actuators
 
-parser = argparse.ArgumentParser(
-    prog="long_format_data", description="Converts timestep data to long format."
-)
+parser = argparse.ArgumentParser(prog="long_format_data", description="Converts timestep data to long format.")
 parser.add_argument(
     "-t",
     "--timesteps",
@@ -23,41 +22,8 @@ parser.add_argument(
     help="The amount of time in between runs starting.",
     required=True,
 )
-parser.add_argument(
-    "-o", "--outfile", type=str, help="Where to save the resulting data.", required=True
-)
+parser.add_argument("-o", "--outfile", type=str, help="Where to save the resulting data.", required=True)
 parser.add_argument("datafiles", nargs="+", help="Paths to the data files to format.")
-
-
-actuators = [
-    "MV101",
-    "P101",
-    "P102",
-    "MV201",
-    "P201",
-    "P202",
-    "P203",
-    "P204",
-    "P205",
-    "P206",
-    "MV302",
-    "MV301",
-    "P301",
-    "P302",
-    "P401",
-    "P402",
-    "P403",
-    "P404",
-    "UV401",
-    "P501",
-    "P502",
-    # "MV501",
-    # "MV502",
-    # "MV503",
-    "P601",
-    "P602",
-    "P603",
-]
 
 
 def setup_subject(i, timesteps):
