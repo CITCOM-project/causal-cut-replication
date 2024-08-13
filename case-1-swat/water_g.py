@@ -167,6 +167,10 @@ if __name__ == "__main__":
                 logging.error("ConvergenceError when executing test: Could not estimate hazard_ratio.")
                 result["error"] = "ConvergenceError when executing test: Could not estimate hazard_ratio."
                 continue
+            except ValueError as e:
+                logging.error(f"ValueError: {e}")
+                result["error"] = f"ValueError: {e}"
+                continue
 
             if causal_test_result.test_value.value is None:
                 logging.error("Error: Causal effect not estimated.")
@@ -177,7 +181,7 @@ if __name__ == "__main__":
                 adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
                 adequacy_metric.measure_adequacy()
                 causal_test_result.adequacy = adequacy_metric
-            result = result | causal_test_result.to_dict(json=True)
+            result["result"] = causal_test_result.to_dict(json=True)
             result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
 
             result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
