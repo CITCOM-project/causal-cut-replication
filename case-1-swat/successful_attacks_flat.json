@@ -1,32 +1,212 @@
 [
-    {"attack": [["P602", 0]], "outcome": "FIT601", "failure": "(Low)"},
-    {"attack": [["MV101", 1]], "outcome": "FIT101", "failure": "(High)"},
-    {"attack": [["MV101", 0]], "outcome": "FIT101", "failure": "(Low)"},
-    {"attack": [["MV201", 1], ["P101", 1], ["P102", 1]], "outcome": "FIT201", "failure": "(High)"},
-    {"attack": [["MV201", 0]], "outcome": "FIT201", "failure": "(Low)"},
-    {"attack": [["P101", 0], ["P102", 0]], "outcome": "FIT201", "failure": "(Low)"},
-    {"attack": [["MV302", 0]], "outcome": "FIT301", "failure": "(Low)"},
-    {"attack": [["P301", 0], ["P302", 0]], "outcome": "FIT301", "failure": "(Low)"},
-    {"attack": [["MV501", 0]], "outcome": "FIT401", "failure": "(Low)"},
-    {"attack": [["MV302", 0]], "outcome": "DPIT301", "failure": "(Low)"},
-    {"attack": [["P301", 0], ["P302", 0]], "outcome": "DPIT301", "failure": "(Low)"},
-    {"attack": [["MV101", 1]], "outcome": "LIT101", "failure": "(High)"},
-    {"attack": [["MV101", 1], ["P101", 0], ["P102", 0]], "outcome": "LIT101", "failure": "(High)"},
-    {"attack": [["MV101", 1], ["MV201", 0]], "outcome": "LIT101", "failure": "(High)"},
-    {"attack": [["MV101", 0], ["MV201", 1], ["P101", 1]], "outcome": "LIT101", "failure": "(Low)"},
-    {"attack": [["MV101", 0], ["MV201", 1], ["P102", 1]], "outcome": "LIT101", "failure": "(Low)"},
-    {"attack": [["MV201", 0], ["MV302", 1], ["P301", 1]], "outcome": "LIT301", "failure": "(Low)"},
-    {"attack": [["MV201", 0], ["MV302", 1], ["P302", 1]], "outcome": "LIT301", "failure": "(Low)"},
-    {"attack": [["MV201", 1], ["P101", 1]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV201", 1], ["P102", 1]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV201", 1], ["P101", 1], ["P301", 0], ["P302", 0]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV201", 1], ["P102", 1], ["P301", 0], ["P302", 0]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV201", 1], ["P101", 1], ["MV302", 0]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV201", 1], ["P102", 1], ["MV302", 0]], "outcome": "LIT301", "failure": "(High)"},
-    {"attack": [["MV302", 1], ["P301", 1]], "outcome": "LIT401", "failure": "(High)"},
-    {"attack": [["MV302", 1], ["P302", 1]], "outcome": "LIT401", "failure": "(High)"},
-    {"attack": [["MV302", 0], ["P401", 1]], "outcome": "LIT401", "failure": "(Low)"},
-    {"attack": [["P301", 0], ["P302", 0], ["P401", 1]], "outcome": "LIT401", "failure": "(Low)"},
-    {"attack": [["MV302", 0], ["P402", 1]], "outcome": "LIT401", "failure": "(Low)"},
-    {"attack": [["P301", 0], ["P302", 0], ["P402", 1]], "outcome": "LIT401", "failure": "(Low)"}
+    {
+        "attack": [["P602", 0]],
+        "outcome": "FIT601",
+        "failure": "(Low)",
+        "minimal": [["P602", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 1]],
+        "outcome": "FIT101",
+        "failure": "(High)",
+        "minimal": [["MV101", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 0]],
+        "outcome": "FIT101",
+        "failure": "(Low)",
+        "minimal": [["MV101", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P101", 1], ["P102", 1]],
+        "outcome": "FIT201",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P101", 1], ["P102", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 0]],
+        "outcome": "FIT201",
+        "failure": "(Low)",
+        "minimal": [["MV201", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["P101", 0], ["P102", 0]],
+        "outcome": "FIT201",
+        "failure": "(Low)",
+        "minimal": [["P101", 0], ["P102", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 0]],
+        "outcome": "FIT301",
+        "failure": "(Low)",
+        "minimal": [["MV302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["P301", 0], ["P302", 0]],
+        "outcome": "FIT301",
+        "failure": "(Low)",
+        "minimal": [["P301", 0], ["P302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV501", 0]],
+        "outcome": "FIT401",
+        "failure": "(Low)",
+        "minimal": [["MV501", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 0]],
+        "outcome": "DPIT301",
+        "failure": "(Low)",
+        "minimal": [["MV302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["P301", 0], ["P302", 0]],
+        "outcome": "DPIT301",
+        "failure": "(Low)",
+        "minimal": [["P301", 0], ["P302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 1]],
+        "outcome": "LIT101",
+        "failure": "(High)",
+        "minimal": [["MV101", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 1], ["P101", 0], ["P102", 0]],
+        "outcome": "LIT101",
+        "failure": "(High)",
+        "minimal": [["MV101", 1], ["P101", 0], ["P102", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 1], ["MV201", 0]],
+        "outcome": "LIT101",
+        "failure": "(High)",
+        "minimal": [["MV101", 1], ["MV201", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 0], ["MV201", 1], ["P101", 1]],
+        "outcome": "LIT101",
+        "failure": "(Low)",
+        "minimal": [["MV101", 0], ["MV201", 1], ["P101", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV101", 0], ["MV201", 1], ["P102", 1]],
+        "outcome": "LIT101",
+        "failure": "(Low)",
+        "minimal": [["MV101", 0], ["MV201", 1], ["P102", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 0], ["MV302", 1], ["P301", 1]],
+        "outcome": "LIT301",
+        "failure": "(Low)",
+        "minimal": [["MV201", 0], ["MV302", 1], ["P301", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 0], ["MV302", 1], ["P302", 1]],
+        "outcome": "LIT301",
+        "failure": "(Low)",
+        "minimal": [["MV201", 0], ["MV302", 1], ["P302", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P101", 1]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P101", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P102", 1]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P102", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P101", 1], ["P301", 0], ["P302", 0]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P101", 1], ["P301", 0], ["P302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P102", 1], ["P301", 0], ["P302", 0]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P102", 1], ["P301", 0], ["P302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P101", 1], ["MV302", 0]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P101", 1], ["MV302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV201", 1], ["P102", 1], ["MV302", 0]],
+        "outcome": "LIT301",
+        "failure": "(High)",
+        "minimal": [["MV201", 1], ["P102", 1], ["MV302", 0]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 1], ["P301", 1]],
+        "outcome": "LIT401",
+        "failure": "(High)",
+        "minimal": [["MV302", 1], ["P301", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 1], ["P302", 1]],
+        "outcome": "LIT401",
+        "failure": "(High)",
+        "minimal": [["MV302", 1], ["P302", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 0], ["P401", 1]],
+        "outcome": "LIT401",
+        "failure": "(Low)",
+        "minimal": [["MV302", 0], ["P401", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["P301", 0], ["P302", 0], ["P401", 1]],
+        "outcome": "LIT401",
+        "failure": "(Low)",
+        "minimal": [["P301", 0], ["P302", 0], ["P401", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["MV302", 0], ["P402", 1]],
+        "outcome": "LIT401",
+        "failure": "(Low)",
+        "minimal": [["MV302", 0], ["P402", 1]],
+        "spurious": []
+    },
+    {
+        "attack": [["P301", 0], ["P302", 0], ["P402", 1]],
+        "outcome": "LIT401",
+        "failure": "(Low)",
+        "minimal": [["P301", 0], ["P302", 0], ["P402", 1]],
+        "spurious": []
+    }
 ]

@@ -33,6 +33,7 @@ parser = argparse.ArgumentParser(prog="water_g", description="Causal testing for
 parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.")
 parser.add_argument("-o", "--outfile", type=str, help="Path to safe JSON results file.")
 parser.add_argument("-A", "--adequacy", action="store_true")
+parser.add_argument("-i", "--attack_index", type=int, help="The index of the attack to execute.", required=False)
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
 os.makedirs("logs", exist_ok=True)
@@ -57,6 +58,9 @@ if __name__ == "__main__":
     with open(args.attacks) as f:
         attacks = jsonpickle.decode("".join(f.readlines()))
 
+    if args.attack_index is not None:
+        attacks = [attacks[args.attack_index]]
+
     timesteps_per_intervention = 15
 
     for inx, attack in enumerate(attacks, 1):
@@ -66,6 +70,9 @@ if __name__ == "__main__":
         min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
 
         attack["safe_range"] = (min, max)
+        control_strategy = TreatmentSequence(timesteps_per_intervention, attack["attack"])
+        logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
+        attack["control_strategy"] = control_strategy.capabilities
 
         if not (~df[outcome].between(min, max)).any():
             logging.error(
@@ -83,10 +90,6 @@ if __name__ == "__main__":
             )
             attack["error"] = "Only faults observed. P(error) = 1"
             continue
-
-        control_strategy = TreatmentSequence(timesteps_per_intervention, attack["attack"])
-        logging.debug(f"  CONTROL STRATEGY   {control_strategy.capabilities}")
-        attack["control_strategy"] = control_strategy.capabilities
 
         if any(c.variable not in df for c in control_strategy.capabilities):
             logging.error("  Missing data for control_strategy")
