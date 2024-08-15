@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #sBatch -c=4
-#SBATCH --mem=4000
+#SBATCH --mem=12000
 #SBATCH --time=04:00:00
 
 module load Anaconda3/2019.07
