@@ -1,3 +1,0 @@
-pyarrow>=16.1.0
-jsonpickle>=3.2.2
-causal_testing_framework==7.1.0
