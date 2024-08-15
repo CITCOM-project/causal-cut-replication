@@ -7,7 +7,7 @@
 
 module load Anaconda3/2019.07
 
-source activate swat
+source activate tci
 
 echo "sbatch hpc-run.sh "$@
 
