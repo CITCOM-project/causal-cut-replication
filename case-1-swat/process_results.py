@@ -1,14 +1,26 @@
 import json
 import sys
 import pandas as pd
+import os
+from glob import glob
 
 if len(sys.argv) != 2:
-    raise ValueError("Please provide a file to convert.")
+    raise ValueError("Please provide a file (or directory of files) to convert.")
 
 fname = sys.argv[1]
+outfile = fname.replace(".json", ".csv")
 
-with open(fname) as f:
-    log = json.load(f)
+if os.path.isdir(fname):
+    if outfile.endswith("/"):
+        outfile = outfile[:-1]
+    outfile += ".csv"
+    log = []
+    for fname in glob(f"{fname}/*.json"):
+        with open(fname) as f:
+            log += json.load(f)
+else:
+    with open(fname) as f:
+        log = json.load(f)
 
 data = []
 for record in log:
@@ -65,4 +77,4 @@ for record in log:
         )
 
 data = pd.DataFrame(data)
-data.to_csv(fname.replace(".json", ".csv"))
+data.to_csv(outfile)

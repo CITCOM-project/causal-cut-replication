@@ -12,7 +12,8 @@ echo "sbatch hpc-run.sh "$@
 
 attack_file=$1
 outfile=$2
-attack_index=$3
-data_file=$4
+alpha=$3
+attack_index=$4
+data_file=$5
 
-python water_g.py -a $attack_file -o $outfile -A -i $attack_index $data_file
+python water_g.py -a $attack_file -o $outfile -A -c $alpha -i $attack_index $data_file

@@ -9,7 +9,7 @@ This is not strictly necessary, but you will need Python>=3.10, and will need to
 1. Clone the repository.
 1. Create a new virtual environment:
 ```
-conda create -f environment.yaml --name tci
+conda env create -f environment.yaml --name tci
 ```
 1. Activate the virtual environment:
 ```

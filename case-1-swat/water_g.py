@@ -34,6 +34,7 @@ parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file
 parser.add_argument("-o", "--outfile", type=str, help="Path to safe JSON results file.")
 parser.add_argument("-A", "--adequacy", action="store_true")
 parser.add_argument("-i", "--attack_index", type=int, help="The index of the attack to execute.", required=False)
+parser.add_argument("-c", "--ci_alpha", type=float, help="The alpha to use in confidence intervals.", default=0.05)
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
 os.makedirs("logs", exist_ok=True)
@@ -153,6 +154,7 @@ if __name__ == "__main__":
                     fit_bl_switch_formula=fitBLswitch_formula,
                     fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
                     eligibility=None,
+                    alpha=args.ci_alpha
                     # elligibility = safe_ranges[outcome].get("eligibility", None),
                 )
             except ValueError as e:
@@ -186,6 +188,7 @@ if __name__ == "__main__":
                 causal_test_result.adequacy = adequacy_metric
             result["result"] = causal_test_result.to_dict(json=True)
             result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
+            result["alpha"] = args.ci_alpha
 
             result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 
