@@ -39,11 +39,11 @@ parser.add_argument("datafile", type=str, help="Path to the long format data fil
 
 os.makedirs("logs", exist_ok=True)
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(message)s",
-    handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
-)
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(message)s",
+#     handlers=[logging.FileHandler("logs/debug.log"), logging.StreamHandler()],
+# )
 
 
 if __name__ == "__main__":
