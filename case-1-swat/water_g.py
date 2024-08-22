@@ -37,7 +37,6 @@ parser.add_argument("-i", "--attack_index", type=int, help="The index of the att
 parser.add_argument("-c", "--ci_alpha", type=float, help="The alpha to use in confidence intervals.", default=0.05)
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
 
-os.makedirs("logs", exist_ok=True)
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -48,6 +47,8 @@ os.makedirs("logs", exist_ok=True)
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    os.makedirs(os.sep.join(os.path.normpath(args.outfile).split(os.sep)[:-1]), exist_ok=True)
     if args.datafile.endswith(".pqt"):
         df = pd.read_parquet(args.datafile)
     elif args.datafile.endswith(".csv"):
