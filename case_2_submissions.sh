@@ -1,3 +1,5 @@
+# constant_names = ["kjs", "kgj", "kjl", "kgl", "kxg", "kxgi", "kxi", "τ", "η", "kλ", "kμ", "Gprod0"]
+
 attacks=case-2-oref0/data/successful_attacks.json
 dag=case-2-oref0/oref0.dot
 safe_ranges=case-2-oref0/safe_ranges.json

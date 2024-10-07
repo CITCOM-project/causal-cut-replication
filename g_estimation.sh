@@ -34,5 +34,3 @@ python g_estimation.py \
 -S \
 -A \
 $data
-
-# constant_names = ["kjs", "kgj", "kjl", "kgl", "kxg", "kxgi", "kxi", "τ", "η", "kλ", "kμ", "Gprod0"]
