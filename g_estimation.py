@@ -269,14 +269,14 @@ if __name__ == "__main__":
                 result["error"] = "Failed to estimate hazard_ratio."
                 continue
             estimation_time = time.time()
-            result["estimation_time"] = estimation_time - start
+            result["estimation_time"] = estimation_time - start_time
 
-            if args.adequacy:
+            if args.adequacy and "error" not in result:
                 adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
                 adequacy_metric.measure_adequacy()
                 causal_test_result.adequacy = adequacy_metric
                 adequacy_time = time.time()
-                result["adequacy_time"] = adequacy_time - start
+                result["adequacy_time"] = adequacy_time - start_time
             result["result"] = causal_test_result.to_dict(json=True)
             result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
             result["alpha"] = args.ci_alpha
