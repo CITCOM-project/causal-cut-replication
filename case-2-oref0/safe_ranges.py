@@ -1,1 +1,1 @@
-safe_ranges = {"Glucose": {"lo": 40, "hi": 180}}
+safe_ranges = {"Blood_Glucose": {"lo": 50, "hi": 180}}

@@ -1,16 +1,22 @@
 digraph oref0 {
   Stomach -> rate;
-  Insulin -> rate;
-  Glucose -> rate;
+  Blood_Insulin -> rate;
+  Blood_Glucose -> rate;
 
-  eat -> Stomach;
-  bolus -> Insulin;
+  snack -> Stomach;
+  light_meal -> Stomach;
+  heavy_meal -> Stomach;
+  bolus -> Blood_Insulin;
 
-  Glucose -> eat;
-  Glucose -> bolus;
-  eat -> bolus;
+  Blood_Glucose -> snack;
+  Blood_Glucose -> light_meal;
+  Blood_Glucose -> heavy_meal;
+  Blood_Glucose -> bolus;
+  snack -> bolus;
+  light_meal -> bolus;
+  heavy_meal -> bolus;
 
-  Stomach -> Glucose;
-  rate -> Insulin;
-  Insulin -> Glucose;
+  Stomach -> Blood_Glucose;
+  rate -> Blood_Insulin;
+  Blood_Insulin -> Blood_Glucose;
 }

@@ -9,7 +9,6 @@ from collections import OrderedDict
 from scipy.stats import kurtosis
 import networkx as nx
 import numpy as np
-from multiprocessing import Pool
 import jsonpickle
 from patsy import dmatrix
 import logging
@@ -28,13 +27,73 @@ from causal_testing.testing.base_test_case import BaseTestCase
 from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
 parser = argparse.ArgumentParser(prog="water_g", description="Causal testing for the water system.")
-parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.")
-parser.add_argument("-o", "--outfile", type=str, help="Path to safe JSON results file.")
-parser.add_argument("-A", "--adequacy", action="store_true")
-parser.add_argument("-i", "--attack_index", type=int, help="The index of the attack to execute.", required=False)
-parser.add_argument("-c", "--ci_alpha", type=float, help="The alpha to use in confidence intervals.", default=0.05)
+parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.", required=True)
+parser.add_argument("-d", "--dag", type=str, help="Path to dag file.", required=True)
+parser.add_argument(
+    "-s",
+    "--safe_ranges",
+    type=str,
+    help="Path to JSON file defining safe ranges for the output variables.",
+    required=True,
+)
+parser.add_argument(
+    "-t", "--timesteps_per_intervention", type=int, help="Timesteps per intervention (defaults to 1).", default=1
+)
+parser.add_argument(
+    "-o",
+    "--outfile",
+    type=str,
+    help="Path to save JSON results file (defaults to `logs/log.json`).",
+    default="logs/log.json",
+)
+parser.add_argument("-b", "--background", nargs="+", help="The background confounders.", default=[])
+parser.add_argument(
+    "-A",
+    "--adequacy",
+    help="Specify this flag to record the causal test adequacy. (This will significantly increase the runtime.)",
+    action="store_true",
+)
+parser.add_argument(
+    "-S",
+    "--silent",
+    help="Silence exceptions and store them as part of the result rather than crashing early.",
+    action="store_true",
+)
+parser.add_argument(
+    "-i",
+    "--attack_index",
+    type=int,
+    help="The index of the attack to execute.",
+    required=False,
+)
+parser.add_argument(
+    "-c",
+    "--ci_alpha",
+    type=float,
+    help="The alpha to use in confidence intervals.",
+    default=0.05,
+)
+parser.add_argument(
+    "-T",
+    "--total_time",
+    type=int,
+    help="The total time of the study.",
+    default=None,
+)
+parser.add_argument(
+    "-B",
+    "--block_size",
+    type=int,
+    help="The number of interventions to consider at once.",
+    default=1,
+)
+parser.add_argument(
+    "--start_time",
+    type=int,
+    help="The start time.",
+    default=0,
+)
 parser.add_argument("datafile", type=str, help="Path to the long format data file.")
-
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -53,22 +112,23 @@ if __name__ == "__main__":
         df = pd.read_csv(args.datafile)
     else:
         raise ValueError("datafile must be .csv or .pqt")
-    dag = nx.nx_pydot.read_dot("flow_raw.dot")
-    num_repeats = 100
+    df = df.loc[df["time"].between(args.start_time, args.total_time)]
+
+    dag = nx.nx_pydot.read_dot(args.dag)
     with open(args.attacks) as f:
         attacks = jsonpickle.decode("".join(f.readlines()))
-
-    with open("safe_ranges.json") as f:
+    with open(args.safe_ranges) as f:
         safe_ranges = jsonpickle.decode("".join(f.readlines()))
 
     if args.attack_index is not None:
         attacks = [attacks[args.attack_index]]
 
-    timesteps_per_intervention = 15
-
     for inx, attack in enumerate(attacks, 1):
+        print("ATTACK", inx + args.attack_index - 1 if args.attack_index is not None else inx)
         outcome = attack["outcome"]
         logging.debug(f"\nOUTCOME: {outcome}")
+
+        attack["attack"] = list(filter(lambda x: args.start_time < x[0] < args.total_time, attack["attack"]))
 
         min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
 
@@ -103,19 +163,18 @@ if __name__ == "__main__":
             attack["error"] = "Missing node for control_strategy"
             continue
 
-        for i, capability in enumerate(control_strategy):
-            _, variable, value = capability
+        indexed_control = list(enumerate(control_strategy))
+        for i in range(0, len(control_strategy), args.block_size):
+            print(f"Event {i}/{len(control_strategy)}")
             if "treatment_strategies" not in attack:
                 attack["treatment_strategies"] = []
-            # Treatment strategy is the same, but with one capability negated
-            # i.e. we examine the counterfactual "What if we had not done that?"
+            indexed_capabilities = indexed_control[i : i + args.block_size]
             treatment_strategy = [x[:] for x in control_strategy]
-            treatment_strategy[i][2] = int(not value)
-
-            assert (
-                control_strategy != treatment_strategy
-            ), f"They are both the same! {control_strategy} == {treatment_strategy}"
-
+            for i, capability in indexed_capabilities:
+                _, variable, value = capability
+                # Treatment strategy is the same, but with one capability negated
+                # i.e. we examine the counterfactual "What if we had not done that?"
+                treatment_strategy[i][2] = int(not value)
             result = {"treatment_strategy": treatment_strategy}
             attack["treatment_strategies"].append(result)
 
@@ -140,21 +199,37 @@ if __name__ == "__main__":
             neighbours = list(dag.predecessors(variable))
             neighbours += list(dag.successors(variable))
 
-            if variable == "P402":
-                neighbours.remove("FIT501")
-                neighbours.remove("AIT402")
-                neighbours.remove("FIT401")
-
             assert len(neighbours) > 0, f"No neighbours for node {variable}"
 
-            fitBLswitch_formula = "xo_t_do ~ time"
-
+            if "time" not in args.background:
+                args.background.append("time")
+            fitBLswitch_formula = f"xo_t_do ~ {' + '.join(args.background)}"
             df["within_safe_range"] = df[outcome].between(min, max)
 
-            try:
+            if args.silent:
+                try:
+                    estimation_model = IPCWEstimator(
+                        df,
+                        args.timesteps_per_intervention,
+                        control_strategy,
+                        treatment_strategy,
+                        outcome,
+                        "within_safe_range",
+                        fit_bl_switch_formula=fitBLswitch_formula,
+                        fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
+                        eligibility=None,
+                        alpha=args.ci_alpha,
+                        total_time=args.total_time
+                        # elligibility = safe_ranges[outcome].get("eligibility", None),
+                    )
+                except ValueError as e:
+                    logging.error(f"ValueError: {e}")
+                    result["error"] = f"ValueError: {e}"
+                    continue
+            else:
                 estimation_model = IPCWEstimator(
                     df,
-                    timesteps_per_intervention,
+                    args.timesteps_per_intervention,
                     control_strategy,
                     treatment_strategy,
                     outcome,
@@ -162,28 +237,30 @@ if __name__ == "__main__":
                     fit_bl_switch_formula=fitBLswitch_formula,
                     fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
                     eligibility=None,
-                    alpha=args.ci_alpha
+                    alpha=args.ci_alpha,
+                    total_time=args.total_time
                     # elligibility = safe_ranges[outcome].get("eligibility", None),
                 )
-            except ValueError as e:
-                logging.error(f"ValueError: {e}")
-                result["error"] = f"ValueError: {e}"
-                continue
 
-            try:
+            if args.silent:
+                try:
+                    causal_test_result = causal_test_case.execute_test(estimation_model, None)
+                except np.linalg.LinAlgError:
+                    logging.error("LinAlgError when executing test: Could not estimate hazard_ratio.")
+                    result["error"] = "LinAlgError when executing test: Could not estimate hazard_ratio."
+                    continue
+                except lifelines.exceptions.ConvergenceError:
+                    logging.error("ConvergenceError when executing test: Could not estimate hazard_ratio.")
+                    result["error"] = "ConvergenceError when executing test: Could not estimate hazard_ratio."
+                    continue
+                except ValueError as e:
+                    logging.error(f"ValueError: {e}")
+                    result["error"] = f"ValueError: {e}"
+                    continue
+            else:
                 causal_test_result = causal_test_case.execute_test(estimation_model, None)
-            except np.linalg.LinAlgError:
-                logging.error("LinAlgError when executing test: Could not estimate hazard_ratio.")
-                result["error"] = "LinAlgError when executing test: Could not estimate hazard_ratio."
-                continue
-            except lifelines.exceptions.ConvergenceError:
-                logging.error("ConvergenceError when executing test: Could not estimate hazard_ratio.")
-                result["error"] = "ConvergenceError when executing test: Could not estimate hazard_ratio."
-                continue
-            except ValueError as e:
-                logging.error(f"ValueError: {e}")
-                result["error"] = f"ValueError: {e}"
-                continue
+
+            assert causal_test_result.test_value.value is not None, "Test result shouldn't be none."
 
             if causal_test_result.test_value.value is None:
                 logging.error("Error: Causal effect not estimated.")

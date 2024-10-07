@@ -38,11 +38,12 @@ for record in log:
                 "error": record["error"],
                 "result": False,
             }
-            for inx, (var, val) in enumerate(record["attack"])
+            for inx, (t, var, val) in enumerate(record["attack"])
         ]
         continue
-    assert len(record["treatment_strategies"]) == len(record["attack"])
-    for inx, ((var, val), record) in enumerate(zip(record["attack"], record["treatment_strategies"])):
+    # assert len(record["treatment_strategies"]) == len(record["attack"])
+
+    for inx, ((t, var, val), record) in enumerate(zip(record["attack"], record["treatment_strategies"])):
         if "error" in record:
             data.append(
                 {
@@ -57,9 +58,10 @@ for record in log:
             )
             continue
         result = record["result"]
-        result = result | result.pop("adequacy")
+        if "adequacy" in result:
+            result = result | result.pop("adequacy")
+            result["kurtosis"] = result["kurtosis"]["trtrand"]
         result["effect_estimate"] = result["effect_estimate"]["trtrand"]
-        result["kurtosis"] = result["kurtosis"]["trtrand"]
         result["ci_low"] = result["ci_low"][0]
         result["ci_high"] = result["ci_high"][0]
         result["significant"] = not (result["ci_low"] < 1 < result["ci_high"])
@@ -77,4 +79,26 @@ for record in log:
         )
 
 data = pd.DataFrame(data)
+data["necessary"] = ~data["spurious"]
 data.to_csv(outfile)
+
+data["significant"] = data["significant"].astype(bool)
+tp = len(data.loc[data["necessary"] & data["significant"]])
+tn = len(data.loc[(~data["necessary"]) & ~data["significant"]])
+fp = len(data.loc[~data["necessary"] & data["significant"]])
+fn = len(data.loc[data["necessary"] & ~data["significant"]])
+
+print("True positives", tp)
+print("True negatives", tn)
+print("False positives", fp)
+print("False negatives", fn)
+
+sensitivity = tp / (tp + fp)
+specificity = tn / (tn + fp)
+bcr = (sensitivity + specificity) / 2
+
+print()
+
+print("sensitivity", sensitivity)
+print("specificity", specificity)
+print("bcr", bcr)
