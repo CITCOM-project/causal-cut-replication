@@ -17,6 +17,7 @@ from copy import deepcopy
 import os
 import argparse
 import lifelines
+import time
 
 
 from causal_testing.estimation.ipcw_estimator import IPCWEstimator
@@ -166,6 +167,7 @@ if __name__ == "__main__":
         indexed_control = list(enumerate(control_strategy))
         for i in range(0, len(control_strategy), args.block_size):
             print(f"Event {i}/{len(control_strategy)}")
+            start_time = time.time()
             if "treatment_strategies" not in attack:
                 attack["treatment_strategies"] = []
             indexed_capabilities = indexed_control[i : i + args.block_size]
@@ -266,11 +268,15 @@ if __name__ == "__main__":
                 logging.error("Error: Causal effect not estimated.")
                 result["error"] = "Failed to estimate hazard_ratio."
                 continue
+            estimation_time = time.time()
+            result["estimation_time"] = estimation_time - start
 
             if args.adequacy:
                 adequacy_metric = DataAdequacy(causal_test_case, estimation_model, group_by="id")
                 adequacy_metric.measure_adequacy()
                 causal_test_result.adequacy = adequacy_metric
+                adequacy_time = time.time()
+                result["adequacy_time"] = adequacy_time - start
             result["result"] = causal_test_result.to_dict(json=True)
             result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
             result["alpha"] = args.ci_alpha
