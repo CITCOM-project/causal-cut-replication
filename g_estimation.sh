@@ -29,8 +29,8 @@ python g_estimation.py \
 -c $confidence \
 -i $i \
 -o $outfile \
--T $timesteps \
 -b $baseline_confounders \
+-T $timesteps \
 -S \
 -A \
 $data

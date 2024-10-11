@@ -68,6 +68,13 @@ parser.add_argument(
     required=False,
 )
 parser.add_argument(
+    "-I",
+    "--intervention_index",
+    type=int,
+    help="The index of the intervention to execute.",
+    required=False,
+)
+parser.add_argument(
     "-c",
     "--ci_alpha",
     type=float,
@@ -122,11 +129,13 @@ if __name__ == "__main__":
         safe_ranges = jsonpickle.decode("".join(f.readlines()))
 
     if args.attack_index is not None:
-        attacks = [attacks[args.attack_index]]
+        attacks_by_index = {a["attack_id"]: a for a in attacks}
+        attacks = [attacks_by_index[args.attack_index]]
 
-    for inx, attack in enumerate(attacks, 1):
-        print("ATTACK", inx + args.attack_index - 1 if args.attack_index is not None else inx)
+    for inx, attack in enumerate(attacks):
+        print("ATTACK", inx + args.attack_index if args.attack_index is not None else inx)
         outcome = attack["outcome"]
+        attack["attack_index"] = inx if args.attack_index is None else args.attack_index
         logging.debug(f"\nOUTCOME: {outcome}")
 
         attack["attack"] = list(filter(lambda x: args.start_time < x[0] < args.total_time, attack["attack"]))
@@ -165,7 +174,13 @@ if __name__ == "__main__":
             continue
 
         indexed_control = list(enumerate(control_strategy))
-        for i in range(0, len(control_strategy), args.block_size):
+
+        if args.intervention_index is None:
+            indices = range(0, len(control_strategy), args.block_size)
+        else:
+            indices = [args.intervention_index]
+
+        for i in indices:
             print(f"Event {i}/{len(control_strategy)}")
             start_time = time.time()
             if "treatment_strategies" not in attack:
@@ -177,7 +192,7 @@ if __name__ == "__main__":
                 # Treatment strategy is the same, but with one capability negated
                 # i.e. we examine the counterfactual "What if we had not done that?"
                 treatment_strategy[i][2] = int(not value)
-            result = {"treatment_strategy": treatment_strategy}
+            result = {"treatment_strategy": treatment_strategy, "intervention_index": i}
             attack["treatment_strategies"].append(result)
 
             base_test_case = BaseTestCase(
@@ -278,12 +293,20 @@ if __name__ == "__main__":
                 adequacy_time = time.time()
                 result["adequacy_time"] = adequacy_time - start_time
             result["result"] = causal_test_result.to_dict(json=True)
+            result["len_control_group"] = estimation_model.len_control_group
+            result["len_treatment_group"] = estimation_model.len_treatment_group
             result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
             result["alpha"] = args.ci_alpha
 
             result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 
             logging.debug(f"  {result}")
+            print(
+                "significant?",
+                not (result["result"]["ci_low"][0] < 1 < result["result"]["ci_high"][0]),
+                result["result"]["ci_low"][0],
+                result["result"]["ci_high"][0],
+            )
         with open(args.outfile, "w") as f:
             print(jsonpickle.encode(attacks[:inx], indent=2, unpicklable=False), file=f)
 with open(args.outfile, "w") as f:
