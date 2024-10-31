@@ -32,5 +32,4 @@ python g_estimation.py \
 -b $baseline_confounders \
 -T $timesteps \
 -S \
--A \
 $data

@@ -22,6 +22,8 @@ if os.path.isdir(fname):
     for fname in glob(f"{fname}/*.json"):
         with open(fname) as f:
             log += json.load(f)
+    with open(outfile.replace(".csv", ".json"), "w") as f:
+        json.dump(log, f)
 else:
     with open(fname) as f:
         log = json.load(f)
@@ -83,6 +85,8 @@ for record in log:
                 "spurious": record["intervention_index"] in spurious,
                 "error": None,
                 "result": True,
+                "len_control_group": record["len_control_group"],
+                "len_treatment_group": record["len_treatment_group"],
             }
             | result
         )
@@ -91,6 +95,12 @@ data = pd.DataFrame(data).sort_values(["attack_index", "intervention_index"]).re
 
 data["spurious"] = data["spurious"]
 data["necessary"] = ~data["spurious"]
+data["significant"] = data.pop("significant")
+data["correct"] = data["necessary"] == data["significant"]
+# data["treatment_value"] = [t[i] for t, i in zip(data["treatment_value"], data["intervention_index"])]
+# data["control"] = [t[i] for t, i in zip(data["control_value"], data["intervention_index"])]
+data["treatment"] = [t[i] for t, i in zip(data["treatment"], data["intervention_index"])]
+data.drop(["adjustment_set", "effect_measure"], axis=1, inplace=True)
 
 
 def highlight_greaterthan(row):
@@ -99,11 +109,12 @@ def highlight_greaterthan(row):
 
     :param row: Pandas object representing a row of data.
     """
-    is_max = pd.Series(data=False, index=row.index)
-    is_max["attack_index"] = row.loc["attack_index"] % 2 == 0
-    return ["background-color: #eee" if is_max.any() else "" for v in is_max]
+    index = pd.Series(data=False, index=row.index)
+    index["attack_index"] = attack_indices[row.loc["attack_index"]] % 2 == 0
+    return ["background-color: #eee" if index["attack_index"] else "" for v in index]
 
 
+attack_indices = {v: k for k, v in enumerate(sorted(list(set(data["attack_index"]))))}
 styled_df = data.style.apply(highlight_greaterthan, axis=1)
 styled_df.to_excel(outfile.replace(".csv", ".xlsx"), engine="openpyxl")
 

@@ -1,29 +1,22 @@
-import pandas as pd
-import statsmodels.formula.api as smf
-from numpy import exp, append, nan
-from lifelines import CoxPHFitter
-from lifelines.exceptions import ConvergenceError
-import matplotlib.pyplot as plt
+"""
+Module to execute G estimation on a set of fault traces.
+"""
+
 import argparse
-from collections import OrderedDict
-from scipy.stats import kurtosis
+import logging
+import os
+import time
+
+import pandas as pd
 import networkx as nx
 import numpy as np
 import jsonpickle
-from patsy import dmatrix
-import logging
-from math import ceil
-from copy import deepcopy
-import os
-import argparse
 import lifelines
-import time
 
 
 from causal_testing.estimation.ipcw_estimator import IPCWEstimator
 from causal_testing.testing.causal_test_case import CausalTestCase
-from causal_testing.data_collection.data_collector import ObservationalDataCollector
-from causal_testing.testing.causal_test_outcome import SomeEffect, NoEffect
+from causal_testing.testing.causal_test_outcome import SomeEffect
 from causal_testing.testing.base_test_case import BaseTestCase
 from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
@@ -134,20 +127,21 @@ if __name__ == "__main__":
 
     for inx, attack in enumerate(attacks):
         print("ATTACK", inx + args.attack_index if args.attack_index is not None else inx)
+        print(attack)
         outcome = attack["outcome"]
         attack["attack_index"] = inx if args.attack_index is None else args.attack_index
         logging.debug(f"\nOUTCOME: {outcome}")
 
-        attack["attack"] = list(filter(lambda x: args.start_time < x[0] < args.total_time, attack["attack"]))
+        attack["attack"] = list(filter(lambda x: args.start_time <= x[0] <= args.total_time, attack["attack"]))
 
-        min, max = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
+        lo, hi = safe_ranges[outcome]["lo"], safe_ranges[outcome]["hi"]
 
-        attack["safe_range"] = (min, max)
+        attack["safe_range"] = (lo, hi)
         control_strategy = attack["attack"]
         logging.debug(f"  CONTROL STRATEGY   {control_strategy}")
         attack["control_strategy"] = control_strategy
 
-        if not (~df[outcome].between(min, max)).any():
+        if not (~df[outcome].between(lo, hi)).any():
             logging.error(
                 f"  No faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
@@ -155,7 +149,7 @@ if __name__ == "__main__":
             )
             attack["error"] = "No faults observed. P(error) = 0"
             continue
-        if df[outcome].between(min, max).all():
+        if df[outcome].between(lo, hi).all():
             logging.error(
                 f"  All faults with {outcome}. Cannot perform estimation.\n"
                 f"  Observed range [{df[outcome].min()}, {df[outcome].max()}].\n"
@@ -211,7 +205,7 @@ if __name__ == "__main__":
 
             logging.debug(f"  TREATMENT STRATEGY {treatment_strategy}")
             logging.debug(f"  OUTCOME {outcome}")
-            logging.debug(f"  SAFE RANGE {min} {max}")
+            logging.debug(f"  SAFE RANGE {lo} {hi}")
 
             neighbours = list(dag.predecessors(variable))
             neighbours += list(dag.successors(variable))
@@ -221,12 +215,12 @@ if __name__ == "__main__":
             if "time" not in args.background:
                 args.background.append("time")
             fitBLswitch_formula = f"xo_t_do ~ {' + '.join(args.background)}"
-            df["within_safe_range"] = df[outcome].between(min, max)
+            df["within_safe_range"] = df[outcome].between(lo, hi)
 
             if args.silent:
                 try:
                     estimation_model = IPCWEstimator(
-                        df,
+                        df.loc[df["intervention_inx"].isin([i, "unmodified", "fuzzed"])],
                         args.timesteps_per_intervention,
                         control_strategy,
                         treatment_strategy,
@@ -236,8 +230,9 @@ if __name__ == "__main__":
                         fit_bltd_switch_formula=f"{fitBLswitch_formula} + {' + '.join(neighbours)}",
                         eligibility=None,
                         alpha=args.ci_alpha,
-                        total_time=args.total_time
+                        total_time=args.total_time,
                         # elligibility = safe_ranges[outcome].get("eligibility", None),
+                        # bootstrap_size=200,
                     )
                 except ValueError as e:
                     logging.error(f"ValueError: {e}")
@@ -301,12 +296,6 @@ if __name__ == "__main__":
             result["fit_bltd_switch_formula"] = estimation_model.fit_bltd_switch_formula
 
             logging.debug(f"  {result}")
-            print(
-                "significant?",
-                not (result["result"]["ci_low"][0] < 1 < result["result"]["ci_high"][0]),
-                result["result"]["ci_low"][0],
-                result["result"]["ci_high"][0],
-            )
         with open(args.outfile, "w") as f:
             print(jsonpickle.encode(attacks[:inx], indent=2, unpicklable=False), file=f)
 with open(args.outfile, "w") as f:
