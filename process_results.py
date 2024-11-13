@@ -99,7 +99,7 @@ data["significant"] = data.pop("significant")
 data["correct"] = data["necessary"] == data["significant"]
 # data["treatment_value"] = [t[i] for t, i in zip(data["treatment_value"], data["intervention_index"])]
 # data["control"] = [t[i] for t, i in zip(data["control_value"], data["intervention_index"])]
-data["treatment"] = [t[i] for t, i in zip(data["treatment"], data["intervention_index"])]
+data["treatment"] = [t[i] if isinstance(t, list) else t for t, i in zip(data["treatment"], data["intervention_index"])]
 data.drop(["adjustment_set", "effect_measure"], axis=1, inplace=True)
 
 
