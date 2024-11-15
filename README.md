@@ -1,63 +1,45 @@
-# APSDigitalTwin: A Digital Twin for the OpenAPS oref0 implementation
+# Temporal Causal Testing
+This repository contains the replication package for our temporal causal testing paper.
 
-APSDigitalTwin (Artificial Pancreas System Digital Twin) uses a predictive model to simulate a person with diabetes with the intervention of OpenAPS's oref0 algorithm. The system learns a model of the user from past obervational data and allows for this model to be run against different scenarios both with and without OpenAPS intervention.
+## Pre-requisites
+We use an [Anaconda](https://www.anaconda.com/download) virtual environment.
+This is not strictly necessary, but you will need Python>=3.10, and will need to adapt the setup and replication instructions accordingly.
 
-This project was executed with oref0 version 0.7.1, python version 3.9.7 on the operating system Ubuntu 20.04.5 LTS.
+## OpenAPS Data Collection
+One of our subject systems is a [simulator](https://github.com/CITCOM-project/APSDigitalTwin) for the OpenAPS/oref0 artificial pancreas system, which re redistribute as part of this replication package to make it self-contained.
+The data we collected from this system for our experiments is available from FIXME.
+However, to rerun our data collection scripts oref0 needs to be installed and on your `PATH`.
+To do this, please follow the instructions on the [oref0 GitHub repo](https://github.com/openaps/oref0).
+This project was executed with oref0 version 0.7.1.
 
-## Installation
+**Please note** that rerunning our data collection scripts will not produce the exact same traces as we used, since part of the simulation is stochastic.
+This will potentially lead to different failures and different causal test outcomes, but should not affect the overall conclusions of the work.
 
-This system requires OpenAPS oref0 to be installed on the commandline. Please check out the following link for instruction on how to do this: [click here](https://github.com/openaps/oref0)
-
-Install a conda environment for APSDigitalTwin:
+## Running Causal Tests
+1. Clone the repository.
+1. Create a new virtual environment:
 ```
-conda create --force -n aps-digital-twin python=3.9
-conda activate aps-digital-twin
-pip install -r requirements.txt
+conda env create -f environment.yaml --name tci
 ```
+1. Activate the virtual environment:
+```
+conda activate tci
+```
+1. For each case (`case-1-swat` and `case-2-oref0`), `cd` into the directory.
+1. To run on HPC with SLURM, run `bash hpc-submissions.sh`. To run locally, run `bash local_run.sh`.
+Either way, this will create a directory `logs` with one subdirectory for each experimental configuration.
+N.B. This will take a few days for `case-1-swat`, maybe up to a week.
+To collect a subset of the data, change the range of `for i in {0..30}` to something smaller, e.g. `for i in {0..5}`, or simply kill the process when you run out of time.
+1. Process the raw JSON log files into a CSV:
+```
+python process_results.csv
+```
+This will create one CSV file within `logs` for each experimental configuration that concatenates the raw JSON log for each attack and aggregates the key information.
+
 
 ## Pre-Commit Hooks
-We have pre-commit hooks set up to ensure that we don't accidentally commit a file containing a patient id.
-The "naughty strings" come from the `constants` directory, so this needs to exist.
-Constants are stored in the format `patientID_inx.txt`, where `patientID` is a numerical string representing the openHumans patient ID and `inx` is the index of the trace segment from which the constants were inferred.
-For file `constants/patientID_inx.txt`, you are not allowed to commit any file whose name or body contains the string `patientID`.
+The data agreement for [OpenAPS](https://openaps.org/outcomes/data-commons/) require that we do not publish patient IDs.
+To stop this happening accidentally we have implemented a pre-commit hook that checks that no file (and no file name) contains any string in "naughty_strings.txt".
 
-**CAUTION:** We do not check binary files or compressed folders, so, e.g. .xlsx files would not be checked.
+**CAUTION:** We do not check binary files (e.g. .xlsx files) or compressed folders (e.g. zip or .tar.gz files).
 Commit these files at your own risk.
-
-## Data Preparation
-
-This model requires a blood glucose (mmol/L), insulin on board (U), carbohydrates on board (g) and pump output rate (U/h) timeseries at 5 minute intervals to learn the model. This data should be presented in a csv with the following layout:
-
-| bg | iob | cob | rate |
-| --- | --- | --- | --- |
-| 103 | 0.34 | 5.2 | 1.4 |
-| 104 | 0.32 | 5.1 | 0 |
-
-
-## Model Execution
-
-In `scripts/main.py`, modify `training_data` with a path your own training dataset. You should also update `.env` with the correct path for `profile_path` and `basal_profile_path`.
-
-For windows users, `COMSPEC` should also be updated to point to the exe of the bash command line which has oref0 installed (eg: `\User\GitBash.exe`).
-
-You may also update any scenarios as required. To then run the code:
-```
-python ./scripts/main.py
-```
-
-In each research question python file, the variable `figure_save_path` should be set to a path to save figures.
-
-To execute the research questions, run the following commands:
-
-These scripts can be run with the following commands:
-```
-python scripts/rq1_model_correctness.py
-python scripts/rq2_person_glucose_dynamics.py
-python scripts/rq3_openaps_scenarios.py
-```
-
-## Output
-
-For `main.py`, after each scenario, the program will display two graphs representing the scenario with no OpenAPS intervention and the scenario with OpenAPS intervention every 5 minutes. Each scenario run will also return `True` or `False` depending if the scenario has less or more deviations outside of a safe blood glucose level.
-
-For each research question script, figures wil be saved to the path represented by `figure_save_path`. Figures generated are specific to the research question in question.
