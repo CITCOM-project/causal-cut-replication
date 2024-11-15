@@ -89,6 +89,13 @@ parser.add_argument(
     default=1,
 )
 parser.add_argument(
+    "-n",
+    "--num_individuals",
+    type=int,
+    help="The number of interventions to consider at once.",
+    default=1,
+)
+parser.add_argument(
     "--start_time",
     type=int,
     help="The start time.",
@@ -114,6 +121,9 @@ if __name__ == "__main__":
     else:
         raise ValueError("datafile must be .csv or .pqt")
     df = df.loc[df["time"].between(args.start_time, args.total_time)]
+    if args.num_individuals is not None:
+        ids = list(set(df["id"]))[: args.num_individuals]
+        df = df.loc[df["id"].isin(ids)]
 
     dag = nx.nx_pydot.read_dot(args.dag)
     with open(args.attacks) as f:
