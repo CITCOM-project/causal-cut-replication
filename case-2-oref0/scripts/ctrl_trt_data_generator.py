@@ -22,9 +22,9 @@ class CtrlTrtDataGenerator(DataGenerator):
         self.resamples = resamples
         self.covered = set()
 
-    def generate_attacks(self, attack: list, loss_rate: int = 5):
+    def generate_attacks(self, attack: dict, loss_rate: int = 5):
         """
-        Generator the attacks by adding and removing around 20% of interventions.
+        Generate control and treatment groups systematically.
 
         :param attack: A dictionary containing the constants and interventions that consistitute the attack.
         :param loss_rate: An integer to roughly specify the failure rate of individuals per intervention, i.e. how many
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     random.seed(1)
     np.random.seed(1)
 
-    generator = CtrlTrtDataGenerator(500, "data-ctrl-trt", 500)
+    generator = CtrlTrtDataGenerator(max_steps=500, root="data-ctrl-trt", resamples=500)
 
     THREADS = 20
 

@@ -31,6 +31,6 @@ python g_estimation.py \
 -o $outfile \
 -b $baseline_confounders \
 -T $timesteps \
--n 1000 \
+-n 2000 \
 -S \
 $data

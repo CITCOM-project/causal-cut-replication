@@ -9,6 +9,7 @@ from multiprocessing import Pool
 import random
 import numpy as np
 from scipy.stats import binom
+import argparse
 
 from abstract_data_generator import DataGenerator
 from aps_digitaltwin.util import intervention_values, beta_iob, beta_cob
@@ -48,15 +49,12 @@ class FuzzDataGenerator(DataGenerator):
         if len(attack) > 0:
             attack.pop(random.randint(0, len(attack) - 1))
 
-    def generate_attacks(self, attack: list, loss_rate: int = 5):
+    def generate_attacks(self, attack: dict):
         """
-        Generator the attacks by adding and removing around 20% of interventions.
+        Generate attacks by randomly adding and removing around 20% of interventions.
 
         :param attack: A dictionary containing the constants and interventions that consistitute the attack.
-        :param loss_rate: An integer to roughly specify the failure rate of individuals per intervention, i.e. how many
-                          individuals are likely to fail before the next intervention.
         """
-
         yield (
             attack["attack_id"],
             "unmodified",
@@ -68,17 +66,8 @@ class FuzzDataGenerator(DataGenerator):
             attack["initial_iob"],
         )
 
-        num_ctrl_individuals = self.resamples + (loss_rate * len(attack["attack"]))
-        num_trt_individuals = 0
-
-        # Treatment individuals in ctrl_trt generation
-        for intervention_inx in range(len(attack["attack"])):
-            for r in range(self.resamples + (loss_rate * intervention_inx)):
-                num_trt_individuals += 1
-
         dist = binom(len(attack["attack"]), 0.1)
-
-        for r, mutations in enumerate(dist.rvs(size=num_ctrl_individuals + num_trt_individuals).astype(int)):
+        for r, mutations in enumerate(dist.rvs(size=self.resamples).astype(int)):
             seed = attack["attack_id"] + r
             mutations = max(mutations, 1)
 
@@ -100,13 +89,40 @@ class FuzzDataGenerator(DataGenerator):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    random.seed(1)
-    np.random.seed(1)
+    parser = argparse.ArgumentParser(prog="Fuzz data generator")
+    parser.add_argument(
+        "-r",
+        "--resamples",
+        type=int,
+        default=500,
+        help="The number of test sequences to generate from each attack. Defaults to 500",
+    )
+    parser.add_argument(
+        "-S",
+        "--systematic",
+        action="store_true",
+        default=False,
+        help="Systematically generate the same number of test sequences per attack as CtrlTrtDataGenerator."
+        "Defaults to False to generate the same number of sequences for each attack."
+        "Note that, if enabled, this will generate len(attack) * resamples traces per attack.",
+    )
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=1,
+        help="The random seed.",
+    )
+    args = parser.parse_args()
 
-    generator = FuzzDataGenerator(500, "data-fuzz", 500)
+    load_dotenv()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    generator = FuzzDataGenerator(max_steps=500, root="data-fuzz", resamples=500)
 
     THREADS = 15
+    LOSS_RATE = 0.01
 
     with open("successful_attacks.json") as filepath:
         attacks = json.load(filepath)
@@ -114,4 +130,8 @@ if __name__ == "__main__":
     with Pool(THREADS) as pool:
         for i, a in enumerate(attacks):
             print(f"Attack {a['attack_id']} ({i+1} of {len(attacks)})")
-            pool.map(generator.one_iteration, generator.generate_attacks(a, loss_rate=10))
+            if args.systamtic:
+                c2 = LOSS_RATE * args.resamples
+                c1 = c2 + args.resamples
+                generator.resamples = (c2 * (len(a) ** 2)) + (c1 * len(a)) + args.resamples
+            pool.map(generator.one_iteration, generator.generate_attacks(a))

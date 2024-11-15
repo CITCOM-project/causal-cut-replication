@@ -93,7 +93,7 @@ class DataGenerator(ABC):
         return initial_bg
 
     @abstractmethod
-    def generate_attacks(self, attack: list, loss_rate: int = 5):
+    def generate_attacks(self, attack: dict, loss_rate: int = 5):
         """
         Generate the attack sequences to be run on the simulator
         """
