@@ -3,6 +3,9 @@
 #SBATCH --mem=1000
 #SBATCH --time=00:10:00
 
+module load Anaconda3/2019.07
+source activate tci
+
 ATTACK=$1
 SEED=$2
 CMD=bash

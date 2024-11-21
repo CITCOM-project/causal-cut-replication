@@ -1,4 +1,4 @@
-name: aps-tci
+name: tci
 channels:
   - defaults
 dependencies:
