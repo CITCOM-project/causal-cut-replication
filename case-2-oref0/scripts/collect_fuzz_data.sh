@@ -17,7 +17,7 @@ else
 fi
 
 if command -v sbatch >&2; then
-  CMD=sbatch
+  CMD=sbatch --output=/dev/null --error=/dev/null
 fi
 
 if [ $SEED -lt 49999 ]; then
