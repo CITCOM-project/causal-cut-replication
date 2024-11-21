@@ -20,6 +20,6 @@ if command -v sbatch >&2; then
   CMD=sbatch
 fi
 
-if [ $SEED -lt 50000 ]; then
+if [ $SEED -lt 49999 ]; then
   $CMD scripts/collect_fuzz_data.sh $ATTACK $(($SEED + 1))
 fi
