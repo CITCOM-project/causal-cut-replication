@@ -34,7 +34,7 @@ class DataGenerator(ABC):
         """
 
         attack_inx, intervention_inx, run_inx, constants, interventions, initial_bg, initial_carbs, initial_iob = args
-        outfile = f"{self.root}/{attack_inx}-{intervention_inx}-{run_inx}.csv"
+        outfile = f"{self.root}/{attack_inx}-{intervention_inx}-{run_inx}.pqt"
         if os.path.exists(outfile):
             assert outfile not in self.covered, "Outfiles should be unique"
             return
@@ -62,7 +62,7 @@ class DataGenerator(ABC):
         df["id"] = f"{attack_inx}-{intervention_inx}-{run_inx}"
         for k, v in zip(constant_names, constants):
             df[k] = v
-        df.to_csv(outfile)
+        df.to_parquet(outfile)
 
     def random_constants(self):
         """
