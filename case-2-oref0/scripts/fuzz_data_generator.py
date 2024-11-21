@@ -49,22 +49,23 @@ class FuzzDataGenerator(DataGenerator):
         if len(attack) > 0:
             attack.pop(random.randint(0, len(attack) - 1))
 
-    def generate_attacks(self, attack: dict):
+    def generate_attacks(self, attack: dict, replicate: False):
         """
         Generate attacks by randomly adding and removing around 20% of interventions.
 
         :param attack: A dictionary containing the constants and interventions that consistitute the attack.
         """
-        yield (
-            attack["attack_id"],
-            "unmodified",
-            "original",
-            attack["constants"],
-            [(t, v, intervention_values[v]) for t, v, _ in attack["attack"]],
-            attack["initial_bg"],
-            attack["initial_carbs"],
-            attack["initial_iob"],
-        )
+        if replicate:
+            yield (
+                attack["attack_id"],
+                "unmodified",
+                "original",
+                attack["constants"],
+                [(t, v, intervention_values[v]) for t, v, _ in attack["attack"]],
+                attack["initial_bg"],
+                attack["initial_carbs"],
+                attack["initial_iob"],
+            )
 
         dist = binom(len(attack["attack"]), 0.1)
         for r, mutations in enumerate(dist.rvs(size=self.resamples).astype(int)):
@@ -73,13 +74,13 @@ class FuzzDataGenerator(DataGenerator):
 
             to_mutate = [(t, v, intervention_values[v]) for t, v, _ in attack["attack"]]
             for _ in range(mutations):
-                f = np.random.choice((self.add_intervention, self.remove_intervention), p=[0.4, 0.6])
+                f = np.random.choice((self.add_intervention, self.remove_intervention))
                 f(to_mutate)
 
             yield (
                 attack["attack_id"],
                 "fuzzed",
-                r,
+                args.run_index if args.run_index is not None else r,
                 self.random_constants(),
                 to_mutate,
                 self.safe_initial_bg(seed),
@@ -98,6 +99,13 @@ if __name__ == "__main__":
         help="The number of test sequences to generate from each attack. Defaults to 500",
     )
     parser.add_argument(
+        "-R",
+        "--replicate",
+        action="store_true",
+        default=False,
+        help="Repliate the original attack.",
+    )
+    parser.add_argument(
         "-S",
         "--systematic",
         action="store_true",
@@ -113,13 +121,37 @@ if __name__ == "__main__":
         default=1,
         help="The random seed.",
     )
+    parser.add_argument(
+        "-i",
+        "--run_index",
+        type=int,
+        help="The run index.",
+    )
+    parser.add_argument(
+        "-a",
+        "--attack",
+        type=int,
+        default=None,
+        help="The attack index to generate mutants for. Defaults to all.",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        type=str,
+        default=None,
+        help="The directory to put the data.",
+    )
+
     args = parser.parse_args()
+
+    if args.outfile is None:
+        args.outfile = f"data-fuzz-{args.resamples}"
 
     load_dotenv()
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    generator = FuzzDataGenerator(max_steps=500, root="data-fuzz", resamples=500)
+    generator = FuzzDataGenerator(max_steps=500, root=args.outfile, resamples=args.resamples)
 
     THREADS = 15
     LOSS_RATE = 0.01
@@ -127,11 +159,14 @@ if __name__ == "__main__":
     with open("successful_attacks.json") as filepath:
         attacks = json.load(filepath)
 
+    if args.attack is not None:
+        attacks = [attacks[args.attack]]
+
     with Pool(THREADS) as pool:
         for i, a in enumerate(attacks):
             print(f"Attack {a['attack_id']} ({i+1} of {len(attacks)})")
-            if args.systamtic:
+            if args.systematic:
                 c2 = LOSS_RATE * args.resamples
                 c1 = c2 + args.resamples
                 generator.resamples = (c2 * (len(a) ** 2)) + (c1 * len(a)) + args.resamples
-            pool.map(generator.one_iteration, generator.generate_attacks(a))
+            pool.map(generator.one_iteration, generator.generate_attacks(a, args.replicate))
