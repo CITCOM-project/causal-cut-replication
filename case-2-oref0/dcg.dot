@@ -1,0 +1,26 @@
+digraph oref0 {
+  rankdir="LR";
+  Stomach -> rate;
+  Blood_Insulin -> rate;
+  Blood_Glucose -> rate;
+
+  snack -> Stomach;
+  light_meal -> Stomach;
+  heavy_meal -> Stomach;
+  bolus -> Blood_Insulin;
+
+  Blood_Glucose -> snack;
+  Blood_Glucose -> light_meal;
+  Blood_Glucose -> heavy_meal;
+  Stomach -> snack;
+  Stomach -> light_meal;
+  Stomach -> heavy_meal;
+  Blood_Glucose -> bolus;
+  snack -> bolus;
+  light_meal -> bolus;
+  heavy_meal -> bolus;
+
+  Stomach -> Blood_Glucose;
+  rate -> Blood_Insulin;
+  Blood_Insulin -> Blood_Glucose;
+}

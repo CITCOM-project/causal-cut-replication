@@ -19,8 +19,6 @@ timesteps=$8
 baseline_confounders=$9
 data=${10}
 
-echo "DATA: $data"
-
 python g_estimation.py \
 -a $attacks \
 -d $dag \

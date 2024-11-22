@@ -3,8 +3,8 @@ This module puts timestep data into "long format", i.e. each row represents one
 timestep of one run.
 """
 
-import pandas as pd
 import argparse
+import pandas as pd
 from actuators import actuators
 
 parser = argparse.ArgumentParser(prog="long_format_data", description="Converts timestep data to long format.")
@@ -27,17 +27,23 @@ parser.add_argument("datafiles", nargs="+", help="Paths to the data files to for
 
 
 def setup_subject(i, timesteps):
-    subject = data.iloc[i : i + timesteps + 1].copy()
+    """
+    Put one segment of data into long format.
+    """
+    subject = df.iloc[i : i + timesteps + 1].copy()
     assert len(subject == timesteps)
     subject["id"] = i
     subject["time"] = list(range(timesteps + 1))
     if "Normal/Attack" in subject:
-        subject["Attack"] = [x == "Attack" for x in subject["Normal/Attack"]]
-        # subject = subject.loc[subject.time % 15 == 0]
+        subject["Attack"] = [x.strip() == "Attack" for x in subject["Normal/Attack"]]
         return subject
+    raise ValueError("Normal/Attack not in subject")
 
 
 def build_dataset(data, timesteps, timeskip, outfile):
+    """
+    Segment the data and setup each segment.
+    """
     # manually check no "object" datatypes
     for k, v in data.dtypes.items():
         print(k.ljust(8), v)
@@ -64,5 +70,5 @@ if __name__ == "__main__":
 
     if args.timeskip is None:
         args.timeskip = args.timesteps
-    data = pd.concat([pd.read_csv(f) for f in args.datafiles])
-    build_dataset(data, args.timesteps, args.timeskip, args.outfile)
+    df = pd.concat([pd.read_excel(f, skiprows=1).rename(columns=lambda x: x.strip()) for f in args.datafiles])
+    build_dataset(df, args.timesteps, args.timeskip, args.outfile)

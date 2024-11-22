@@ -20,7 +20,7 @@ from causal_testing.testing.causal_test_outcome import SomeEffect
 from causal_testing.testing.base_test_case import BaseTestCase
 from causal_testing.testing.causal_test_adequacy import DataAdequacy
 
-parser = argparse.ArgumentParser(prog="water_g", description="Causal testing for the water system.")
+parser = argparse.ArgumentParser(prog="g_estimation", description="Causal testing for the water system.")
 parser.add_argument("-a", "--attacks", type=str, help="Path to JSON attacks file.", required=True)
 parser.add_argument("-d", "--dag", type=str, help="Path to dag file.", required=True)
 parser.add_argument(
@@ -173,8 +173,9 @@ if __name__ == "__main__":
             attack["error"] = "Missing data for control_strategy"
             continue
         if any(var not in dag.nodes for _, var, _ in control_strategy):
-            logging.error("  Missing node for control_strategy")
-            attack["error"] = "Missing node for control_strategy"
+            missing = [var for _, var, _ in control_strategy if var not in dag.nodes]
+            logging.error(f"Missing nodes {missing} for control_strategy. Valid nodes {dag.nodes}")
+            attack["error"] = f"Missing nodes {missing} for control_strategy"
             continue
 
         indexed_control = list(enumerate(control_strategy))
@@ -230,7 +231,8 @@ if __name__ == "__main__":
             if args.silent:
                 try:
                     estimation_model = IPCWEstimator(
-                        df.loc[df["intervention_inx"].isin([i, "unmodified", "fuzzed"])],
+                        # df.loc[df["intervention_inx"].isin([i, "unmodified", "fuzzed"])],
+                        df,
                         args.timesteps_per_intervention,
                         control_strategy,
                         treatment_strategy,

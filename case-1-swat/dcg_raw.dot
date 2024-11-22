@@ -1,0 +1,210 @@
+digraph dag {
+	graph [rankdir=LR];
+	subgraph cluster_5 {
+		AIT501	[color=blue,
+			type=sensor];
+		AIT502	[color=blue,
+			type=sensor];
+		AIT503	[color=blue,
+			type=sensor];
+		AIT504	[color=blue,
+			type=sensor];
+		FIT501	[color=blue,
+			type=sensor];
+		FIT502	[color=blue,
+			type=sensor];
+		FIT503	[color=blue,
+			type=sensor];
+		P501	[color=green,
+			type=actuator];
+		P502	[color=green,
+			type=actuator];
+		MV502	[color=green,
+			type=actuator];
+		MV503	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_4 {
+		AIT401	[color=blue,
+			type=sensor];
+		AIT402	[color=blue,
+			type=sensor];
+		FIT401	[color=blue,
+			type=sensor];
+		LIT401	[color=blue,
+			type=sensor];
+		P401	[color=green,
+			type=actuator];
+		P402	[color=green,
+			type=actuator];
+		P403	[color=green,
+			type=actuator];
+		P404	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_6 {
+		P601	[color=green,
+			type=actuator];
+		P602	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_2 {
+		AIT201	[color=blue,
+			type=sensor];
+		AIT202	[color=blue,
+			type=sensor];
+		AIT203	[color=blue,
+			type=sensor];
+		FIT201	[color=blue,
+			type=sensor];
+		MV201	[color=green,
+			type=actuator];
+		P201	[color=green,
+			type=actuator];
+		P202	[color=green,
+			type=actuator];
+		P203	[color=green,
+			type=actuator];
+		P204	[color=green,
+			type=actuator];
+		P205	[color=green,
+			type=actuator];
+		P206	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_3 {
+		DPIT301	[color=blue,
+			type=sensor];
+		FIT301	[color=blue,
+			type=sensor];
+		LIT301	[color=blue,
+			type=sensor];
+		MV302	[color=green,
+			type=actuator];
+		MV301	[color=green,
+			type=actuator];
+		P301	[color=green,
+			type=actuator];
+		P302	[color=green,
+			type=actuator];
+	}
+	subgraph cluster_1 {
+		FIT101	[color=blue,
+			type=sensor];
+		MV101	[color=green,
+			type=actuator];
+		LIT101	[color=blue,
+			type=sensor];
+		P101	[color=green,
+			type=actuator];
+		P102	[color=green,
+			type=actuator];
+	}
+	FIT101 -> MV101;
+	MV101 -> LIT101;
+	LIT101 -> P101;
+	LIT101 -> P102;
+	P101 -> AIT201;
+	P101 -> FIT201;
+	P102 -> AIT201;
+	P102 -> FIT201;
+	AIT201 -> P201;
+	AIT201 -> P202;
+	AIT201 -> P203;
+	AIT201 -> P204;
+	AIT201 -> P205;
+	AIT201 -> P206;
+	AIT202 -> MV201;
+	AIT203 -> MV201;
+	FIT201 -> P201;
+	FIT201 -> P202;
+	FIT201 -> P203;
+	FIT201 -> P204;
+	FIT201 -> P205;
+	FIT201 -> P206;
+	MV201 -> LIT301;
+	P201 -> AIT202;
+	P201 -> AIT203;
+	P202 -> AIT202;
+	P202 -> AIT203;
+	P203 -> AIT202;
+	P203 -> AIT203;
+	P204 -> AIT202;
+	P204 -> AIT203;
+	P205 -> AIT202;
+	P205 -> AIT203;
+	P206 -> AIT202;
+	P206 -> AIT203;
+	DPIT301 -> MV302;
+	FIT301 -> MV302;
+	LIT301 -> P301;
+	LIT301 -> P302;
+	MV302 -> LIT401;
+	MV301 -> DPIT301;
+	MV301 -> DPIT301;
+	P301 -> DPIT301;
+	P301 -> FIT301;
+	P302 -> DPIT301;
+	P302 -> FIT301;
+	AIT401 -> P501;
+	AIT401 -> P502;
+	AIT402 -> P501;
+	AIT402 -> P502;
+	FIT401 -> P501;
+	FIT401 -> P502;
+	LIT401 -> P401;
+	LIT401 -> P402;
+	P401 -> AIT401;
+	P401 -> AIT402;
+	P401 -> FIT401;
+	P401 -> AIT501;
+	P401 -> AIT502;
+	P401 -> AIT503;
+	P401 -> FIT501;
+	P402 -> AIT401;
+	P402 -> AIT402;
+	P402 -> FIT401;
+	P402 -> AIT501;
+	P402 -> AIT502;
+	P402 -> AIT503;
+	P402 -> FIT501;
+	P403 -> AIT501;
+	P403 -> AIT502;
+	P403 -> AIT503;
+	P403 -> FIT501;
+	P404 -> AIT501;
+	P404 -> AIT502;
+	P404 -> AIT503;
+	P404 -> FIT501;
+	AIT501 -> P501;
+	AIT501 -> P502;
+	AIT502 -> P501;
+	AIT502 -> P502;
+	AIT503 -> P501;
+	AIT503 -> P502;
+	AIT504 -> MV301;
+	AIT504 -> MV502;
+	AIT504 -> MV503;
+	AIT504 -> P602;
+	FIT501 -> P501;
+	FIT501 -> P502;
+	FIT502 -> MV301;
+	FIT502 -> MV502;
+	FIT502 -> MV503;
+	FIT502 -> P601;
+	FIT502 -> P602;
+	FIT503 -> MV301;
+	FIT503 -> MV502;
+	FIT503 -> P602;
+	P501 -> AIT504;
+	P501 -> FIT502;
+	P501 -> FIT503;
+	P502 -> AIT504;
+	P502 -> FIT502;
+	P502 -> FIT503;
+	MV502 -> DPIT301;
+	MV502 -> DPIT301;
+	MV503 -> DPIT301;
+	P602 -> DPIT301;
+	P602 -> DPIT301;
+}
