@@ -141,6 +141,13 @@ if __name__ == "__main__":
         default=None,
         help="The directory to put the data.",
     )
+    parser.add_argument(
+        "-t",
+        "--threads",
+        type=int,
+        default=4,
+        help="The number of threads to execute in parallel.",
+    )
 
     args = parser.parse_args()
 
@@ -153,7 +160,6 @@ if __name__ == "__main__":
 
     generator = FuzzDataGenerator(max_steps=500, root=args.outfile, resamples=args.resamples)
 
-    THREADS = 15
     LOSS_RATE = 0.01
 
     with open("successful_attacks.json") as filepath:
@@ -162,7 +168,7 @@ if __name__ == "__main__":
     if args.attack is not None:
         attacks = [attacks[args.attack]]
 
-    with Pool(THREADS) as pool:
+    with Pool(args.threads) as pool:
         for i, a in enumerate(attacks):
             print(f"Attack {a['attack_id']} ({i+1} of {len(attacks)})")
             if args.systematic:
