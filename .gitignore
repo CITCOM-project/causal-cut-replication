@@ -7,10 +7,10 @@ __pycache__
 *.pdf
 *.png
 *.log
+*.xlsx
 tmp/
 openaps_temp
 test/
-data/
 logs/
 tmp/
 
