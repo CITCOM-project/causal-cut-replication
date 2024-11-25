@@ -1,6 +1,6 @@
 # Case 1: Secure Water Treatment (SWaT)
 
-This case study focuses on the [secure water treatment plant](https://itrust.sutd.edu.sg/itrust-labs-home/itrust-labs_swat)] from iTrust labs.
+This case study focuses on the [secure water treatment plant](https://itrust.sutd.edu.sg/itrust-labs-home/itrust-labs_swat) from iTrust labs.
 The system is a scaled-down, high-fidelity, industry-compliant emulation of a modern water treatment facility capable of water treatment and purification at a rate of 19 litres per minute.
 For our experiment, we used the Attack v0 dataset from SWaT.A1 & A2_Dec 2015.
 Due to the terms of the iTrust data sharing agreement, we cannot share the dataset.
@@ -21,7 +21,7 @@ python long_format_data.py -t 210 -s 15 -o data/data-210.csv data/SWaT_dataset_a
 This will create a file called `data-210.csv` within the `data` directory.
 
 ## Running causal tests
-To run our causal tests, simply run the following command from the repository root directory.
+To run our causal tests, simply run the following command from the repository root directory, with the `tci` conda virtual environment activated.
 ```
 bash case_1_submissions.sh
 ```
