@@ -9,31 +9,33 @@ attack_ids="2 10 14 16 18 19 35 42 45 56 57 59 68 70 84 85 105 112 116 118 126 1
 
 threads=8
 
-for confidence in "0.1, 0.2, 0.3"
+for dataset in {0..4}
 do
-  ci=$(awk "BEGIN { printf \"%.0f\n\", 100 - 100 * $x }")
-  for dataset in {0..9}
+  for sample_size in {500..5000..500}
   do
-    logs="${root}/logs/${dataset}-${ci}"
-    for i in $attack_ids
+    for confidence in 0.1 0.2 0.3
     do
-      ((thread=thread%threads)); ((thread++==0)) && wait
-      outfile=$logs/attack-$i.json
-      data=fuzz_data_$dataset/$i.csv
-      bash g_estimation.sh \
-      $attacks \
-      $dag \
-      $safe_ranges \
-      $timesteps_per_intervention \
-      $confidence \
-      $i \
-      $outfile \
-      $timesteps \
-      "$baseline_confounders" \
-      $data &
+      ci=$(awk "BEGIN { printf \"%.0f\n\", 100 - 100 * $confidence }")
+      logs="${root}/logs/fuzzed_attacks_${dataset}_ci_${ci}_sample_$sample_size"
+      for i in $attack_ids
+      do
+        outfile=$logs/attack-$i.json
+        data=$root/data/fuzzed_attacks_$dataset/$i.pqt
+        bash g_estimation.sh \
+        $attacks \
+        $dag \
+        $safe_ranges \
+        $timesteps_per_intervention \
+        $confidence \
+        $i \
+        $outfile \
+        $timesteps \
+        "$baseline_confounders" \
+        $num_individuals \
+        $sample_size \
+        $data
+      done
     done
-    wait
-
-    python process_results.py $logs
   done
 done
+# python process_results.py $logs

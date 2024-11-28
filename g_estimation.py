@@ -79,7 +79,7 @@ parser.add_argument(
     "--total_time",
     type=int,
     help="The total time of the study.",
-    default=None,
+    required=True,
 )
 parser.add_argument(
     "-B",
@@ -93,7 +93,7 @@ parser.add_argument(
     "--num_individuals",
     type=int,
     help="The number of interventions to consider at once.",
-    default=1,
+    default=None,
 )
 parser.add_argument(
     "--start_time",

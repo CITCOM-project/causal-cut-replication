@@ -15,8 +15,8 @@ ROOT = sys.argv[1]
 chunk_headers = {}
 header = True
 
-if not os.path.exists(f"{ROOT}/attacks"):
-    os.mkdir(f"{ROOT}/attacks")
+if not os.path.exists(f"{ROOT}_attacks"):
+    os.mkdir(f"{ROOT}_attacks")
 
 for run_id in sorted(glob(f"{ROOT}/*.pqt")):
     if "data" in os.path.basename(run_id):
@@ -32,7 +32,7 @@ for run_id in sorted(glob(f"{ROOT}/*.pqt")):
     df["time"] = df.pop("step")
 
     df.to_csv(
-        f"{ROOT}/attacks/{chunk_id}.csv",
+        f"{ROOT}_attacks/{chunk_id}.csv",
         mode="w" if chunk_headers.get(chunk_id, True) else "a",
         header=chunk_headers.get(chunk_id, True),
         index=False,
@@ -41,6 +41,6 @@ for run_id in sorted(glob(f"{ROOT}/*.pqt")):
     header = False
     chunk_headers[chunk_id] = False
 
-for chunk in glob(f"{ROOT}/attacks/*.csv"):
-    pd.read_csv(chunk, index_col=0).to_parquet(chunk.replace(".csv", ".pqt"))
+for chunk in glob(f"{ROOT}_attacks/*.csv"):
+    pd.read_csv(chunk).to_parquet(chunk.replace(".csv", ".pqt"))
     os.remove(chunk)

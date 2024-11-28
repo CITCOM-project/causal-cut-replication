@@ -17,7 +17,8 @@ i=$6
 outfile=$7
 timesteps=$8
 baseline_confounders=$9
-data=${10}
+num_individuals=${10}
+data=${11}
 
 python g_estimation.py \
 -a $attacks \
@@ -29,6 +30,7 @@ python g_estimation.py \
 -o $outfile \
 -b $baseline_confounders \
 -T $timesteps \
--n 2000 \
+-n $num_individuals \
 -S \
+-A \
 $data
