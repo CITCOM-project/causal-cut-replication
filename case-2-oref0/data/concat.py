@@ -18,10 +18,10 @@ header = True
 if not os.path.exists(f"{ROOT}/chunks"):
     os.mkdir(f"{ROOT}/chunks")
 
-for run_id in sorted(glob(f"{ROOT}/*.csv")):
+for run_id in sorted(glob(f"{ROOT}/*.pqt")):
     if "data" in os.path.basename(run_id):
         continue
-    df = pd.read_csv(run_id, index_col=0)
+    df = pd.read_parquet(run_id)
     (chunk_id,) = set(df["attack_inx"])
 
     if "id" not in df:
@@ -37,6 +37,9 @@ for run_id in sorted(glob(f"{ROOT}/*.csv")):
         header=chunk_headers.get(chunk_id, True),
         index=False,
     )
-    df.to_csv(f"{ROOT}/data.csv", mode="w" if header else "a", header=header, index=False)
+    # df.to_csv(f"{ROOT}/data.csv", mode="w" if header else "a", header=header, index=False)
     header = False
     chunk_headers[chunk_id] = False
+
+for chunk in glob(f"{ROOT}/chunks/*.csv"):
+    pd.read_csv(chunk, index_col=0).to_parquet(chunk.replace(".csv", ".pqt"))
