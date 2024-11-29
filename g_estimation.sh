@@ -15,7 +15,7 @@ python g_estimation.py $(sed -n "${line} p" $configurations)
 
 next=$(($line + 100))
 if [ $next -lt $(wc -l < $configurations) ]; then
-  bash g_estimation.sh $configurations $next
+  sbatch g_estimation.sh $configurations $next
 fi
 
 echo "__COMPLETED__"
