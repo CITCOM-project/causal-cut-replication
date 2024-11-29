@@ -1,36 +1,21 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --mem=24000
-#SBATCH --time=24:00:00
+#SBATCH --mem=15000
+#SBATCH --time=4:00:00
 
 echo sbatch g_estimation.sh $@
+
+configurations=$1
+line=$2
 
 module load Anaconda3/5.3.0
 source activate tci
 
-attacks=$1
-dag=$2
-safe_ranges=$3
-timesteps_per_intervention=$4
-confidence=$5
-i=$6
-outfile=$7
-timesteps=$8
-baseline_confounders=$9
-num_individuals=${10}
-data=${11}
+python g_estimation.py $(sed -n "${line} p" $configurations)
 
-python g_estimation.py \
--a $attacks \
--d $dag \
--s $safe_ranges \
--t $timesteps_per_intervention \
--c $confidence \
--i $i \
--o $outfile \
--b $baseline_confounders \
--T $timesteps \
--n $num_individuals \
--S \
--A \
-$data
+next=$(($line + 100))
+if [ $next -lt $(wc -l < $configurations) ]; then
+  bash g_estimation.sh $configurations $next
+fi
+
+echo "__COMPLETED__"
