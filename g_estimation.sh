@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --mem=15000
-#SBATCH --time=4:00:00
+#SBATCH --mem=24000
+#SBATCH --time=8:00:00
 
 echo sbatch g_estimation.sh $@
 
