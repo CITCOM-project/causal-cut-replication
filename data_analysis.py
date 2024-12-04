@@ -101,7 +101,7 @@ ax.boxplot(
     [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths],
     positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 1,
     widths=WIDTH,
-    label=BASELINE,
+    label=f"{BASELINE} (optimal)",
     **color(BLUE, flierprops={"marker": "x"}),
 )
 ax.boxplot(
@@ -115,7 +115,7 @@ ax.boxplot(
     [our_attack_lengths_combinatorial[l] for l in original_attack_lengths],
     positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 4,
     widths=WIDTH,
-    label=TOOLNAME,
+    label=f"{TOOLNAME} (optimal)",
     **color(MAGENTA, flierprops={"marker": "o"}),
 )
 
