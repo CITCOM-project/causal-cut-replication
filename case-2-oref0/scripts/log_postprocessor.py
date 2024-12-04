@@ -6,6 +6,7 @@ import json
 import sys
 import pandas as pd
 from uuid import uuid4
+from itertools import product
 
 from fault_finder import reproduce_fault
 from aps_digitaltwin.util import intervention_values
@@ -90,11 +91,32 @@ def build_attack(attack: dict):
             initial_carbs=attack["initial_carbs"],
             initial_bg=attack["initial_bg"],
             initial_iob=attack["initial_iob"],
-            interventions=interventions,
             constants=attack["constants"],
+            interventions=interventions,
         )
     attack["extended_estimate_fault"] = still_fault
     attack["extended_interventions"] = list(interventions)
+
+    # Further minimise the trace by considering all combinations of the remaining interventions, starting with the
+    # minimum number of interventions and gradually working back up. This step is necessary because the greedy
+    # method above can sometimes mark spurious events as necessary causes, presumably due to interactions between
+    # interventions. However, it is too expensive to start off simply by considering combinations.
+    minimal = dict(enumerate(interventions))
+    minimal_keys = sorted(list(minimal.keys()))
+    for mask in sorted(list(product([0, 1], repeat=len(minimal))), key=sum)[1:]:
+        candidate = [minimal[k] for m, k in zip(mask, minimal_keys) if m]
+        still_fault, _ = reproduce_fault(
+            timesteps=499,
+            initial_carbs=attack["initial_carbs"],
+            initial_bg=attack["initial_bg"],
+            initial_iob=attack["initial_iob"],
+            constants=attack["constants"],
+            interventions=candidate,
+        )
+        if still_fault:
+            minimal = candidate
+            break
+    attack["minimised_extended_interventions"] = minimal
 
     return attack
 

@@ -1,6 +1,9 @@
+"""
+This module processes the causal test logs and draws the figures.
+"""
+
 import sys
 import os
-import pandas as pd
 import json
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +13,7 @@ plt.style.use("ggplot")
 RED = "#DC3220"
 BLUE = "#005AB5"
 GREEN = "#009E73"
+MAGENTA = "#DC267F"
 
 TOOLNAME = "CausalCut"
 BASELINE = "Greedy Heuristic"
@@ -62,7 +66,11 @@ for attack in attacks:
 # (1) Measure the length of the "tool-minimised" traces, comparing to length of original
 original_attack_lengths = sorted(list(set(len(attack["attack"]) for attack in attacks)))
 
-baseline_attack_lengths = {
+greedy_attack_lengths = {
+    length: [len(attack["greedy_minimal"]) for attack in attacks if len(attack["attack"]) == length]
+    for length in original_attack_lengths
+}
+greedy_attack_lengths_combinatorial = {
     length: [len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
 }
@@ -70,29 +78,51 @@ our_attack_lengths = {
     length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
 }
+our_attack_lengths_combinatorial = {
+    length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+    for length in original_attack_lengths
+}
 
 fig, ax = plt.subplots()
 
+WIDTH = 0.5
+SPACING = 0.35
+PLOTS = 4
+
 ax.boxplot(
-    [baseline_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * 2.0 - 0.35,
-    widths=0.6,
+    [greedy_attack_lengths[l] for l in original_attack_lengths],
+    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS - (2 * SPACING + WIDTH),
+    widths=WIDTH,
+    label=BASELINE,
+    **color(RED, flierprops={"marker": "x"}),
+)
+ax.boxplot(
+    [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths],
+    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS - SPACING,
+    widths=WIDTH,
     label=BASELINE,
     **color(BLUE, flierprops={"marker": "x"}),
 )
 ax.boxplot(
     [our_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * 2.0 + 0.35,
-    widths=0.6,
+    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS + SPACING,
+    widths=WIDTH,
     label=TOOLNAME,
-    **color(RED, flierprops={"marker": "o"}),
+    **color(GREEN, flierprops={"marker": "o"}),
+)
+ax.boxplot(
+    [our_attack_lengths_combinatorial[l] for l in original_attack_lengths],
+    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS + (2 * SPACING + WIDTH),
+    widths=WIDTH,
+    label=TOOLNAME,
+    **color(MAGENTA, flierprops={"marker": "o"}),
 )
 
 ax.set_title("Pruning")
 ax.set_xlabel("Original trace length")
 ax.set_ylabel("Tool-minimised trace length")
 
-ax.set_xticks(np.arange(0, len(original_attack_lengths) * 2, 2), original_attack_lengths)
+ax.set_xticks(np.arange(0, len(original_attack_lengths) * PLOTS, PLOTS), original_attack_lengths)
 ax.legend()
 plt.savefig(os.path.join(figures, "rq1-attack-lengths.png"))
 #
