@@ -78,6 +78,7 @@ our_attack_lengths = {
     length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
 }
+# CHANGE THIS ONCE THEY'RE DONE
 our_attack_lengths_combinatorial = {
     length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
@@ -86,33 +87,33 @@ our_attack_lengths_combinatorial = {
 fig, ax = plt.subplots()
 
 WIDTH = 0.5
-SPACING = 0.35
 PLOTS = 4
 
 ax.boxplot(
     [greedy_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS - (2 * SPACING + WIDTH),
+    # positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS - (2 * SPACING + WIDTH),
+    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1),
     widths=WIDTH,
     label=BASELINE,
     **color(RED, flierprops={"marker": "x"}),
 )
 ax.boxplot(
     [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS - SPACING,
+    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 1,
     widths=WIDTH,
     label=BASELINE,
     **color(BLUE, flierprops={"marker": "x"}),
 )
 ax.boxplot(
     [our_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS + SPACING,
+    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 2,
     widths=WIDTH,
     label=TOOLNAME,
     **color(GREEN, flierprops={"marker": "o"}),
 )
 ax.boxplot(
     [our_attack_lengths_combinatorial[l] for l in original_attack_lengths],
-    positions=np.array(np.arange(len(original_attack_lengths))) * PLOTS + (2 * SPACING + WIDTH),
+    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 4,
     widths=WIDTH,
     label=TOOLNAME,
     **color(MAGENTA, flierprops={"marker": "o"}),
@@ -122,7 +123,7 @@ ax.set_title("Pruning")
 ax.set_xlabel("Original trace length")
 ax.set_ylabel("Tool-minimised trace length")
 
-ax.set_xticks(np.arange(0, len(original_attack_lengths) * PLOTS, PLOTS), original_attack_lengths)
+ax.set_xticks(np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 1 + WIDTH, original_attack_lengths)
 ax.legend()
 plt.savefig(os.path.join(figures, "rq1-attack-lengths.png"))
 #
