@@ -1,0 +1,106 @@
+import sys
+import os
+import pandas as pd
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+
+plt.style.use("ggplot")
+
+RED = "#DC3220"
+BLUE = "#005AB5"
+GREEN = "#009E73"
+
+TOOLNAME = "CausalCut"
+BASELINE = "Greedy Heuristic"
+
+
+def color(color, flierprops={}):
+    return dict(
+        boxprops=dict(color=color),
+        capprops=dict(color=color),
+        whiskerprops=dict(color=color),
+        flierprops=dict(color=color, markeredgecolor=color) | flierprops,
+        medianprops=dict(color=color),
+    )
+
+
+if len(sys.argv) != 2:
+    raise ValueError("Please provide the directory of the log files, e.g. case-2-oref0/logs")
+logs = sys.argv[1]
+figures = sys.argv[1].replace("/logs", "/figures")
+
+if not os.path.exists(figures):
+    os.mkdir(figures)
+
+
+attacks = []
+for root, dirs, files in os.walk(logs):
+    for file in files:
+        if not file.endswith(".json"):
+            continue
+        with open(os.path.join(root, file)) as f:
+            log = json.load(f)
+        attacks += log
+
+print(len(attacks))
+
+for attack in attacks:
+    for intervention in attack["treatment_strategies"]:
+        assert len(intervention["result"]["ci_low"]) == 1
+        intervention["result"]["ci_low"] = intervention["result"]["ci_low"][0]
+        assert len(intervention["result"]["ci_high"]) == 1
+        intervention["result"]["ci_high"] = intervention["result"]["ci_high"][0]
+
+        pruned = False
+        if "result" in intervention and not (intervention["result"]["ci_low"] < 1 < intervention["result"]["ci_high"]):
+            pruned = True
+        intervention["pruned"] = pruned
+
+
+# RQ1: Baseline - minimal traces produced by Poskitt [2023]
+# (1) Measure the length of the "tool-minimised" traces, comparing to length of original
+original_attack_lengths = sorted(list(set(len(attack["attack"]) for attack in attacks)))
+
+baseline_attack_lengths = {
+    length: [len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length]
+    for length in original_attack_lengths
+}
+our_attack_lengths = {
+    length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+    for length in original_attack_lengths
+}
+
+fig, ax = plt.subplots()
+
+ax.boxplot(
+    [baseline_attack_lengths[l] for l in original_attack_lengths],
+    positions=np.array(np.arange(len(original_attack_lengths))) * 2.0 - 0.35,
+    widths=0.6,
+    label=BASELINE,
+    **color(BLUE, flierprops={"marker": "x"}),
+)
+ax.boxplot(
+    [our_attack_lengths[l] for l in original_attack_lengths],
+    positions=np.array(np.arange(len(original_attack_lengths))) * 2.0 + 0.35,
+    widths=0.6,
+    label=TOOLNAME,
+    **color(RED, flierprops={"marker": "o"}),
+)
+
+ax.set_title("Pruning")
+ax.set_xlabel("Original trace length")
+ax.set_ylabel("Tool-minimised trace length")
+
+ax.set_xticks(np.arange(0, len(original_attack_lengths) * 2, 2), original_attack_lengths)
+ax.legend()
+plt.savefig(os.path.join(figures, "rq1-attack-lengths.png"))
+#
+# (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
+#
+#
+# RQ2: Baseline - minimal traces produced by Poskitt [2023]
+# Measure number of executions required from simulator / CPS.
+#
+# RQ3:
+# look into the impact of the different levels of data provision.

@@ -13,6 +13,7 @@ openaps_temp
 test/
 logs/
 tmp/
+figures/
 
 
 find_faults.sh

@@ -202,6 +202,7 @@ def minimise_attack(group: pd.DataFrame, save_path: str, minutes=500):
             )
             if failure_1 == failure:
                 spurious[k] = minimal.pop(k)
+        greedy_minimal = [minimal[k] for k in sorted(list(minimal.keys()))]
 
         # Further minimise the trace by considering all combinations of the remaining interventions, starting with the
         # minimum number of interventions and gradually working back up. This step is necessary because the greedy
@@ -235,6 +236,7 @@ def minimise_attack(group: pd.DataFrame, save_path: str, minutes=500):
                     "initial_carbs": float(initial_carbs),
                     "initial_bg": float(initial_bg),
                     "initial_iob": float(initial_iob),
+                    "greedy_minimal": greedy_minimal,
                     "minimal": minimal,
                     "spurious": sorted(list(spurious.keys())),
                     "fault_revealing": bool(failure),
