@@ -287,7 +287,7 @@ def process_trace(filepath: str, parallel: bool = False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv != 2):
+    if len(sys.argv) != 2:
         raise ValueError("Please provide 1 file containing the trace from which to reproduce faults")
 
     process_trace(sys.argv[1], parallel=True)
@@ -303,5 +303,5 @@ if __name__ == "__main__":
             if len(attack["minimal"]) > 0:
                 new_attacks.append(attack)
 
-    with open("successful_attacks.json", "w") as f:
+    with open("successful_attacks_test.json", "w") as f:
         json.dump(sorted(new_attacks, key=lambda x: x["attack_id"]), f)
