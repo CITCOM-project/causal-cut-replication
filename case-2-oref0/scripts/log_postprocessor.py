@@ -80,6 +80,7 @@ def build_attack(attack: dict):
     # minimum number of interventions and gradually working back up.
     minimal = dict(enumerate(interventions))
     minimal_keys = sorted(list(minimal.keys()))
+    combinatorial_sim_runs = 0
     for mask in sorted(list(product([0, 1], repeat=len(minimal))), key=sum)[1:]:
         candidate = [minimal[k] for m, k in zip(mask, minimal_keys) if m]
         still_fault, _ = reproduce_fault(
@@ -90,10 +91,12 @@ def build_attack(attack: dict):
             constants=attack["constants"],
             interventions=candidate,
         )
+        combinatorial_sim_runs += 1
         if still_fault:
             minimal = candidate
             break
     attack["minimised_extended_interventions"] = minimal
+    attack["combinatorial_sim_runs"] = combinatorial_sim_runs
 
     return attack
 
