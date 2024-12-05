@@ -83,65 +83,106 @@ our_attack_lengths_combinatorial = {
     for length in original_attack_lengths
 }
 
-fig, ax = plt.subplots()
 
-WIDTH = 0.5
-PLOTS = 4
-MARKERSIZE = 3
+def plot_grouped_boxplot(
+    groups,
+    savepath=None,
+    width=0.6,
+    labels=None,
+    colours=None,
+    markers=None,
+    title=None,
+    xticklabels=None,
+    xlabel=None,
+    ylabel=None,
+):
+    _, ax = plt.subplots()
+    plots = len(groups)
+    if isinstance(labels, list) and len(labels) != plots:
+        raise ValueError("If providing labels, please ensure that you provide as many as you have plots")
+    if isinstance(colours, list) and len(labels) != plots:
+        raise ValueError("If providing colours, please ensure that you provide as many as you have plots")
+    for i, boxes in enumerate(groups):
+        marker = markers[i] if isinstance(markers, list) else markers if markers is not None else "o"
+        ax.boxplot(
+            boxes,
+            positions=np.array(range(len(original_attack_lengths))) * (plots + 1) + i,
+            widths=width,
+            label=labels[i] if labels is not None else None,
+            **color(
+                colours[i] if colours is not None else None, flierprops={"marker": marker, "markersize": width * 2}
+            ),
+        )
+    ax.set_xticks(
+        np.array(range(len(xticklabels))) * (plots + 1) + (((plots + (plots / 2) - 1) * width) / 2), xticklabels
+    )
 
-ax.boxplot(
-    [greedy_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1),
-    widths=WIDTH,
-    label=BASELINE,
-    **color(RED, flierprops={"marker": "x", "markersize": MARKERSIZE}),
-)
-ax.boxplot(
-    [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths],
-    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 1,
-    widths=WIDTH,
-    label=f"{BASELINE} (optimal)",
-    **color(BLUE, flierprops={"marker": "x", "markersize": MARKERSIZE}),
-)
-ax.boxplot(
-    [our_attack_lengths[l] for l in original_attack_lengths],
-    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 2,
-    widths=WIDTH,
-    label=TOOLNAME,
-    **color(GREEN, flierprops={"marker": "o", "markersize": MARKERSIZE}),
-)
-ax.boxplot(
-    [our_attack_lengths_combinatorial[l] for l in original_attack_lengths],
-    positions=np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 3,
-    widths=WIDTH,
-    label=f"{TOOLNAME} (optimal)",
-    **color(MAGENTA, flierprops={"marker": "o", "markersize": MARKERSIZE}),
+    if labels is not None:
+        ax.legend()
+    if title is not None:
+        ax.set_title("Pruning")
+    if xlabel is not None:
+        ax.set_xlabel("Original trace length")
+    if ylabel is not None:
+        ax.set_ylabel("Tool-minimised trace length")
+
+    if savepath is not None:
+        plt.savefig(savepath)
+    else:
+        plt.show()
+    plt.clf()
+
+
+plot_grouped_boxplot(
+    [
+        [greedy_attack_lengths[l] for l in original_attack_lengths],
+        [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths],
+        [our_attack_lengths[l] for l in original_attack_lengths],
+        [our_attack_lengths_combinatorial[l] for l in original_attack_lengths],
+    ],
+    savepath=f"{figures}/rq1-attack-lengths.png",
+    labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
+    colours=[RED, BLUE, GREEN, MAGENTA],
+    markers=["x", "o", "s", 2],
+    title="Pruned Trace Lengths",
+    xticklabels=original_attack_lengths,
+    xlabel="Original trace length",
+    ylabel="Tool-minimised trace length",
 )
 
-ax.set_title("Pruning")
-ax.set_xlabel("Original trace length")
-ax.set_ylabel("Tool-minimised trace length")
-
-ax.set_xticks(np.array(range(len(original_attack_lengths))) * (PLOTS + 1) + 1 + WIDTH, original_attack_lengths)
-ax.legend()
-plt.savefig(os.path.join(figures, "rq1-attack-lengths.png"))
-plt.clf()
 
 # (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
 greedy_spurious = {
     length: [
-        len(attack["greedy_minimal"]) - len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length
-    ]
-    for length in original_attack_lengths
-}
-our_spurious = {
-    length: [
-        len(attack["extended_interventions"]) - len(attack["minimised_extended_interventions"])
+        (len(attack["greedy_minimal"]) - len(attack["minimal"])) / len(attack["attack"])
         for attack in attacks
         if len(attack["attack"]) == length
     ]
     for length in original_attack_lengths
 }
+our_spurious = {
+    length: [
+        (len(attack["extended_interventions"]) - len(attack["minimised_extended_interventions"]))
+        / len(attack["attack"])
+        for attack in attacks
+        if len(attack["attack"]) == length
+    ]
+    for length in original_attack_lengths
+}
+plot_grouped_boxplot(
+    [
+        [greedy_spurious[l] for l in original_attack_lengths],
+        [our_spurious[l] for l in original_attack_lengths],
+    ],
+    savepath=f"{figures}/rq1-proportion-spurious.png",
+    labels=[BASELINE, TOOLNAME],
+    colours=[RED, GREEN],
+    markers=["x", "s"],
+    title="Spurious Events",
+    xticklabels=original_attack_lengths,
+    xlabel="Original trace length",
+    ylabel="Proportion of Spurious Events",
+)
 
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
