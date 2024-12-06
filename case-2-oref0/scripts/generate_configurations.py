@@ -84,8 +84,8 @@ attack_ids = [
 
 configurations = []
 for dataset in range(5):
-    for sample_size in range(500, 5000, 500):
-        for confidence in [0.1, 0.2, 0.3]:
+    for sample_size in [500, 1000, 2000, 3000, 4000, 5000]:
+        for confidence in [0.1, 0.2]:
             logs = f"{ROOT}/logs/fuzzed_attacks_{dataset}/sample_{sample_size}/ci_{round(100 - (100 * confidence))}"
             for i in attack_ids:
                 data = f"{ROOT}/data/fuzz_data_{dataset}_attacks/{i}.pqt"
@@ -107,3 +107,5 @@ for dataset in range(5):
                 )
 with open("configurations.txt", "w") as f:
     print("\n".join(configurations), file=f, end="")
+
+print(len(configurations), "configurations")
