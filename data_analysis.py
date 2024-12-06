@@ -109,12 +109,13 @@ for attack in attacks:
         if "result" in intervention and not (intervention["result"]["ci_low"] < 1 < intervention["result"]["ci_high"]):
             pruned = True
         intervention["pruned"] = pruned
+original_attack_lengths = sorted(list(set(len(attack["attack"]) for attack in attacks)))
+
+data_samples = list(range(500, 5000, 500))
 
 
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1) Measure the length of the "tool-minimised" traces, comparing to length of original
-original_attack_lengths = sorted(list(set(len(attack["attack"]) for attack in attacks)))
-
 greedy_attack_lengths = {
     length: [len(attack["greedy_minimal"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
@@ -131,7 +132,6 @@ our_attack_lengths_combinatorial = {
     length: [len(attack["minimised_extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
 }
-
 
 plot_grouped_boxplot(
     [
