@@ -300,6 +300,7 @@ if __name__ == "__main__":
                     adequacy_time = time.time()
                     result["adequacy_time"] = adequacy_time - start_time
                 result["result"] = causal_test_result.to_dict(json=True)
+                result["individuals"] = len(set(df["id"]))
                 result["len_control_group"] = estimation_model.len_control_group
                 result["len_treatment_group"] = estimation_model.len_treatment_group
                 result["passed"] = causal_test_case.expected_causal_effect.apply(causal_test_result)
