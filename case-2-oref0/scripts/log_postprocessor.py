@@ -110,6 +110,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise ValueError("Please provide a JSON log file to process.")
 
+    print(sys.argv[1])
     with open(sys.argv[1]) as f:
         attacks = json.load(f)
 
