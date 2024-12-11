@@ -4,7 +4,7 @@ Generate all the experimental configurations.
 
 ROOT = "case-1-swat"
 attacks = f"{ROOT}/successful_attacks_mutated.json"
-dag = f"{ROOT}/dcg.dot"
+dag = f"{ROOT}/dcg_raw.dot"
 safe_ranges = f"{ROOT}/safe_ranges.json"
 data = f"{ROOT}/data/data-225.pqt"
 TIMESTEPS_PER_INTERVENTION = 15
