@@ -42,8 +42,8 @@ def main(timesteps):
 
 
 if __name__ == "__main__":
-    flow = pgv.AGraph("flow.dot")
-    flow.write("flow_raw.dot")
+    flow = pgv.AGraph("dcg.dot")
+    flow.write("dcg_raw.dot")
     data = pd.read_csv(config.data_path, index_col=0)
 
     # Validate that I've drawn the flow graph correctly
