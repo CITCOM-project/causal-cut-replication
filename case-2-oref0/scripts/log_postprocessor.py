@@ -19,6 +19,11 @@ def build_attack(attack: dict):
 
     :param attack: dict with details of the attack and causal effect estimate.
     """
+
+    # Already processed
+    if "combinatorial_sim_runs" in attack:
+        return attack
+
     treatment_strategies = [
         (
             treatment_strategy | treatment_strategy["result"]
