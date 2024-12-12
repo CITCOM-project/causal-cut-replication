@@ -32,19 +32,11 @@ def plot_grouped_boxplot(
     _, ax = plt.subplots()
     plots = len(groups)
     if isinstance(labels, list) and len(labels) != plots:
-        raise ValueError(
-            "If providing labels, please ensure that you provide as many as you have plots"
-        )
+        raise ValueError("If providing labels, please ensure that you provide as many as you have plots")
     if isinstance(colours, list) and len(labels) != plots:
-        raise ValueError(
-            "If providing colours, please ensure that you provide as many as you have plots"
-        )
+        raise ValueError("If providing colours, please ensure that you provide as many as you have plots")
     for i, boxes in enumerate(groups):
-        marker = (
-            markers[i]
-            if isinstance(markers, list)
-            else markers if markers is not None else "o"
-        )
+        marker = markers[i] if isinstance(markers, list) else markers if markers is not None else "o"
         ax.boxplot(
             boxes,
             positions=np.array(range(positions)) * (plots + 1) + i,
@@ -56,8 +48,7 @@ def plot_grouped_boxplot(
             ),
         )
     ax.set_xticks(
-        np.array(range(len(xticklabels))) * (plots + 1)
-        + (((plots + (plots / 2) - 1) * width) / 2),
+        np.array(range(len(xticklabels))) * (plots + 1) + (((plots + (plots / 2) - 1) * width) / 2),
         xticklabels,
     )
 
@@ -68,7 +59,7 @@ def plot_grouped_boxplot(
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     if ylabel is not None:
-        ax.set_ylabel(xlabel)
+        ax.set_ylabel(ylabel)
 
     if savepath is not None:
         plt.savefig(savepath)

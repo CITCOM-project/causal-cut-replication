@@ -29,8 +29,15 @@ for root, dirs, files in os.walk(logs):
             continue
         with open(os.path.join(root, file)) as f:
             log = json.load(f)
-        for attack in attacks:
-            assert "treatment_strategies" in attack, f"No treatment strategies for {os.path.join(root, file)}"
+        for attack in log:
+            assert "greedy_minimal" in attack, f"No greedy_minimal in {os.path.join(root, file)}"
+            if "error" in attack:
+                if "treatment_strategies" not in attack:
+                    assert attack["error"] in [
+                        "Missing data for control_strategy",
+                        "No faults observed. P(error) = 0",
+                    ], f"Bad error {attack['error']} in {os.path.join(root, file)}"
+                    attack["treatment_strategies"] = []
         attacks += log
 
 print(len(attacks))
