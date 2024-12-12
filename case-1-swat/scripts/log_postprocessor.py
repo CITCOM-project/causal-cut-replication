@@ -30,8 +30,17 @@ def build_attack(attack: dict):
     """
 
     # Already processed
-    if "combinatorial_sim_runs" in attack:
-        return attack
+    # if "combinatorial_sim_runs" in attack:
+    #     return attack
+
+    if "error" in attack:
+        if "treatment_strategies" not in attack:
+            assert attack["error"] in [
+                "Missing data for control_strategy",
+                "No faults observed. P(error) = 0",
+            ], f"Bad error {attack['error']} in {attack}"
+            # Populate with dummy data if we haven't found anything
+            attack["treatment_strategies"] = [{"intervention_index": i} for i in range(len(attack["attack"]))]
 
     treatment_strategies = [
         (
@@ -43,14 +52,21 @@ def build_attack(attack: dict):
     ]
     treatment_strategies = pd.DataFrame(treatment_strategies)
 
-    treatment_strategies["ci_low"] = [c[0] for c in treatment_strategies["ci_low"]]
-    treatment_strategies["ci_high"] = [c[0] for c in treatment_strategies["ci_high"]]
-    treatment_strategies["significant"] = (treatment_strategies["ci_low"] > 1) | (treatment_strategies["ci_high"] < 1)
-    treatment_strategies = treatment_strategies.loc[~treatment_strategies["significant"]]
-    treatment_strategies["below_1"] = 1 - treatment_strategies["ci_low"]
-    treatment_strategies["above_1"] = treatment_strategies["ci_high"] - 1
-    treatment_strategies["rank"] = treatment_strategies[["below_1", "above_1"]].min(axis=1)
-    treatment_strategies.sort_values("rank", inplace=True)
+    # If we've been able to estimate stuff, reorder according to causality
+    if "ci_low" in treatment_strategies and "ci_high" in treatment_strategies:
+        treatment_strategies["ci_low"] = [c[0] for c in treatment_strategies["ci_low"]]
+        treatment_strategies["ci_high"] = [c[0] for c in treatment_strategies["ci_high"]]
+        treatment_strategies["significant"] = (treatment_strategies["ci_low"] > 1) | (
+            treatment_strategies["ci_high"] < 1
+        )
+        treatment_strategies = treatment_strategies.loc[~treatment_strategies["significant"]]
+        treatment_strategies["below_1"] = 1 - treatment_strategies["ci_low"]
+        treatment_strategies["above_1"] = treatment_strategies["ci_high"] - 1
+        treatment_strategies["rank"] = treatment_strategies[["below_1", "above_1"]].min(axis=1)
+        treatment_strategies.sort_values(["rank", "intervention_index"], inplace=True)
+    else:
+        # else default to greedy minimal
+        treatment_strategies.sort_values("intervention_index", inplace=True)
 
     interventions = []
     for treatment_strategy in attack["treatment_strategies"]:
@@ -88,6 +104,7 @@ def build_attack(attack: dict):
             break
     attack["minimised_extended_interventions"] = minimal
     attack["combinatorial_sim_runs"] = combinatorial_sim_runs
+    attack["greedy_minimal"] = attack["minimal"]
 
     return attack
 
