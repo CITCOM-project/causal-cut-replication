@@ -21,8 +21,8 @@ def build_attack(attack: dict):
     """
 
     # Already processed
-    if "combinatorial_sim_runs" in attack:
-        return attack
+    # if "combinatorial_sim_runs" in attack:
+    #     return attack
 
     treatment_strategies = [
         (
@@ -41,12 +41,14 @@ def build_attack(attack: dict):
     treatment_strategies["below_1"] = 1 - treatment_strategies["ci_low"]
     treatment_strategies["above_1"] = treatment_strategies["ci_high"] - 1
     treatment_strategies["rank"] = treatment_strategies[["below_1", "above_1"]].min(axis=1)
-    treatment_strategies.sort_values("rank", inplace=True)
+    treatment_strategies.sort_values(["rank", "intervention_index"], inplace=True)
 
     interventions = []
     for treatment_strategy in attack["treatment_strategies"]:
-        if "result" not in treatment_strategy or not (
-            treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0]
+        if (
+            # "result" not in treatment_strategy or
+            "result" in treatment_strategy
+            and not (treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0])
         ):
             interventions.append(attack["attack"][treatment_strategy["intervention_index"]])
     interventions = [(t, v, intervention_values[v]) for t, v, _ in interventions]
@@ -83,6 +85,9 @@ def build_attack(attack: dict):
 
     # Further minimise the trace by considering all combinations of the remaining interventions, starting with the
     # minimum number of interventions and gradually working back up.
+    # Don't do this for attacks longer than 20 because it's too expensive
+    if len(attack["attack"]) > 20:
+        return attack
     minimal = dict(enumerate(interventions))
     minimal_keys = sorted(list(minimal.keys()))
     combinatorial_sim_runs = 0

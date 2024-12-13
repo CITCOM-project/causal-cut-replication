@@ -64,14 +64,19 @@ def build_attack(attack: dict):
         treatment_strategies["above_1"] = treatment_strategies["ci_high"] - 1
         treatment_strategies["rank"] = treatment_strategies[["below_1", "above_1"]].min(axis=1)
         treatment_strategies.sort_values(["rank", "intervention_index"], inplace=True)
+        # TODO
+        # Other potential orderings include swapping rank and intervention index
+        # and also sorting first by score, and then merging in the unestimated events by time step
     else:
         # else default to greedy minimal
         treatment_strategies.sort_values("intervention_index", inplace=True)
 
     interventions = []
     for treatment_strategy in attack["treatment_strategies"]:
-        if "result" not in treatment_strategy or not (
-            treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0]
+        if (
+            # "result" not in treatment_strategy or
+            "result" in treatment_strategy
+            and not (treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0])
         ):
             interventions.append(attack["attack"][treatment_strategy["intervention_index"]])
 
