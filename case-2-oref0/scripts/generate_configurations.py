@@ -101,7 +101,7 @@ for dataset in range(5):
                         f"-T {TIMESTEPS} "
                         f"-b {BASELINE_CONFOUNDERS} "
                         f"-n {sample_size} "
-                        "-S -A "
+                        "-S "
                         f"{data}"
                     )
                 )

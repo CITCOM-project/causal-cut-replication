@@ -27,7 +27,7 @@ for sample_size in [500, 1000, 2000, 3000, 4000, 5000, None]:
                     f"-i {i} "
                     f"-o {logs}/attack-{i}.json "
                     f"-T {TIMESTEPS} "
-                    f"{n} -S -A "
+                    f"{n} -S "
                     f"{data}"
                 )
             )
