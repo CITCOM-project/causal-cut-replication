@@ -66,3 +66,63 @@ def plot_grouped_boxplot(
     else:
         plt.show()
     plt.clf()
+
+
+def bag_plot(
+    x,
+    y,
+    label=None,
+    savepath=None,
+    colour=None,
+    marker=None,
+    title=None,
+    xlabel=None,
+    ylabel=None,
+):
+    # Calculate quartiles for both X and Y
+    q1_x = np.percentile(x, 25)
+    q3_x = np.percentile(x, 75)
+    q1_y = np.percentile(y, 25)
+    q3_y = np.percentile(y, 75)
+
+    iqr_x = q3_x - q1_x
+    iqr_y = q3_y - q1_y
+
+    q1_minus_x = q1_x - (1.5 * iqr_x)
+    q3_plus_x = q3_x + (1.5 * iqr_x)
+    q1_minus_y = q1_y - (1.5 * iqr_y)
+    q3_plus_y = q3_y + (1.5 * iqr_y)
+
+    # Calculate median
+    median_x = np.median(x)
+    median_y = np.median(y)
+
+    # Create a polygon for the Q1-Q3 region
+    polygon = plt.Polygon([(q1_x, q1_y), (q1_x, q3_y), (q3_x, q3_y), (q3_x, q1_y)], alpha=0.2)
+    polygon.set_color(colour)
+    plt.gca().add_patch(polygon)
+    polygon = plt.Polygon(
+        [(q1_minus_x, q1_minus_y), (q1_minus_x, q3_plus_y), (q3_plus_x, q3_plus_y), (q3_plus_x, q1_minus_y)], alpha=0.2
+    )
+    polygon.set_color(colour)
+    plt.gca().add_patch(polygon)
+
+    # Plot the median point
+    plt.scatter(x, y, color=colour, marker=marker, label=label)
+    plt.scatter(median_x, median_y, color="black", marker=marker, s=50)
+
+    # Set plot limits and labels
+    plt.xlim(min(x) - 0.1, max(x) + 0.1)
+    plt.ylim(min(y) - 0.1, max(y) + 0.1)
+
+    if title is not None:
+        plt.title(title)
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+
+    if savepath is not None:
+        plt.legend()
+        plt.savefig(savepath)
+        plt.clf()
