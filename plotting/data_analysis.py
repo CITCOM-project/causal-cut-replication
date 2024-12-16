@@ -62,32 +62,30 @@ data_samples = list(range(500, 5000, 500))
 
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1) Measure the length of the "tool-minimised" traces, comparing to length of original
-greedy_attack_lengths = {
-    length: [len(attack["greedy_minimal"]) for attack in attacks if len(attack["attack"]) == length]
+greedy_attack_lengths = [
+    [len(attack["greedy_minimal"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
-}
-greedy_attack_lengths_combinatorial = {
-    length: [len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length]
+]
+greedy_attack_lengths_combinatorial = [
+    [len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
-}
-our_attack_lengths = {
-    length: [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+]
+our_attack_lengths = [
+    [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
-}
-our_attack_lengths_combinatorial = {
-    length: [len(attack["minimised_extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+]
+our_attack_lengths_combinatorial = [
     # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+    (
+        [len(attack["minimised_extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+        if length < 20
+        else []
+    )
     for length in original_attack_lengths
-    if length < 20
-}
+]
 
 plot_grouped_boxplot(
-    [
-        [greedy_attack_lengths[l] for l in original_attack_lengths if l < 20],
-        [greedy_attack_lengths_combinatorial[l] for l in original_attack_lengths if l < 20],
-        [our_attack_lengths[l] for l in original_attack_lengths if l < 20],
-        [our_attack_lengths_combinatorial[l] for l in original_attack_lengths if l < 20],
-    ],
+    [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_attack_lengths_combinatorial],
     savepath=f"{figures}/rq1-attack-lengths.png",
     labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
     colours=[RED, BLUE, GREEN, MAGENTA],
@@ -100,16 +98,16 @@ plot_grouped_boxplot(
 
 
 # (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
-greedy_spurious = {
-    length: [
+greedy_spurious = [
+    [
         (len(attack["greedy_minimal"]) - len(attack["minimal"])) / len(attack["attack"])
         for attack in attacks
         if len(attack["attack"]) == length
     ]
     for length in original_attack_lengths
-}
-our_spurious = {
-    length: [
+]
+our_spurious = [
+    [
         (len(attack["extended_interventions"]) - len(attack["minimised_extended_interventions"]))
         / len(attack["attack"])
         for attack in attacks
@@ -117,12 +115,9 @@ our_spurious = {
         if len(attack["attack"]) == length and length < 20
     ]
     for length in original_attack_lengths
-}
+]
 plot_grouped_boxplot(
-    [
-        [greedy_spurious[l] for l in original_attack_lengths],
-        [our_spurious[l] for l in original_attack_lengths],
-    ],
+    [greedy_spurious, our_spurious],
     savepath=f"{figures}/rq1-proportion-spurious.png",
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
@@ -130,20 +125,17 @@ plot_grouped_boxplot(
     title="Spurious Events",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
-    ylabel="Proportion of Spurious Events",
+    ylabel="Proportion of Remaining Spurious Events",
 )
 
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
-our_executions = {
-    length: [attack["simulator_runs"] for attack in attacks if len(attack["attack"]) == length]
+our_executions = [
+    [attack["simulator_runs"] for attack in attacks if len(attack["attack"]) == length]
     for length in original_attack_lengths
-}
+]
 plot_grouped_boxplot(
-    [
-        [[l] for l in original_attack_lengths],
-        [our_executions[l] for l in original_attack_lengths],
-    ],
+    [[[l] for l in original_attack_lengths], our_executions],
     savepath=f"{figures}/rq2-simulator-executions.png",
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
