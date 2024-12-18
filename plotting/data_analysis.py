@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA
 from grouped_boxplot import plot_grouped_boxplot, bag_plot
@@ -29,8 +30,13 @@ for root, dirs, files in os.walk(logs):
             continue
         with open(os.path.join(root, file)) as f:
             log = json.load(f)
+        path = os.path.normpath(root).split(os.sep)
+        sample_size = [int(x.split("_")[1]) for x in path if x.startswith("sample_")][0]
+        ci_alpha = [int(x.split("_")[1]) for x in path if x.startswith("ci_")][0]
         for attack in log:
             assert "greedy_minimal" in attack, f"No greedy_minimal in {os.path.join(root, file)}"
+            attack["sample_size"] = sample_size
+            attack["ci_alpha"] = ci_alpha
             if "error" in attack:
                 if "treatment_strategies" not in attack:
                     assert attack["error"] in [
@@ -39,8 +45,6 @@ for root, dirs, files in os.walk(logs):
                     ], f"Bad error {attack['error']} in {os.path.join(root, file)}"
                     attack["treatment_strategies"] = []
         attacks += log
-
-print(len(attacks))
 
 for attack in attacks:
     for intervention in attack["treatment_strategies"]:
@@ -58,9 +62,8 @@ for attack in attacks:
 attack_id_length = {attack["attack_index"]: len(attack["attack"]) for attack in attacks}
 original_attack_lengths = sorted(list(set(attack_id_length.values())))
 attack_ids = sorted(list(attack_id_length.keys()))
-
-data_samples = list(range(500, 5000, 500))
-
+sample_sizes = sorted(list(set(attack["sample_size"] for attack in attacks)))
+ci_alphas = sorted(list(set(attack["ci_alpha"] for attack in attacks)))
 
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1a) Measure the length of the "tool-minimised" traces, comparing to length of original
@@ -101,46 +104,81 @@ plot_grouped_boxplot(
 
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
-l_greedy_attack_lengths = [
-    [len(attack["greedy_minimal"]) for attack in attacks if attack["attack_id"] == attack_id]
-    for attack_id, _ in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
-]
-l_greedy_attack_lengths_combinatorial = [
-    [len(attack["minimal"]) for attack in attacks if attack["attack_id"] == attack_id]
-    for attack_id, _ in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
-]
-l_our_attack_lengths = [
-    [len(attack["extended_interventions"]) for attack in attacks if attack["attack_id"] == attack_id]
-    for attack_id, _ in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
-]
-l_our_attack_lengths_combinatorial = [
-    # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-    (
-        [len(attack["minimised_extended_interventions"]) for attack in attacks if attack["attack_id"] == attack_id]
-        if attack_length < 20
-        else []
-    )
-    for attack_id, attack_length in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
-]
 
-plot_grouped_boxplot(
-    [
-        l_greedy_attack_lengths,
-        l_greedy_attack_lengths_combinatorial,
-        l_our_attack_lengths,
-        l_our_attack_lengths_combinatorial,
-    ],
-    savepath=f"{figures}/rq1-attack-lengths-per-trace.png",
-    labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
-    colours=[RED, BLUE, GREEN, MAGENTA],
-    markers=["x", "o", "s", 2],
-    title="Pruned Trace Lengths",
-    xticklabels=[
-        attack_length for _, attack_length in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
-    ],
-    xlabel="Original trace length",
-    ylabel="Tool-minimised trace length",
-)
+l_greedy_attack_lengths = {k: [] for k in attack_ids}
+l_greedy_attack_lengths_combinatorial = {k: [] for k in attack_ids}
+l_our_attack_lengths = {k: [] for k in attack_ids}
+l_our_attack_lengths_combinatorial = {k: [] for k in attack_ids}
+for attack in attacks:
+    l_greedy_attack_lengths[attack["attack_index"]].append(len(attack["greedy_minimal"]))
+    l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(len(attack["minimal"]))
+    l_our_attack_lengths[attack["attack_index"]].append(len(attack["extended_interventions"]))
+    if len(attack["attack"]) < 20:
+        l_our_attack_lengths_combinatorial[attack["attack_index"]].append(
+            len(attack["minimised_extended_interventions"])
+        )
+
+fig = plt.figure(figsize=(18, 8))
+gs = gridspec.GridSpec(3, 5)
+axs = {0: [], 1: [], 2: []}
+
+positions = {
+    1: (0, 0, 1),
+    2: (0, 1, 1),
+    3: (0, 2, 1),
+    4: (0, 3, 2),
+    5: (1, 0, 2),
+    6: (1, 2, 1),
+    7: (1, 3, 1),
+    8: (1, 4, 1),
+    9: (2, 0, 1),
+    10: (2, 1, 1),
+    11: (2, 2, 1),
+    13: (2, 3, 1),
+    24: (2, 4, 1),
+}
+
+i = 0
+for length in original_attack_lengths:
+    row, col, size = positions[length]
+
+    inx = gs[i]
+    if length in [4, 5]:
+        inx = gs[i : i + size]
+    ax = fig.add_subplot(inx, sharey=axs[row][0] if len(axs[row]) > 0 else None)
+    axs[row].append(ax)
+    i += size
+
+    selected_attack_ids = [
+        attack_id
+        for attack_id, attack_length in sorted(list(attack_id_length.items()), key=lambda x: list(reversed(x)))
+        if attack_length == length
+    ]
+
+    plot_grouped_boxplot(
+        [
+            [l_greedy_attack_lengths[a] for a in selected_attack_ids],
+            [l_greedy_attack_lengths_combinatorial[a] for a in selected_attack_ids],
+            [l_our_attack_lengths[a] for a in selected_attack_ids],
+            [l_our_attack_lengths_combinatorial[a] for a in selected_attack_ids],
+        ],
+        ax=ax,
+        title=f"Original length {length}",
+        labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
+        colours=[RED, BLUE, GREEN, MAGENTA],
+        markers=["x", "o", "s", 2],
+        xticklabels=selected_attack_ids,
+        xlabel="Attack ID",
+        ylabel="Tool-minimised trace length" if length in [1, 5, 9] else None,
+    )
+    if ax != axs[row][0]:
+        ax.tick_params(labelleft=False)
+
+
+fig.suptitle("Pruned Trace Lengths")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.png")
+plt.clf()
 
 
 # (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
