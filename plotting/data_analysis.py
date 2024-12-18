@@ -62,8 +62,11 @@ for attack in attacks:
 attack_id_length = {attack["attack_index"]: len(attack["attack"]) for attack in attacks}
 original_attack_lengths = sorted(list(set(attack_id_length.values())))
 attack_ids = sorted(list(attack_id_length.keys()))
+
+
 sample_sizes = sorted(list(set(attack["sample_size"] for attack in attacks)))
 ci_alphas = sorted(list(set(attack["ci_alpha"] for attack in attacks)))
+
 
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1a) Measure the length of the "tool-minimised" traces, comparing to length of original
@@ -178,6 +181,50 @@ for length in original_attack_lengths:
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.png")
+plt.clf()
+
+# (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
+# Show each trace separately
+
+fig, axs = plt.subplots(3, 3, figsize=(18, 8))
+
+for sample, ax in zip(sample_sizes, axs.reshape(-1)):
+    sampled_attacks = list(filter(lambda attack: attack["sample_size"] == sample, attacks))
+
+    plot_grouped_boxplot(
+        [
+            [
+                [len(a["greedy_minimal"]) for a in sampled_attacks if len(a["attack"]) == l]
+                for l in original_attack_lengths
+            ],
+            [[len(a["minimal"]) for a in sampled_attacks if len(a["attack"]) == l] for l in original_attack_lengths],
+            [
+                [len(a["extended_interventions"]) for a in sampled_attacks if len(a["attack"]) == l]
+                for l in original_attack_lengths
+            ],
+            [
+                (
+                    [len(a["minimised_extended_interventions"]) for a in sampled_attacks if len(a["attack"]) == l]
+                    if l < 20
+                    else []
+                )
+                for l in original_attack_lengths
+            ],
+        ],
+        ax=ax,
+        title=f"Sample {sample}",
+        labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if sample == 1 else None,
+        colours=[RED, BLUE, GREEN, MAGENTA],
+        markers=["x", "o", "s", 2],
+        xticklabels=original_attack_lengths,
+        xlabel="Attack length",
+        ylabel="Tool-minimised trace length",
+    )
+
+
+fig.suptitle("Pruned Trace Lengths")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.png")
 plt.clf()
 
 
