@@ -117,10 +117,10 @@ l_our_attack_lengths_combinatorial = [
     # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
     (
         [len(attack["minimised_extended_interventions"]) for attack in attacks if attack["attack_id"] == attack_id]
-        if len(attack["attack"]) < 20
+        if attack_length < 20
         else []
     )
-    for attack_id, _ in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
+    for attack_id, attack_length in sorted(list(attack_id_length.items()), key=lambda x: (x[1], x[0]))
 ]
 
 plot_grouped_boxplot(
