@@ -87,10 +87,6 @@ plot_grouped_boxplot(
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig = plt.figure(figsize=(18, 8))
-gs = gridspec.GridSpec(3, 5)
-axs = {0: [], 1: [], 2: []}
-
 positions = {
     1: (0, 0, 1),
     2: (0, 1, 1),
@@ -106,6 +102,10 @@ positions = {
     13: (2, 3, 1),
     24: (2, 4, 1),
 }
+
+fig = plt.figure(figsize=(18, 8))
+gs = gridspec.GridSpec(3, 5)
+axs = {0: [], 1: [], 2: []}
 
 i = 0
 for length in original_attack_lengths:
@@ -123,7 +123,7 @@ for length in original_attack_lengths:
             df.loc[df["original_length"] == length].groupby(["attack_index"])["minimal"].apply(list),
             df.loc[df["original_length"] == length].groupby(["attack_index"])["extended_interventions"].apply(list),
             df.loc[df["original_length"] == length]
-            .groupby(["attack_index"])["extended_interventions"]
+            .groupby(["attack_index"])["minimised_extended_interventions"]
             .apply(
                 # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
                 lambda group: list(group) if group.name < 20 else []
@@ -149,36 +149,34 @@ plt.clf()
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig, axs = plt.subplots(3, 3, figsize=(18, 8))
+fig, axs = plt.subplots(3, 5, figsize=(18, 8), sharey="row")
 
-for i, sample in enumerate(sample_sizes):
-    row = i // 3
-    col = i % 3
-    ax = axs[row][col]
-
+# I suggest we drop original_length==1 out of this since these can't be pruned any more
+for i, length in enumerate(original_attack_lengths):
+    row = i // 5
+    col = i % 5
     plot_grouped_boxplot(
         [
-            df.loc[df["sample_size"] == sample].groupby(["original_length"])["greedy_minimal"].apply(list),
-            df.loc[df["sample_size"] == sample].groupby(["original_length"])["minimal"].apply(list),
-            df.loc[df["sample_size"] == sample].groupby(["original_length"])["extended_interventions"].apply(list),
-            df.loc[df["sample_size"] == sample]
-            .groupby(["original_length"])["extended_interventions"]
+            df.loc[df["original_length"] == length].groupby(["sample_size"])["greedy_minimal"].apply(list),
+            df.loc[df["original_length"] == length].groupby(["sample_size"])["minimal"].apply(list),
+            df.loc[df["original_length"] == length].groupby(["sample_size"])["extended_interventions"].apply(list),
+            df.loc[df["original_length"] == length]
+            .groupby(["sample_size"])["minimised_extended_interventions"]
             .apply(
                 # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
                 lambda group: list(group) if group.name < 20 else []
             ),
         ],
-        ax=ax,
-        title=f"Sample {sample}",
-        labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if sample == 1 else None,
+        ax=axs[row][col],
+        title=f"Original length {length}",
+        labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
-        xticklabels=original_attack_lengths,
-        xlabel="Attack length",
+        xticklabels=df.loc[df["original_length"] == length].groupby(["sample_size"]).groups.keys(),
+        xlabel="Sample size",
         ylabel="Tool-minimised trace length" if col == 0 else None,
     )
-    ax.tick_params(labelleft=row == 0)
-
+    ax.tick_params(labelleft=col == 0)
 
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
@@ -186,24 +184,13 @@ plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.png")
 plt.clf()
 
 
-# (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
-greedy_spurious = [
-    [
-        (attack["greedy_minimal"] - attack["minimal"]) / attack["original_length"]
-        for attack in attacks
-        if attack["original_length"] == length
-    ]
-    for length in original_attack_lengths
-]
-our_spurious = [
-    [
-        (attack["extended_interventions"] - attack["minimised_extended_interventions"]) / attack["original_length"]
-        for attack in attacks
-        # we can't combinatorially minimise the long traces in reasonable time
-        if attack["original_length"] == length and length < 20
-    ]
-    for length in original_attack_lengths
-]
+# (2) Measure the proportion of the "tool-minimised" traces that are spurious. Report as the average proportion again.
+# (a) aggregate
+df["greedy_spurious"] = (df["greedy_minimal"] - df["minimal"]) / df["original_length"]
+df["our_spurious"] = (df["extended_interventions"] - df["minimised_extended_interventions"]) / df["original_length"]
+greedy_spurious = df.groupby("original_length")["greedy_spurious"].apply(list)
+our_spurious = df.groupby("original_length")["our_spurious"].apply(list)
+
 plot_grouped_boxplot(
     [greedy_spurious, our_spurious],
     savepath=f"{figures}/rq1-proportion-spurious.png",
@@ -216,12 +203,87 @@ plot_grouped_boxplot(
     ylabel="Proportion of Remaining Spurious Events",
 )
 
+# (b) group by trace id
+fig = plt.figure(figsize=(18, 8))
+gs = gridspec.GridSpec(3, 5)
+axs = {0: [], 1: [], 2: []}
+
+i = 0
+for length in original_attack_lengths:
+    row, col, size = positions[length]
+    inx = gs[i]
+    if length in [4, 5]:
+        inx = gs[i : i + size]
+    ax = fig.add_subplot(inx, sharey=axs[row][0] if len(axs[row]) > 0 else None)
+    axs[row].append(ax)
+    i += size
+
+    plot_grouped_boxplot(
+        [
+            df.loc[df["original_length"] == length].groupby(["attack_index"])["greedy_spurious"].apply(list),
+            df.loc[df["original_length"] == length]
+            .groupby(["attack_index"])["our_spurious"]
+            .apply(
+                # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+                lambda group: list(group) if length < 20 else []
+            ),
+        ],
+        ax=ax,
+        title=f"Original length {length}",
+        labels=[BASELINE, TOOLNAME] if length == 1 else None,
+        colours=[RED, GREEN],
+        xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
+        xlabel="Attack ID",
+        ylabel="Tool-minimised trace length" if length in [1, 5, 9] else None,
+    )
+    if ax != axs[row][0]:
+        ax.tick_params(labelleft=False)
+
+fig.suptitle("Pruned Trace Lengths")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.png")
+plt.clf()
+
+
+# (c) group by sample size
+# (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
+# Show each trace separately
+
+fig, axs = plt.subplots(3, 5, figsize=(18, 8), sharey="row")
+
+# I suggest we drop original_length==1 out of this since these can't be pruned any more
+for i, length in enumerate(original_attack_lengths):
+    row = i // 5
+    col = i % 5
+    plot_grouped_boxplot(
+        [
+            df.loc[df["original_length"] == length].groupby(["sample_size"])["greedy_spurious"].apply(list),
+            df.loc[df["original_length"] == length]
+            .groupby(["sample_size"])["our_spurious"]
+            .apply(
+                # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+                lambda group: list(group) if length < 20 else []
+            ),
+        ],
+        ax=axs[row][col],
+        title=f"Original length {length}",
+        labels=[BASELINE, TOOLNAME] if length == 1 else None,
+        colours=[RED, GREEN],
+        xticklabels=df.loc[df["original_length"] == length].groupby(["sample_size"]).groups.keys(),
+        xlabel="Sample size",
+        ylabel="Tool-minimised trace length" if col == 0 else None,
+    )
+    ax.tick_params(labelleft=col == 0)
+
+fig.suptitle("Spurious events")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.png")
+plt.clf()
+
+
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
-our_executions = [
-    [attack["simulator_runs"] for attack in attacks if attack["original_length"] == length]
-    for length in original_attack_lengths
-]
+our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
 plot_grouped_boxplot(
     [[[l] for l in original_attack_lengths], our_executions],
     savepath=f"{figures}/rq2-simulator-executions.png",

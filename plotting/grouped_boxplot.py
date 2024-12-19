@@ -5,15 +5,21 @@ This module provides common code to define a grouped boxplot.
 import numpy as np
 import matplotlib.pyplot as plt
 
+from rpy2 import robjects
 
-def color(color, flierprops={}):
-    return dict(
-        boxprops=dict(color=color),
-        capprops=dict(color=color),
-        whiskerprops=dict(color=color),
-        flierprops=dict(color=color, markeredgecolor=color) | flierprops,
-        medianprops=dict(color=color),
-    )
+from matplotlib.patches import Polygon
+
+
+def color(colour, flierprops=None):
+    if flierprops is None:
+        flierprops = {}
+    return {
+        "boxprops": {"color": colour},
+        "capprops": {"color": colour},
+        "whiskerprops": {"color": colour},
+        "flierprops": {"color": colour, "markeredgecolor": colour} | flierprops,
+        "medianprops": {"color": colour},
+    }
 
 
 def plot_grouped_boxplot(

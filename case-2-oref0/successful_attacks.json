@@ -21,9 +21,9 @@
   "fault_revealing": true,
   "attack_id": 2,
   "greedy_minimal": [
-    [225, "bolus", 1],
-    [275, "bolus", 1],
-    [290, "bolus", 1]
+    [225, "bolus", 45],
+    [275, "bolus", 45],
+    [290, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -50,10 +50,10 @@
   "fault_revealing": true,
   "attack_id": 10,
   "greedy_minimal": [
-    [115, "bolus", 1],
-    [150, "bolus", 1],
-    [155, "bolus", 1],
-    [165, "bolus", 1]
+    [115, "bolus", 45],
+    [150, "bolus", 45],
+    [155, "bolus", 45],
+    [165, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -79,12 +79,7 @@
   "fault_revealing": true,
   "attack_id": 14,
   "greedy_minimal": [
-    [15, "bolus", 1],
-    [35, "bolus", 1],
-    [110, "bolus", 1],
-    [165, "bolus", 1],
-    [225, "bolus", 1],
-    [245, "heavy_meal", 1]
+    [245, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -109,11 +104,7 @@
   "fault_revealing": true,
   "attack_id": 16,
   "greedy_minimal": [
-    [30, "bolus", 1],
-    [60, "bolus", 1],
-    [105, "bolus", 1],
-    [140, "bolus", 1],
-    [155, "light_meal", 1]
+    [155, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -140,13 +131,7 @@
   "fault_revealing": true,
   "attack_id": 18,
   "greedy_minimal": [
-    [55, "bolus", 1],
-    [310, "bolus", 1],
-    [350, "bolus", 1],
-    [365, "bolus", 1],
-    [440, "bolus", 1],
-    [450, "bolus", 1],
-    [470, "light_meal", 1]
+    [470, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -170,10 +155,7 @@
   "fault_revealing": true,
   "attack_id": 19,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [35, "bolus", 1],
-    [90, "bolus", 1],
-    [110, "heavy_meal", 1]
+    [110, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -202,11 +184,11 @@
   "fault_revealing": true,
   "attack_id": 35,
   "greedy_minimal": [
-    [85, "bolus", 1],
-    [90, "bolus", 1],
-    [115, "bolus", 1],
-    [125, "bolus", 1],
-    [150, "bolus", 1]
+    [85, "bolus", 45],
+    [90, "bolus", 45],
+    [115, "bolus", 45],
+    [125, "bolus", 45],
+    [150, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -230,10 +212,7 @@
   "fault_revealing": true,
   "attack_id": 42,
   "greedy_minimal": [
-    [440, "bolus", 1],
-    [445, "bolus", 1],
-    [450, "bolus", 1],
-    [455, "light_meal", 1]
+    [455, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -262,15 +241,7 @@
   "fault_revealing": true,
   "attack_id": 45,
   "greedy_minimal": [
-    [10, "bolus", 1],
-    [30, "bolus", 1],
-    [70, "bolus", 1],
-    [85, "bolus", 1],
-    [160, "bolus", 1],
-    [185, "bolus", 1],
-    [195, "bolus", 1],
-    [220, "bolus", 1],
-    [230, "light_meal", 1]
+    [230, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -306,19 +277,10 @@
   "fault_revealing": true,
   "attack_id": 56,
   "greedy_minimal": [
-    [10, "light_meal", 1],
-    [80, "bolus", 1],
-    [100, "bolus", 1],
-    [125, "bolus", 1],
-    [140, "bolus", 1],
-    [175, "bolus", 1],
-    [180, "bolus", 1],
-    [185, "bolus", 1],
-    [190, "bolus", 1],
-    [195, "bolus", 1],
-    [200, "bolus", 1],
-    [205, "bolus", 1],
-    [210, "bolus", 1]
+    [195, "bolus", 45],
+    [200, "bolus", 45],
+    [205, "bolus", 45],
+    [210, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -345,11 +307,9 @@
   "fault_revealing": true,
   "attack_id": 57,
   "greedy_minimal": [
-    [100, "bolus", 1],
-    [150, "bolus", 1],
-    [155, "bolus", 1],
-    [160, "bolus", 1],
-    [165, "bolus", 1]
+    [155, "bolus", 45],
+    [160, "bolus", 45],
+    [165, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -395,30 +355,9 @@
   "fault_revealing": true,
   "attack_id": 59,
   "greedy_minimal": [
-    [65, "bolus", 1],
-    [70, "bolus", 1],
-    [75, "bolus", 1],
-    [80, "bolus", 1],
-    [85, "bolus", 1],
-    [90, "bolus", 1],
-    [95, "bolus", 1],
-    [100, "bolus", 1],
-    [105, "bolus", 1],
-    [110, "bolus", 1],
-    [115, "bolus", 1],
-    [120, "bolus", 1],
-    [125, "bolus", 1],
-    [130, "bolus", 1],
-    [135, "bolus", 1],
-    [140, "bolus", 1],
-    [145, "bolus", 1],
-    [150, "bolus", 1],
-    [155, "bolus", 1],
-    [160, "bolus", 1],
-    [165, "bolus", 1],
-    [170, "bolus", 1],
-    [175, "bolus", 1],
-    [180, "bolus", 1]
+    [170, "bolus", 45],
+    [175, "bolus", 45],
+    [180, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -443,11 +382,7 @@
   "fault_revealing": true,
   "attack_id": 68,
   "greedy_minimal": [
-    [10, "bolus", 1],
-    [125, "bolus", 1],
-    [130, "bolus", 1],
-    [140, "bolus", 1],
-    [165, "heavy_meal", 1]
+    [165, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -476,15 +411,7 @@
   "fault_revealing": true,
   "attack_id": 70,
   "greedy_minimal": [
-    [15, "bolus", 1],
-    [45, "bolus", 1],
-    [60, "bolus", 1],
-    [75, "bolus", 1],
-    [125, "bolus", 1],
-    [150, "bolus", 1],
-    [225, "bolus", 1],
-    [245, "bolus", 1],
-    [350, "light_meal", 1]
+    [350, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -510,12 +437,7 @@
   "fault_revealing": true,
   "attack_id": 84,
   "greedy_minimal": [
-    [60, "bolus", 1],
-    [65, "bolus", 1],
-    [155, "bolus", 1],
-    [215, "bolus", 1],
-    [225, "bolus", 1],
-    [225, "light_meal", 1]
+    [225, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -542,11 +464,9 @@
   "fault_revealing": true,
   "attack_id": 85,
   "greedy_minimal": [
-    [125, "bolus", 1],
-    [130, "bolus", 1],
-    [150, "bolus", 1],
-    [155, "bolus", 1],
-    [180, "bolus", 1]
+    [150, "bolus", 45],
+    [155, "bolus", 45],
+    [180, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -572,12 +492,7 @@
   "fault_revealing": true,
   "attack_id": 105,
   "greedy_minimal": [
-    [40, "bolus", 1],
-    [45, "bolus", 1],
-    [75, "bolus", 1],
-    [105, "bolus", 1],
-    [125, "bolus", 1],
-    [185, "heavy_meal", 1]
+    [185, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -605,12 +520,9 @@
   "fault_revealing": true,
   "attack_id": 112,
   "greedy_minimal": [
-    [130, "bolus", 1],
-    [145, "bolus", 1],
-    [185, "bolus", 1],
-    [200, "bolus", 1],
-    [230, "bolus", 1],
-    [245, "bolus", 1]
+    [200, "bolus", 45],
+    [230, "bolus", 45],
+    [245, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -640,16 +552,7 @@
   "fault_revealing": true,
   "attack_id": 116,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [30, "bolus", 1],
-    [45, "bolus", 1],
-    [65, "bolus", 1],
-    [70, "bolus", 1],
-    [75, "bolus", 1],
-    [140, "bolus", 1],
-    [150, "bolus", 1],
-    [155, "bolus", 1],
-    [205, "light_meal", 1]
+    [205, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -674,10 +577,8 @@
   "fault_revealing": true,
   "attack_id": 118,
   "greedy_minimal": [
-    [65, "heavy_meal", 1],
-    [195, "bolus", 1],
-    [210, "bolus", 1],
-    [220, "bolus", 1]
+    [210, "bolus", 45],
+    [220, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -702,11 +603,7 @@
   "fault_revealing": true,
   "attack_id": 126,
   "greedy_minimal": [
-    [125, "bolus", 1],
-    [240, "bolus", 1],
-    [245, "bolus", 1],
-    [250, "bolus", 1],
-    [255, "heavy_meal", 1]
+    [255, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -729,9 +626,7 @@
   "fault_revealing": true,
   "attack_id": 129,
   "greedy_minimal": [
-    [85, "bolus", 1],
-    [145, "bolus", 1],
-    [230, "heavy_meal", 1]
+    [230, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -756,11 +651,7 @@
   "fault_revealing": true,
   "attack_id": 130,
   "greedy_minimal": [
-    [215, "heavy_meal", 1],
-    [350, "bolus", 1],
-    [360, "bolus", 1],
-    [365, "bolus", 1],
-    [375, "bolus", 1]
+    [375, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -781,7 +672,7 @@
   "fault_revealing": true,
   "attack_id": 131,
   "greedy_minimal": [
-    [145, "heavy_meal", 1]
+    [145, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -806,11 +697,7 @@
   "fault_revealing": true,
   "attack_id": 137,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [30, "bolus", 1],
-    [40, "bolus", 1],
-    [50, "bolus", 1],
-    [125, "light_meal", 1]
+    [125, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -833,9 +720,7 @@
   "fault_revealing": true,
   "attack_id": 138,
   "greedy_minimal": [
-    [55, "bolus", 1],
-    [60, "bolus", 1],
-    [245, "light_meal", 1]
+    [245, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -859,9 +744,8 @@
   "fault_revealing": true,
   "attack_id": 139,
   "greedy_minimal": [
-    [115, "bolus", 1],
-    [130, "bolus", 1],
-    [135, "bolus", 1]
+    [130, "bolus", 45],
+    [135, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -882,7 +766,7 @@
   "fault_revealing": true,
   "attack_id": 145,
   "greedy_minimal": [
-    [10, "snack", 1]
+    [10, "snack", 80]
   ]
 }, {
   "attack": [
@@ -913,16 +797,11 @@
   "fault_revealing": true,
   "attack_id": 157,
   "greedy_minimal": [
-    [65, "bolus", 1],
-    [90, "bolus", 1],
-    [145, "bolus", 1],
-    [160, "bolus", 1],
-    [170, "bolus", 1],
-    [190, "bolus", 1],
-    [225, "bolus", 1],
-    [245, "bolus", 1],
-    [245, "light_meal", 1],
-    [275, "heavy_meal", 1]
+    [190, "bolus", 45],
+    [225, "bolus", 45],
+    [245, "bolus", 45],
+    [245, "light_meal", 171],
+    [275, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -944,8 +823,7 @@
   "fault_revealing": true,
   "attack_id": 163,
   "greedy_minimal": [
-    [45, "light_meal", 1],
-    [160, "bolus", 1]
+    [45, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -976,17 +854,7 @@
   "fault_revealing": true,
   "attack_id": 164,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [75, "bolus", 1],
-    [85, "bolus", 1],
-    [100, "bolus", 1],
-    [125, "bolus", 1],
-    [225, "bolus", 1],
-    [230, "bolus", 1],
-    [270, "bolus", 1],
-    [275, "bolus", 1],
-    [285, "bolus", 1],
-    [290, "heavy_meal", 1]
+    [290, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1013,11 +881,9 @@
   "fault_revealing": true,
   "attack_id": 169,
   "greedy_minimal": [
-    [145, "bolus", 1],
-    [225, "light_meal", 1],
-    [380, "bolus", 1],
-    [385, "bolus", 1],
-    [395, "bolus", 1]
+    [380, "bolus", 45],
+    [385, "bolus", 45],
+    [395, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1042,10 +908,8 @@
   "fault_revealing": true,
   "attack_id": 176,
   "greedy_minimal": [
-    [180, "snack", 1],
-    [365, "bolus", 1],
-    [375, "bolus", 1],
-    [380, "bolus", 1]
+    [375, "bolus", 45],
+    [380, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1072,11 +936,9 @@
   "fault_revealing": true,
   "attack_id": 177,
   "greedy_minimal": [
-    [100, "bolus", 1],
-    [125, "bolus", 1],
-    [135, "bolus", 1],
-    [140, "bolus", 1],
-    [150, "bolus", 1]
+    [125, "bolus", 45],
+    [135, "bolus", 45],
+    [140, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1099,9 +961,7 @@
   "fault_revealing": true,
   "attack_id": 182,
   "greedy_minimal": [
-    [15, "bolus", 1],
-    [60, "bolus", 1],
-    [170, "heavy_meal", 1]
+    [170, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1123,8 +983,7 @@
   "fault_revealing": true,
   "attack_id": 183,
   "greedy_minimal": [
-    [50, "bolus", 1],
-    [195, "heavy_meal", 1]
+    [195, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1151,11 +1010,9 @@
   "fault_revealing": true,
   "attack_id": 195,
   "greedy_minimal": [
-    [105, "bolus", 1],
-    [120, "snack", 1],
-    [150, "bolus", 1],
-    [175, "bolus", 1],
-    [185, "bolus", 1]
+    [150, "bolus", 45],
+    [175, "bolus", 45],
+    [185, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1182,10 +1039,10 @@
   "fault_revealing": true,
   "attack_id": 215,
   "greedy_minimal": [
-    [135, "bolus", 1],
-    [155, "bolus", 1],
-    [165, "bolus", 1],
-    [180, "bolus", 1]
+    [135, "bolus", 45],
+    [155, "bolus", 45],
+    [165, "bolus", 45],
+    [180, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1209,10 +1066,7 @@
   "fault_revealing": true,
   "attack_id": 219,
   "greedy_minimal": [
-    [5, "bolus", 1],
-    [80, "bolus", 1],
-    [105, "bolus", 1],
-    [335, "heavy_meal", 1]
+    [335, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1238,12 +1092,7 @@
   "fault_revealing": true,
   "attack_id": 220,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [45, "bolus", 1],
-    [75, "bolus", 1],
-    [110, "bolus", 1],
-    [140, "bolus", 1],
-    [160, "heavy_meal", 1]
+    [160, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1268,11 +1117,7 @@
   "fault_revealing": true,
   "attack_id": 244,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [30, "bolus", 1],
-    [40, "bolus", 1],
-    [55, "bolus", 1],
-    [135, "heavy_meal", 1]
+    [135, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1296,10 +1141,7 @@
   "fault_revealing": true,
   "attack_id": 276,
   "greedy_minimal": [
-    [155, "bolus", 1],
-    [250, "bolus", 1],
-    [355, "bolus", 1],
-    [380, "heavy_meal", 1]
+    [380, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1323,10 +1165,7 @@
   "fault_revealing": true,
   "attack_id": 280,
   "greedy_minimal": [
-    [85, "bolus", 1],
-    [95, "bolus", 1],
-    [110, "bolus", 1],
-    [125, "heavy_meal", 1]
+    [125, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1364,19 +1203,12 @@
   "fault_revealing": true,
   "attack_id": 285,
   "greedy_minimal": [
-    [30, "heavy_meal", 1],
-    [185, "bolus", 1],
-    [240, "bolus", 1],
-    [245, "bolus", 1],
-    [250, "bolus", 1],
-    [255, "bolus", 1],
-    [260, "bolus", 1],
-    [265, "bolus", 1],
-    [270, "bolus", 1],
-    [275, "bolus", 1],
-    [280, "bolus", 1],
-    [285, "bolus", 1],
-    [290, "bolus", 1]
+    [265, "bolus", 45],
+    [270, "bolus", 45],
+    [275, "bolus", 45],
+    [280, "bolus", 45],
+    [285, "bolus", 45],
+    [290, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1401,11 +1233,7 @@
   "fault_revealing": true,
   "attack_id": 289,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [50, "bolus", 1],
-    [60, "bolus", 1],
-    [80, "bolus", 1],
-    [110, "heavy_meal", 1]
+    [110, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1428,9 +1256,7 @@
   "fault_revealing": true,
   "attack_id": 292,
   "greedy_minimal": [
-    [15, "bolus", 1],
-    [140, "bolus", 1],
-    [150, "heavy_meal", 1]
+    [150, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1459,11 +1285,11 @@
   "fault_revealing": true,
   "attack_id": 309,
   "greedy_minimal": [
-    [125, "bolus", 1],
-    [140, "bolus", 1],
-    [155, "bolus", 1],
-    [170, "bolus", 1],
-    [190, "bolus", 1]
+    [125, "bolus", 45],
+    [140, "bolus", 45],
+    [155, "bolus", 45],
+    [170, "bolus", 45],
+    [190, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1488,11 +1314,7 @@
   "fault_revealing": true,
   "attack_id": 311,
   "greedy_minimal": [
-    [65, "bolus", 1],
-    [70, "bolus", 1],
-    [100, "bolus", 1],
-    [180, "bolus", 1],
-    [470, "heavy_meal", 1]
+    [470, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1520,14 +1342,7 @@
   "fault_revealing": true,
   "attack_id": 333,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [40, "bolus", 1],
-    [60, "bolus", 1],
-    [80, "bolus", 1],
-    [90, "bolus", 1],
-    [140, "bolus", 1],
-    [150, "bolus", 1],
-    [195, "heavy_meal", 1]
+    [195, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1553,12 +1368,7 @@
   "fault_revealing": true,
   "attack_id": 337,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [30, "bolus", 1],
-    [75, "bolus", 1],
-    [105, "bolus", 1],
-    [210, "bolus", 1],
-    [230, "light_meal", 1]
+    [230, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -1609,30 +1419,14 @@
   "fault_revealing": true,
   "attack_id": 339,
   "greedy_minimal": [
-    [5, "bolus", 1],
-    [5, "snack", 1],
-    [30, "bolus", 1],
-    [65, "bolus", 1],
-    [120, "bolus", 1],
-    [160, "bolus", 1],
-    [265, "bolus", 1],
-    [295, "bolus", 1],
-    [400, "bolus", 1],
-    [405, "bolus", 1],
-    [410, "bolus", 1],
-    [415, "bolus", 1],
-    [420, "bolus", 1],
-    [425, "bolus", 1],
-    [430, "bolus", 1],
-    [435, "bolus", 1],
-    [440, "bolus", 1],
-    [445, "bolus", 1],
-    [450, "bolus", 1],
-    [455, "bolus", 1],
-    [460, "bolus", 1],
-    [465, "bolus", 1],
-    [470, "bolus", 1],
-    [475, "bolus", 1]
+    [440, "bolus", 45],
+    [445, "bolus", 45],
+    [450, "bolus", 45],
+    [455, "bolus", 45],
+    [460, "bolus", 45],
+    [465, "bolus", 45],
+    [470, "bolus", 45],
+    [475, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1656,10 +1450,10 @@
   "fault_revealing": true,
   "attack_id": 361,
   "greedy_minimal": [
-    [40, "bolus", 1],
-    [45, "bolus", 1],
-    [70, "bolus", 1],
-    [80, "heavy_meal", 1]
+    [40, "bolus", 45],
+    [45, "bolus", 45],
+    [70, "bolus", 45],
+    [80, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1681,8 +1475,7 @@
   "fault_revealing": true,
   "attack_id": 363,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [315, "heavy_meal", 1]
+    [315, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1703,7 +1496,7 @@
   "fault_revealing": true,
   "attack_id": 364,
   "greedy_minimal": [
-    [290, "bolus", 1]
+    [290, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1729,12 +1522,7 @@
   "fault_revealing": true,
   "attack_id": 379,
   "greedy_minimal": [
-    [20, "bolus", 1],
-    [75, "bolus", 1],
-    [125, "bolus", 1],
-    [165, "bolus", 1],
-    [180, "bolus", 1],
-    [190, "light_meal", 1]
+    [190, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -1757,9 +1545,7 @@
   "fault_revealing": true,
   "attack_id": 381,
   "greedy_minimal": [
-    [55, "bolus", 1],
-    [65, "bolus", 1],
-    [170, "heavy_meal", 1]
+    [170, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1782,8 +1568,8 @@
   "fault_revealing": true,
   "attack_id": 382,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [30, "bolus", 1]
+    [25, "bolus", 45],
+    [30, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1808,9 +1594,9 @@
   "fault_revealing": true,
   "attack_id": 390,
   "greedy_minimal": [
-    [125, "bolus", 1],
-    [130, "bolus", 1],
-    [145, "bolus", 1]
+    [125, "bolus", 45],
+    [130, "bolus", 45],
+    [145, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1832,8 +1618,7 @@
   "fault_revealing": true,
   "attack_id": 392,
   "greedy_minimal": [
-    [25, "bolus", 1],
-    [30, "snack", 1]
+    [30, "snack", 80]
   ]
 }, {
   "attack": [
@@ -1858,11 +1643,7 @@
   "fault_revealing": true,
   "attack_id": 395,
   "greedy_minimal": [
-    [190, "bolus", 1],
-    [200, "bolus", 1],
-    [220, "bolus", 1],
-    [225, "bolus", 1],
-    [225, "light_meal", 1]
+    [225, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -1890,11 +1671,10 @@
   "fault_revealing": true,
   "attack_id": 401,
   "greedy_minimal": [
-    [135, "bolus", 1],
-    [170, "bolus", 1],
-    [230, "bolus", 1],
-    [235, "bolus", 1],
-    [280, "bolus", 1]
+    [170, "bolus", 45],
+    [230, "bolus", 45],
+    [235, "bolus", 45],
+    [280, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -1925,17 +1705,7 @@
   "fault_revealing": true,
   "attack_id": 430,
   "greedy_minimal": [
-    [30, "bolus", 1],
-    [60, "bolus", 1],
-    [85, "bolus", 1],
-    [105, "bolus", 1],
-    [110, "bolus", 1],
-    [140, "bolus", 1],
-    [145, "bolus", 1],
-    [150, "bolus", 1],
-    [165, "bolus", 1],
-    [170, "bolus", 1],
-    [180, "heavy_meal", 1]
+    [180, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1961,12 +1731,7 @@
   "fault_revealing": true,
   "attack_id": 445,
   "greedy_minimal": [
-    [30, "snack", 1],
-    [45, "bolus", 1],
-    [50, "bolus", 1],
-    [65, "bolus", 1],
-    [75, "bolus", 1],
-    [100, "heavy_meal", 1]
+    [100, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -1990,10 +1755,7 @@
   "fault_revealing": true,
   "attack_id": 448,
   "greedy_minimal": [
-    [230, "bolus", 1],
-    [240, "bolus", 1],
-    [250, "bolus", 1],
-    [260, "light_meal", 1]
+    [260, "light_meal", 171]
   ]
 }, {
   "attack": [
@@ -2015,8 +1777,7 @@
   "fault_revealing": true,
   "attack_id": 451,
   "greedy_minimal": [
-    [135, "bolus", 1],
-    [140, "heavy_meal", 1]
+    [140, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -2043,13 +1804,7 @@
   "fault_revealing": true,
   "attack_id": 456,
   "greedy_minimal": [
-    [70, "bolus", 1],
-    [85, "bolus", 1],
-    [90, "bolus", 1],
-    [160, "bolus", 1],
-    [165, "bolus", 1],
-    [185, "bolus", 1],
-    [190, "heavy_meal", 1]
+    [190, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -2076,11 +1831,9 @@
   "fault_revealing": true,
   "attack_id": 460,
   "greedy_minimal": [
-    [30, "bolus", 1],
-    [60, "bolus", 1],
-    [85, "bolus", 1],
-    [90, "bolus", 1],
-    [95, "bolus", 1]
+    [85, "bolus", 45],
+    [90, "bolus", 45],
+    [95, "bolus", 45]
   ]
 }, {
   "attack": [
@@ -2107,13 +1860,7 @@
   "fault_revealing": true,
   "attack_id": 463,
   "greedy_minimal": [
-    [30, "bolus", 1],
-    [40, "bolus", 1],
-    [55, "bolus", 1],
-    [140, "bolus", 1],
-    [170, "bolus", 1],
-    [190, "bolus", 1],
-    [200, "heavy_meal", 1]
+    [200, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -2140,13 +1887,7 @@
   "fault_revealing": true,
   "attack_id": 469,
   "greedy_minimal": [
-    [60, "bolus", 1],
-    [65, "bolus", 1],
-    [175, "bolus", 1],
-    [180, "bolus", 1],
-    [195, "bolus", 1],
-    [200, "bolus", 1],
-    [235, "heavy_meal", 1]
+    [235, "heavy_meal", 243]
   ]
 }, {
   "attack": [
@@ -2169,8 +1910,6 @@
   "fault_revealing": true,
   "attack_id": 477,
   "greedy_minimal": [
-    [175, "bolus", 1],
-    [180, "bolus", 1],
-    [185, "heavy_meal", 1]
+    [185, "heavy_meal", 243]
   ]
 }]
