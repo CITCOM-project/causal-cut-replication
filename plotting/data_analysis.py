@@ -46,19 +46,6 @@ for root, dirs, files in os.walk(logs):
                     attack["treatment_strategies"] = []
         attacks += log
 
-for attack in attacks:
-    for intervention in attack["treatment_strategies"]:
-        if "result" in intervention:
-            assert len(intervention["result"]["ci_low"]) == 1
-            intervention["result"]["ci_low"] = intervention["result"]["ci_low"][0]
-            assert len(intervention["result"]["ci_high"]) == 1
-            intervention["result"]["ci_high"] = intervention["result"]["ci_high"][0]
-
-        pruned = False
-        if "result" in intervention and not (intervention["result"]["ci_low"] < 1 < intervention["result"]["ci_high"]):
-            pruned = True
-        intervention["pruned"] = pruned
-
 attack_id_length = {attack["attack_index"]: len(attack["attack"]) for attack in attacks}
 original_attack_lengths = sorted(list(set(attack_id_length.values())))
 attack_ids = sorted(list(attack_id_length.keys()))
