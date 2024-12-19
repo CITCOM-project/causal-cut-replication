@@ -7,6 +7,7 @@ import os
 import json
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import pandas as pd
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA
 from grouped_boxplot import plot_grouped_boxplot, bag_plot
@@ -37,6 +38,10 @@ for root, dirs, files in os.walk(logs):
             assert "greedy_minimal" in attack, f"No greedy_minimal in {os.path.join(root, file)}"
             attack["sample_size"] = sample_size
             attack["ci_alpha"] = ci_alpha
+            attack["original_length"] = len(attack["attack"])
+            for trace in ["greedy_minimal", "minimal", "extended_interventions", "minimised_extended_interventions"]:
+                if trace in attack:
+                    attack[trace] = len(attack[trace])
             if "error" in attack:
                 if "treatment_strategies" not in attack:
                     assert attack["error"] in [
@@ -46,7 +51,9 @@ for root, dirs, files in os.walk(logs):
                     attack["treatment_strategies"] = []
         attacks += log
 
-attack_id_length = {attack["attack_index"]: len(attack["attack"]) for attack in attacks}
+df = pd.DataFrame(attacks)
+
+attack_id_length = {attack["attack_index"]: attack["original_length"] for attack in attacks}
 original_attack_lengths = sorted(list(set(attack_id_length.values())))
 attack_ids = sorted(list(attack_id_length.keys()))
 
@@ -59,21 +66,22 @@ ci_alphas = sorted(list(set(attack["ci_alpha"] for attack in attacks)))
 # (1a) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Group by trace length
 greedy_attack_lengths = [
-    [len(attack["greedy_minimal"]) for attack in attacks if len(attack["attack"]) == length]
+    [attack["greedy_minimal"] for attack in attacks if attack["original_length"] == length]
     for length in original_attack_lengths
 ]
+print(greedy_attack_lengths)
 greedy_attack_lengths_combinatorial = [
-    [len(attack["minimal"]) for attack in attacks if len(attack["attack"]) == length]
+    [attack["minimal"] for attack in attacks if attack["original_length"] == length]
     for length in original_attack_lengths
 ]
 our_attack_lengths = [
-    [len(attack["extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+    [attack["extended_interventions"] for attack in attacks if attack["original_length"] == length]
     for length in original_attack_lengths
 ]
 our_attack_lengths_combinatorial = [
     # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
     (
-        [len(attack["minimised_extended_interventions"]) for attack in attacks if len(attack["attack"]) == length]
+        [attack["minimised_extended_interventions"] for attack in attacks if attack["original_length"] == length]
         if length < 20
         else []
     )
@@ -100,13 +108,11 @@ l_greedy_attack_lengths_combinatorial = {k: [] for k in attack_ids}
 l_our_attack_lengths = {k: [] for k in attack_ids}
 l_our_attack_lengths_combinatorial = {k: [] for k in attack_ids}
 for attack in attacks:
-    l_greedy_attack_lengths[attack["attack_index"]].append(len(attack["greedy_minimal"]))
-    l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(len(attack["minimal"]))
-    l_our_attack_lengths[attack["attack_index"]].append(len(attack["extended_interventions"]))
-    if len(attack["attack"]) < 20:
-        l_our_attack_lengths_combinatorial[attack["attack_index"]].append(
-            len(attack["minimised_extended_interventions"])
-        )
+    l_greedy_attack_lengths[attack["attack_index"]].append(attack["greedy_minimal"])
+    l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimal"])
+    l_our_attack_lengths[attack["attack_index"]].append(attack["extended_interventions"])
+    if attack["original_length"] < 20:
+        l_our_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimised_extended_interventions"])
 
 fig = plt.figure(figsize=(18, 8))
 gs = gridspec.GridSpec(3, 5)
@@ -181,20 +187,23 @@ for sample, ax in zip(sample_sizes, axs.reshape(-1)):
     plot_grouped_boxplot(
         [
             [
-                [len(attack["greedy_minimal"]) for attack in sampled_attacks if len(attack["attack"]) == l]
+                [attack["greedy_minimal"] for attack in sampled_attacks if attack["original_length"] == l]
                 for l in original_attack_lengths
             ],
-            [[len(a["minimal"]) for a in sampled_attacks if len(a["attack"]) == l] for l in original_attack_lengths],
             [
-                [len(attack["extended_interventions"]) for attack in sampled_attacks if len(attack["attack"]) == l]
+                [attack["minimal"] for attack in sampled_attacks if len(attack["attack"]) == l]
+                for l in original_attack_lengths
+            ],
+            [
+                [attack["extended_interventions"] for attack in sampled_attacks if attack["original_length"] == l]
                 for l in original_attack_lengths
             ],
             [
                 (
                     [
-                        len(attack["minimised_extended_interventions"])
+                        attack["minimised_extended_interventions"]
                         for attack in sampled_attacks
-                        if len(attack["attack"]) == l
+                        if attack["original_length"] == l
                     ]
                     if l < 20
                     else []
@@ -222,19 +231,18 @@ plt.clf()
 # (2) Measure the proportion of the "tool-minimise" traces that are spurious. Report as the average proportion again.
 greedy_spurious = [
     [
-        (len(attack["greedy_minimal"]) - len(attack["minimal"])) / len(attack["attack"])
+        (attack["greedy_minimal"] - attack["minimal"]) / attack["original_length"]
         for attack in attacks
-        if len(attack["attack"]) == length
+        if attack["original_length"] == length
     ]
     for length in original_attack_lengths
 ]
 our_spurious = [
     [
-        (len(attack["extended_interventions"]) - len(attack["minimised_extended_interventions"]))
-        / len(attack["attack"])
+        (attack["extended_interventions"] - attack["minimised_extended_interventions"]) / attack["original_length"]
         for attack in attacks
         # we can't combinatorially minimise the long traces in reasonable time
-        if len(attack["attack"]) == length and length < 20
+        if attack["original_length"] == length and length < 20
     ]
     for length in original_attack_lengths
 ]
@@ -253,7 +261,7 @@ plot_grouped_boxplot(
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
 our_executions = [
-    [attack["simulator_runs"] for attack in attacks if len(attack["attack"]) == length]
+    [attack["simulator_runs"] for attack in attacks if attack["original_length"] == length]
     for length in original_attack_lengths
 ]
 plot_grouped_boxplot(
@@ -313,7 +321,7 @@ bag_plot(
 #     length: [
 #         attack.get("result", {}).get("adequacy", {}).get("kurtosis", {}).get("trtrand", None)
 #         for attack in attacks
-#         if len(attack["attack"]) == length
+#         if attack["original_length"] == length
 #     ]
 #     for length in original_attack_lengths
 # }
