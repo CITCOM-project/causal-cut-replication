@@ -87,16 +87,16 @@ plot_grouped_boxplot(
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-l_greedy_attack_lengths = {k: [] for k in attack_ids}
-l_greedy_attack_lengths_combinatorial = {k: [] for k in attack_ids}
-l_our_attack_lengths = {k: [] for k in attack_ids}
-l_our_attack_lengths_combinatorial = {k: [] for k in attack_ids}
-for attack in attacks:
-    l_greedy_attack_lengths[attack["attack_index"]].append(attack["greedy_minimal"])
-    l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimal"])
-    l_our_attack_lengths[attack["attack_index"]].append(attack["extended_interventions"])
-    if attack["original_length"] < 20:
-        l_our_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimised_extended_interventions"])
+# l_greedy_attack_lengths = {k: [] for k in attack_ids}
+# l_greedy_attack_lengths_combinatorial = {k: [] for k in attack_ids}
+# l_our_attack_lengths = {k: [] for k in attack_ids}
+# l_our_attack_lengths_combinatorial = {k: [] for k in attack_ids}
+# for attack in attacks:
+#     l_greedy_attack_lengths[attack["attack_index"]].append(attack["greedy_minimal"])
+#     l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimal"])
+#     l_our_attack_lengths[attack["attack_index"]].append(attack["extended_interventions"])
+#     if attack["original_length"] < 20:
+#         l_our_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimised_extended_interventions"])
 
 fig = plt.figure(figsize=(18, 8))
 gs = gridspec.GridSpec(3, 5)
@@ -119,7 +119,28 @@ positions = {
 }
 
 i = 0
+
+
 for length in original_attack_lengths:
+
+    l_greedy_attack_lengths = (
+        df.loc[df["original_length"] == length].groupby(["attack_index"])["greedy_minimal"].apply(list)
+    )
+    l_greedy_attack_lengths_combinatorial = (
+        df.loc[df["original_length"] == length].groupby(["attack_index"])["minimal"].apply(list)
+    )
+    l_our_attack_lengths = (
+        df.loc[df["original_length"] == length].groupby(["attack_index"])["extended_interventions"].apply(list)
+    )
+    l_our_attack_lengths_combinatorial = (
+        df.loc[df["original_length"] == length]
+        .groupby(["attack_index"])["extended_interventions"]
+        .apply(
+            # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+            lambda group: list(group) if group.name < 20 else []
+        )
+    )
+
     row, col, size = positions[length]
 
     inx = gs[i]
@@ -129,25 +150,19 @@ for length in original_attack_lengths:
     axs[row].append(ax)
     i += size
 
-    selected_attack_ids = [
-        attack_id
-        for attack_id, attack_length in sorted(list(attack_id_length.items()), key=lambda x: list(reversed(x)))
-        if attack_length == length
-    ]
-
     plot_grouped_boxplot(
         [
-            [l_greedy_attack_lengths[a] for a in selected_attack_ids],
-            [l_greedy_attack_lengths_combinatorial[a] for a in selected_attack_ids],
-            [l_our_attack_lengths[a] for a in selected_attack_ids],
-            [l_our_attack_lengths_combinatorial[a] for a in selected_attack_ids],
+            l_greedy_attack_lengths,
+            l_greedy_attack_lengths_combinatorial,
+            l_our_attack_lengths,
+            l_our_attack_lengths_combinatorial,
         ],
         ax=ax,
         title=f"Original length {length}",
         labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
-        xticklabels=selected_attack_ids,
+        xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
         xlabel="Attack ID",
         ylabel="Tool-minimised trace length" if length in [1, 5, 9] else None,
     )
