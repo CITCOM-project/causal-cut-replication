@@ -87,17 +87,6 @@ plot_grouped_boxplot(
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-# l_greedy_attack_lengths = {k: [] for k in attack_ids}
-# l_greedy_attack_lengths_combinatorial = {k: [] for k in attack_ids}
-# l_our_attack_lengths = {k: [] for k in attack_ids}
-# l_our_attack_lengths_combinatorial = {k: [] for k in attack_ids}
-# for attack in attacks:
-#     l_greedy_attack_lengths[attack["attack_index"]].append(attack["greedy_minimal"])
-#     l_greedy_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimal"])
-#     l_our_attack_lengths[attack["attack_index"]].append(attack["extended_interventions"])
-#     if attack["original_length"] < 20:
-#         l_our_attack_lengths_combinatorial[attack["attack_index"]].append(attack["minimised_extended_interventions"])
-
 fig = plt.figure(figsize=(18, 8))
 gs = gridspec.GridSpec(3, 5)
 axs = {0: [], 1: [], 2: []}
@@ -119,30 +108,8 @@ positions = {
 }
 
 i = 0
-
-
 for length in original_attack_lengths:
-
-    l_greedy_attack_lengths = (
-        df.loc[df["original_length"] == length].groupby(["attack_index"])["greedy_minimal"].apply(list)
-    )
-    l_greedy_attack_lengths_combinatorial = (
-        df.loc[df["original_length"] == length].groupby(["attack_index"])["minimal"].apply(list)
-    )
-    l_our_attack_lengths = (
-        df.loc[df["original_length"] == length].groupby(["attack_index"])["extended_interventions"].apply(list)
-    )
-    l_our_attack_lengths_combinatorial = (
-        df.loc[df["original_length"] == length]
-        .groupby(["attack_index"])["extended_interventions"]
-        .apply(
-            # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-            lambda group: list(group) if group.name < 20 else []
-        )
-    )
-
     row, col, size = positions[length]
-
     inx = gs[i]
     if length in [4, 5]:
         inx = gs[i : i + size]
@@ -152,10 +119,15 @@ for length in original_attack_lengths:
 
     plot_grouped_boxplot(
         [
-            l_greedy_attack_lengths,
-            l_greedy_attack_lengths_combinatorial,
-            l_our_attack_lengths,
-            l_our_attack_lengths_combinatorial,
+            df.loc[df["original_length"] == length].groupby(["attack_index"])["greedy_minimal"].apply(list),
+            df.loc[df["original_length"] == length].groupby(["attack_index"])["minimal"].apply(list),
+            df.loc[df["original_length"] == length].groupby(["attack_index"])["extended_interventions"].apply(list),
+            df.loc[df["original_length"] == length]
+            .groupby(["attack_index"])["extended_interventions"]
+            .apply(
+                # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+                lambda group: list(group) if group.name < 20 else []
+            ),
         ],
         ax=ax,
         title=f"Original length {length}",
@@ -169,7 +141,6 @@ for length in original_attack_lengths:
     if ax != axs[row][0]:
         ax.tick_params(labelleft=False)
 
-
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.png")
@@ -180,35 +151,22 @@ plt.clf()
 
 fig, axs = plt.subplots(3, 3, figsize=(18, 8))
 
-for sample, ax in zip(sample_sizes, axs.reshape(-1)):
-    sampled_attacks = list(filter(lambda attack: attack["sample_size"] == sample, attacks))
+for i, sample in enumerate(sample_sizes):
+    row = i // 3
+    col = i % 3
+    ax = axs[row][col]
 
     plot_grouped_boxplot(
         [
-            [
-                [attack["greedy_minimal"] for attack in sampled_attacks if attack["original_length"] == l]
-                for l in original_attack_lengths
-            ],
-            [
-                [attack["minimal"] for attack in sampled_attacks if len(attack["attack"]) == l]
-                for l in original_attack_lengths
-            ],
-            [
-                [attack["extended_interventions"] for attack in sampled_attacks if attack["original_length"] == l]
-                for l in original_attack_lengths
-            ],
-            [
-                (
-                    [
-                        attack["minimised_extended_interventions"]
-                        for attack in sampled_attacks
-                        if attack["original_length"] == l
-                    ]
-                    if l < 20
-                    else []
-                )
-                for l in original_attack_lengths
-            ],
+            df.loc[df["sample_size"] == sample].groupby(["original_length"])["greedy_minimal"].apply(list),
+            df.loc[df["sample_size"] == sample].groupby(["original_length"])["minimal"].apply(list),
+            df.loc[df["sample_size"] == sample].groupby(["original_length"])["extended_interventions"].apply(list),
+            df.loc[df["sample_size"] == sample]
+            .groupby(["original_length"])["extended_interventions"]
+            .apply(
+                # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+                lambda group: list(group) if group.name < 20 else []
+            ),
         ],
         ax=ax,
         title=f"Sample {sample}",
@@ -217,8 +175,9 @@ for sample, ax in zip(sample_sizes, axs.reshape(-1)):
         markers=["x", "o", "s", 2],
         xticklabels=original_attack_lengths,
         xlabel="Attack length",
-        ylabel="Tool-minimised trace length",
+        ylabel="Tool-minimised trace length" if col == 0 else None,
     )
+    ax.tick_params(labelleft=row == 0)
 
 
 fig.suptitle("Pruned Trace Lengths")
