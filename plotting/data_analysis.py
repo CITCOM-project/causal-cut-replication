@@ -181,17 +181,21 @@ for sample, ax in zip(sample_sizes, axs.reshape(-1)):
     plot_grouped_boxplot(
         [
             [
-                [len(a["greedy_minimal"]) for a in sampled_attacks if len(a["attack"]) == l]
+                [len(attack["greedy_minimal"]) for attack in sampled_attacks if len(attack["attack"]) == l]
                 for l in original_attack_lengths
             ],
             [[len(a["minimal"]) for a in sampled_attacks if len(a["attack"]) == l] for l in original_attack_lengths],
             [
-                [len(a["extended_interventions"]) for a in sampled_attacks if len(a["attack"]) == l]
+                [len(attack["extended_interventions"]) for attack in sampled_attacks if len(attack["attack"]) == l]
                 for l in original_attack_lengths
             ],
             [
                 (
-                    [len(a["minimised_extended_interventions"]) for a in sampled_attacks if len(a["attack"]) == l]
+                    [
+                        len(attack["minimised_extended_interventions"])
+                        for attack in sampled_attacks
+                        if len(attack["attack"]) == l
+                    ]
                     if l < 20
                     else []
                 )
