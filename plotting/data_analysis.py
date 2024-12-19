@@ -53,40 +53,24 @@ for root, dirs, files in os.walk(logs):
 
 df = pd.DataFrame(attacks)
 
-attack_id_length = {attack["attack_index"]: attack["original_length"] for attack in attacks}
-original_attack_lengths = sorted(list(set(attack_id_length.values())))
-attack_ids = sorted(list(attack_id_length.keys()))
-
-
-sample_sizes = sorted(list(set(attack["sample_size"] for attack in attacks)))
-ci_alphas = sorted(list(set(attack["ci_alpha"] for attack in attacks)))
-
+attack_id_length = pd.Series(df.original_length.values, index=df.attack_index).to_dict()
+original_attack_lengths = sorted(list(set(df.original_length)))
+attack_ids = sorted(list(set(df.attack_index)))
+sample_sizes = sorted(list(set(df.sample_size)))
+ci_alphas = sorted(list(set(df.ci_alpha)))
 
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1a) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Group by trace length
-greedy_attack_lengths = [
-    [attack["greedy_minimal"] for attack in attacks if attack["original_length"] == length]
-    for length in original_attack_lengths
-]
-print(greedy_attack_lengths)
-greedy_attack_lengths_combinatorial = [
-    [attack["minimal"] for attack in attacks if attack["original_length"] == length]
-    for length in original_attack_lengths
-]
-our_attack_lengths = [
-    [attack["extended_interventions"] for attack in attacks if attack["original_length"] == length]
-    for length in original_attack_lengths
-]
-our_attack_lengths_combinatorial = [
-    # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-    (
-        [attack["minimised_extended_interventions"] for attack in attacks if attack["original_length"] == length]
-        if length < 20
-        else []
+greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal"].apply(list))
+greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal"].apply(list))
+our_attack_lengths = list(df.groupby("original_length")["extended_interventions"].apply(list))
+our_attack_lengths_combinatorial = list(
+    df.groupby("original_length")["minimised_extended_interventions"].apply(
+        # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
+        lambda group: list(group) if group.name < 20 else []
     )
-    for length in original_attack_lengths
-]
+)
 
 plot_grouped_boxplot(
     [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_attack_lengths_combinatorial],
