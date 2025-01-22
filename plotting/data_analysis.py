@@ -77,7 +77,7 @@ our_attack_lengths_combinatorial = list(
 
 plot_grouped_boxplot(
     [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_attack_lengths_combinatorial],
-    savepath=f"{figures}/rq1-attack-lengths.png",
+    savepath=f"{figures}/rq1-attack-lengths.pgf",
     labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
     colours=[RED, BLUE, GREEN, MAGENTA],
     markers=["x", "o", "s", 2],
@@ -178,7 +178,7 @@ lines = [Line2D([0], [0], color=c) for c in colours]
 labels = labels = [BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"]
 axs[0][0].legend(lines, labels, bbox_to_anchor=(-1, 1), loc="upper left")
 
-plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.png")
+plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.pgf")
 plt.clf()
 
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
@@ -219,7 +219,7 @@ for col in range(col, PER_TRACE_COLS):
 fig.align_ylabels()
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
-plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.png")
+plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.pgf")
 plt.clf()
 
 
@@ -232,7 +232,7 @@ our_spurious = df.groupby("original_length")["our_spurious"].apply(list)
 
 plot_grouped_boxplot(
     [greedy_spurious, our_spurious],
-    savepath=f"{figures}/rq1-proportion-spurious.png",
+    savepath=f"{figures}/rq1-proportion-spurious.pgf",
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
     markers=["x", "s"],
@@ -287,7 +287,7 @@ lines = [Line2D([0], [0], color=c) for c in colours]
 labels = [BASELINE, TOOLNAME]
 axs[0][0].legend(lines, labels, bbox_to_anchor=(-0.8, 1), loc="upper left")
 
-plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.png")
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.pgf")
 plt.clf()
 
 
@@ -327,7 +327,7 @@ for col in range(col, PER_TRACE_COLS):
 fig.align_ylabels()
 fig.suptitle("Spurious events")
 plt.tight_layout()
-plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.png")
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.pgf")
 plt.clf()
 
 
@@ -336,7 +336,7 @@ plt.clf()
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
 plot_grouped_boxplot(
     [[[l] for l in original_attack_lengths], our_executions],
-    savepath=f"{figures}/rq2-simulator-executions.png",
+    savepath=f"{figures}/rq2-simulator-executions.pgf",
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
     markers=["x", "s"],
@@ -362,7 +362,7 @@ bag_plot(
     title="Remaining Spurious per Simulation",
     xlabel="Number of Simulations to Minimise the Trace",
     ylabel="Proportion of Remaining Spurious Events",
-    savepath=f"{figures}/rq2-executions-spurious.png",
+    savepath=f"{figures}/rq2-executions-spurious.pgf",
 )
 
 bag_plot(
@@ -381,7 +381,7 @@ bag_plot(
     title="Pruning per Simulation",
     xlabel="Number of Simulations to Minimise the Trace",
     ylabel="Length of tool-minimised trace",
-    savepath=f"{figures}/rq1-executions-pruning.png",
+    savepath=f"{figures}/rq1-executions-pruning.pgf",
 )
 
 
