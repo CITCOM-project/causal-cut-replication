@@ -5,8 +5,6 @@ This module provides common code to define a grouped boxplot.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from rpy2 import robjects
-
 from matplotlib.patches import Polygon
 
 
