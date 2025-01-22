@@ -29,6 +29,7 @@ def plot_grouped_boxplot(
     markers=None,
     title=None,
     xticklabels=None,
+    yticklabels=None,
     xlabel=None,
     ylabel=None,
     ax=None,
@@ -61,6 +62,8 @@ def plot_grouped_boxplot(
             np.array(range(len(xticklabels))) * (plots + 1) + (((plots + (plots / 2) - 1) * width) / 2),
             xticklabels,
         )
+    if yticklabels is not None:
+        ax.set_yticks(yticklabels)
     if labels is not None:
         ax.legend(**legend_args)
     if title is not None:
@@ -70,7 +73,7 @@ def plot_grouped_boxplot(
     if ylabel is not None:
         ax.set_ylabel(ylabel)
     if savepath is not None:
-        plt.savefig(savepath)
+        plt.savefig(savepath, bbox_inches="tight", pad_inches=0)
         plt.clf()
 
 
@@ -130,5 +133,5 @@ def bag_plot(
 
     if savepath is not None:
         plt.legend()
-        plt.savefig(savepath)
+        plt.savefig(savepath, bbox_inches="tight", pad_inches=0)
         plt.clf()

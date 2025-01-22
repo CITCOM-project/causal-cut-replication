@@ -81,7 +81,7 @@ plot_grouped_boxplot(
     labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
     colours=[RED, BLUE, GREEN, MAGENTA],
     markers=["x", "o", "s", 2],
-    title="Pruned Trace Lengths",
+    # title="Pruned Trace Lengths",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
     ylabel="Tool-minimised trace length",
@@ -131,8 +131,9 @@ ROWS = ceil(sum(sizes.values()) / COLUMNS)
 if ROWS * COLUMNS <= sum(sizes.values()):
     ROWS += 1
 
-fig = plt.figure(figsize=(18, 2 * ROWS))
+fig = plt.figure(figsize=(16, 2 * ROWS))
 gs = gridspec.GridSpec(ROWS, COLUMNS)
+gs.update(wspace=0.1, hspace=0.8)
 axs = {r: [] for r in range(ROWS)}
 
 start = 2
@@ -159,32 +160,47 @@ for length, size in sizes.items():
             ),
         ],
         ax=ax,
-        title=f"Original length {length}",
+        # title=f"Original length {length}",
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
+        yticklabels=range(0, 11, 2) if "case-1" in logs else range(0, 21, 4),
         xlabel="Attack ID",
-        ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
+        # ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
     )
     if len(axs[row]) > 1:
         ax.tick_params(labelleft=False)
 
-fig.suptitle("Pruned Trace Lengths")
-plt.tight_layout()
-fig.align_ylabels()
+# fig.align_ylabels()
+
+fig.add_subplot(111, frameon=False)
+plt.tick_params(
+    labelcolor="none",
+    which="both",
+    top=False,
+    bottom=False,
+    left=False,
+    right=False,
+    labelleft=False,
+    labelbottom=False,
+)
+plt.xticks([])
+plt.yticks([])
+plt.ylabel("Tool-minimised trace length", labelpad=20)
+
 
 colours = [RED, BLUE, GREEN, MAGENTA]
 lines = [Line2D([0], [0], color=c) for c in colours]
 labels = labels = [BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"]
 axs[0][0].legend(lines, labels, bbox_to_anchor=(-1, 1), loc="upper left")
 
-plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.pgf")
+plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(18, 8), sharey="row")
+fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(16, 8), sharey="row")
 
 # I suggest we drop original_length==1 out of this since these can't be pruned any more
 for i, length in enumerate(original_attack_lengths):
@@ -203,7 +219,7 @@ for i, length in enumerate(original_attack_lengths):
             ),
         ],
         ax=axs[row][col],
-        title=f"Original length {length}",
+        # title=f"Original length {length}",
         labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
@@ -217,9 +233,8 @@ col += 1
 for col in range(col, PER_TRACE_COLS):
     fig.delaxes(axs[row][col])
 fig.align_ylabels()
-fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
-plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.pgf")
+plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
 
@@ -236,15 +251,16 @@ plot_grouped_boxplot(
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
     markers=["x", "s"],
-    title="Spurious Events",
+    # title="Spurious Events",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
     ylabel="Proportion of Remaining Spurious Events",
 )
 
 # (b) group by trace id
-fig = plt.figure(figsize=(18, 2 * ROWS))
+fig = plt.figure(figsize=(16, 2 * ROWS))
 gs = gridspec.GridSpec(ROWS, COLUMNS)
+gs.update(wspace=0.1, hspace=0.8)
 axs = {r: [] for r in range(ROWS)}
 
 start = 2
@@ -269,25 +285,37 @@ for length, size in sizes.items():
             ),
         ],
         ax=ax,
-        title=f"Original length {length}",
+        # title=f"Original length {length}",
         colours=[RED, GREEN],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
+        yticklabels=[x / 10 for x in range(0, 10, 2)],
         xlabel="Attack ID",
-        ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
     )
     if len(axs[row]) > 1:
         ax.tick_params(labelleft=False)
 
-fig.suptitle("Pruned Trace Lengths")
-plt.tight_layout()
+fig.add_subplot(111, frameon=False)
+plt.tick_params(
+    labelcolor="none",
+    which="both",
+    top=False,
+    bottom=False,
+    left=False,
+    right=False,
+    labelleft=False,
+    labelbottom=False,
+)
+plt.xticks([])
+plt.yticks([])
+plt.ylabel("Proportion of Remaining Spurious Events")
 fig.align_ylabels()
 
 colours = [RED, GREEN]
 lines = [Line2D([0], [0], color=c) for c in colours]
 labels = [BASELINE, TOOLNAME]
-axs[0][0].legend(lines, labels, bbox_to_anchor=(-0.8, 1), loc="upper left")
+axs[0][0].legend(lines, labels, bbox_to_anchor=(-0.9, 1), loc="upper left")
 
-plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.pgf")
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
 
@@ -295,7 +323,7 @@ plt.clf()
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(18, 8), sharey="row")
+fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(16, 8), sharey="row")
 
 # I suggest we drop original_length==1 out of this since these can't be pruned any more
 for i, length in enumerate(original_attack_lengths):
@@ -312,7 +340,7 @@ for i, length in enumerate(original_attack_lengths):
             ),
         ],
         ax=axs[row][col],
-        title=f"Original length {length}",
+        # title=f"Original length {length}",
         labels=[BASELINE, TOOLNAME] if length == 1 else None,
         colours=[RED, GREEN],
         xticklabels=df.loc[df["original_length"] == length].groupby(["sample_size"]).groups.keys(),
@@ -325,9 +353,9 @@ col += 1
 for col in range(col, PER_TRACE_COLS):
     fig.delaxes(axs[row][col])
 fig.align_ylabels()
-fig.suptitle("Spurious events")
+# fig.suptitle("Spurious events")
 plt.tight_layout()
-plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.pgf")
+plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
 
@@ -340,7 +368,7 @@ plot_grouped_boxplot(
     labels=[BASELINE, TOOLNAME],
     colours=[RED, GREEN],
     markers=["x", "s"],
-    title="Simulator Executions",
+    # title="Simulator Executions",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
     ylabel="Number of Simulations to Minimise the Trace",
@@ -359,7 +387,7 @@ bag_plot(
     colour=RED,
     marker="x",
     label=TOOLNAME,
-    title="Remaining Spurious per Simulation",
+    # title="Remaining Spurious per Simulation",
     xlabel="Number of Simulations to Minimise the Trace",
     ylabel="Proportion of Remaining Spurious Events",
     savepath=f"{figures}/rq2-executions-spurious.pgf",
@@ -378,7 +406,7 @@ bag_plot(
     colour=RED,
     marker="x",
     label=TOOLNAME,
-    title="Pruning per Simulation",
+    # title="Pruning per Simulation",
     xlabel="Number of Simulations to Minimise the Trace",
     ylabel="Length of tool-minimised trace",
     savepath=f"{figures}/rq1-executions-pruning.pgf",
