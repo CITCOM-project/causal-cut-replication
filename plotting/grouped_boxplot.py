@@ -32,6 +32,7 @@ def plot_grouped_boxplot(
     xlabel=None,
     ylabel=None,
     ax=None,
+    legend_args={},
 ):
     if ax is None:
         _, ax = plt.subplots()
@@ -61,7 +62,7 @@ def plot_grouped_boxplot(
             xticklabels,
         )
     if labels is not None:
-        ax.legend()
+        ax.legend(**legend_args)
     if title is not None:
         ax.set_title(title)
     if xlabel is not None:

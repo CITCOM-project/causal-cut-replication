@@ -5,9 +5,12 @@ This module processes the causal test logs and draws the figures for openAPS.
 import sys
 import os
 import json
+import re
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from math import ceil
 import pandas as pd
+from matplotlib.lines import Line2D
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA
 from grouped_boxplot import plot_grouped_boxplot, bag_plot
@@ -31,9 +34,9 @@ for root, dirs, files in os.walk(logs):
             continue
         with open(os.path.join(root, file)) as f:
             log = json.load(f)
-        path = os.path.normpath(root).split(os.sep)
-        sample_size = [int(x.split("_")[1]) for x in path if x.startswith("sample_")][0]
-        ci_alpha = [int(x.split("_")[1]) for x in path if x.startswith("ci_")][0]
+        sample_size = re.search(r"sample_(\w+)", root).group(1)
+        sample_size = int(sample_size) if sample_size != "None" else 449920
+        ci_alpha = int(re.search(r"ci_(\w+)", root).group(1))
         for attack in log:
             assert "greedy_minimal" in attack, f"No greedy_minimal in {os.path.join(root, file)}"
             attack["sample_size"] = sample_size
@@ -87,35 +90,61 @@ plot_grouped_boxplot(
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-positions = {
-    1: (0, 0, 1),
-    2: (0, 1, 1),
-    3: (0, 2, 1),
-    4: (0, 3, 2),
-    5: (1, 0, 2),
-    6: (1, 2, 1),
-    7: (1, 3, 1),
-    8: (1, 4, 1),
-    9: (2, 0, 1),
-    10: (2, 1, 1),
-    11: (2, 2, 1),
-    13: (2, 3, 1),
-    24: (2, 4, 1),
-}
+if "case-1" in logs:
+    sizes = {
+        1: 2,
+        2: 4,
+        3: 4,
+        4: 4,
+        5: 3,
+        6: 3,
+        7: 2,
+        8: 2,
+        9: 2,
+        10: 1,
+        11: 1,
+        12: 2,
+    }
+    PER_TRACE_COLS = 4
+elif "case-2" in logs:
+    sizes = {
+        1: 2,
+        2: 2,
+        3: 2,
+        4: 4,
+        5: 4,
+        6: 2,
+        7: 2,
+        8: 2,
+        9: 2,
+        10: 2,
+        11: 2,
+        13: 2,
+        24: 2,
+    }
+    PER_TRACE_COLS = 5
+else:
+    raise ValueError(f"Could not initialise positions for {logs}")
 
-fig = plt.figure(figsize=(18, 8))
-gs = gridspec.GridSpec(3, 5)
-axs = {0: [], 1: [], 2: []}
+COLUMNS = 8
+ROWS = ceil(sum(sizes.values()) / COLUMNS)
+if ROWS * COLUMNS <= sum(sizes.values()):
+    ROWS += 1
 
-i = 0
-for length in original_attack_lengths:
-    row, col, size = positions[length]
-    inx = gs[i]
-    if length in [4, 5]:
-        inx = gs[i : i + size]
+fig = plt.figure(figsize=(18, 2 * ROWS))
+gs = gridspec.GridSpec(ROWS, COLUMNS)
+axs = {r: [] for r in range(ROWS)}
+
+start = 2
+end = 2
+for length, size in sizes.items():
+    end += size
+    inx = gs[start:end]
+    row = start // COLUMNS
+    col = start % COLUMNS
     ax = fig.add_subplot(inx, sharey=axs[row][0] if len(axs[row]) > 0 else None)
     axs[row].append(ax)
-    i += size
+    start += size
 
     plot_grouped_boxplot(
         [
@@ -131,30 +160,36 @@ for length in original_attack_lengths:
         ],
         ax=ax,
         title=f"Original length {length}",
-        labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
         xlabel="Attack ID",
-        ylabel="Tool-minimised trace length" if length in [1, 5, 9] else None,
+        ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
     )
-    if ax != axs[row][0]:
+    if len(axs[row]) > 1:
         ax.tick_params(labelleft=False)
 
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
+fig.align_ylabels()
+
+colours = [RED, BLUE, GREEN, MAGENTA]
+lines = [Line2D([0], [0], color=c) for c in colours]
+labels = labels = [BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"]
+axs[0][0].legend(lines, labels, bbox_to_anchor=(-1, 1), loc="upper left")
+
 plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.png")
 plt.clf()
 
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig, axs = plt.subplots(3, 5, figsize=(18, 8), sharey="row")
+fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(18, 8), sharey="row")
 
 # I suggest we drop original_length==1 out of this since these can't be pruned any more
 for i, length in enumerate(original_attack_lengths):
-    row = i // 5
-    col = i % 5
+    row = i // PER_TRACE_COLS
+    col = i % PER_TRACE_COLS
     plot_grouped_boxplot(
         [
             df.loc[df["original_length"] == length].groupby(["sample_size"])["greedy_minimal"].apply(list),
@@ -178,6 +213,10 @@ for i, length in enumerate(original_attack_lengths):
     )
     ax.tick_params(labelleft=col == 0)
 
+col += 1
+for col in range(col, PER_TRACE_COLS):
+    fig.delaxes(axs[row][col])
+fig.align_ylabels()
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq1-attack-lengths-per-sample.png")
@@ -204,19 +243,20 @@ plot_grouped_boxplot(
 )
 
 # (b) group by trace id
-fig = plt.figure(figsize=(18, 8))
-gs = gridspec.GridSpec(3, 5)
-axs = {0: [], 1: [], 2: []}
+fig = plt.figure(figsize=(18, 2 * ROWS))
+gs = gridspec.GridSpec(ROWS, COLUMNS)
+axs = {r: [] for r in range(ROWS)}
 
-i = 0
-for length in original_attack_lengths:
-    row, col, size = positions[length]
-    inx = gs[i]
-    if length in [4, 5]:
-        inx = gs[i : i + size]
+start = 2
+end = 2
+for length, size in sizes.items():
+    end += size
+    inx = gs[start:end]
+    row = start // COLUMNS
+    col = start % COLUMNS
     ax = fig.add_subplot(inx, sharey=axs[row][0] if len(axs[row]) > 0 else None)
     axs[row].append(ax)
-    i += size
+    start += size
 
     plot_grouped_boxplot(
         [
@@ -230,17 +270,23 @@ for length in original_attack_lengths:
         ],
         ax=ax,
         title=f"Original length {length}",
-        labels=[BASELINE, TOOLNAME] if length == 1 else None,
         colours=[RED, GREEN],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
         xlabel="Attack ID",
-        ylabel="Tool-minimised trace length" if length in [1, 5, 9] else None,
+        ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
     )
-    if ax != axs[row][0]:
+    if len(axs[row]) > 1:
         ax.tick_params(labelleft=False)
 
 fig.suptitle("Pruned Trace Lengths")
 plt.tight_layout()
+fig.align_ylabels()
+
+colours = [RED, GREEN]
+lines = [Line2D([0], [0], color=c) for c in colours]
+labels = [BASELINE, TOOLNAME]
+axs[0][0].legend(lines, labels, bbox_to_anchor=(-0.8, 1), loc="upper left")
+
 plt.savefig(f"{figures}/rq1-proportion-spurious-per-trace.png")
 plt.clf()
 
@@ -249,12 +295,12 @@ plt.clf()
 # (1c) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Show each trace separately
 
-fig, axs = plt.subplots(3, 5, figsize=(18, 8), sharey="row")
+fig, axs = plt.subplots(3, PER_TRACE_COLS, figsize=(18, 8), sharey="row")
 
 # I suggest we drop original_length==1 out of this since these can't be pruned any more
 for i, length in enumerate(original_attack_lengths):
-    row = i // 5
-    col = i % 5
+    row = i // PER_TRACE_COLS
+    col = i % PER_TRACE_COLS
     plot_grouped_boxplot(
         [
             df.loc[df["original_length"] == length].groupby(["sample_size"])["greedy_spurious"].apply(list),
@@ -275,6 +321,10 @@ for i, length in enumerate(original_attack_lengths):
     )
     ax.tick_params(labelleft=col == 0)
 
+col += 1
+for col in range(col, PER_TRACE_COLS):
+    fig.delaxes(axs[row][col])
+fig.align_ylabels()
 fig.suptitle("Spurious events")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq1-proportion-spurious-per-sample.png")
