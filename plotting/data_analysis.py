@@ -156,11 +156,11 @@ for length, size in sizes.items():
             .groupby(["attack_index"])["minimised_extended_interventions"]
             .apply(
                 # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-                lambda group: list(group) if group.name < 20 else []
+                lambda group: list(group) if length < 20 else []
             ),
         ],
         ax=ax,
-        # title=f"Original length {length}",
+        title=f"Original length {length}",
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
@@ -215,11 +215,11 @@ for i, length in enumerate(original_attack_lengths):
             .groupby(["sample_size"])["minimised_extended_interventions"]
             .apply(
                 # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-                lambda group: list(group) if group.name < 20 else []
+                lambda group: list(group) if length < 20 else []
             ),
         ],
         ax=axs[row][col],
-        # title=f"Original length {length}",
+        title=f"Original length {length}",
         labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"] if length == 1 else None,
         colours=[RED, BLUE, GREEN, MAGENTA],
         markers=["x", "o", "s", 2],
@@ -285,7 +285,7 @@ for length, size in sizes.items():
             ),
         ],
         ax=ax,
-        # title=f"Original length {length}",
+        title=f"Original length {length}",
         colours=[RED, GREEN],
         xticklabels=df.loc[df["original_length"] == length].groupby(["attack_index"]).groups.keys(),
         yticklabels=[x / 10 for x in range(0, 10, 2)],
@@ -340,7 +340,7 @@ for i, length in enumerate(original_attack_lengths):
             ),
         ],
         ax=axs[row][col],
-        # title=f"Original length {length}",
+        title=f"Original length {length}",
         labels=[BASELINE, TOOLNAME] if length == 1 else None,
         colours=[RED, GREEN],
         xticklabels=df.loc[df["original_length"] == length].groupby(["sample_size"]).groups.keys(),
