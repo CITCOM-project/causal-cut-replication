@@ -42,9 +42,12 @@ for root, dirs, files in os.walk(logs):
             attack["sample_size"] = sample_size
             attack["ci_alpha"] = ci_alpha
             attack["original_length"] = len(attack["attack"])
+            # assert (
+            #     len(attack["extended_interventions"]) < attack["original_length"]
+            # ), f'Attack grew from {attack["original_length"]} to {len(attack["extended_interventions"])} in {os.path.join(root, file)}'
             for trace in ["greedy_minimal", "minimal", "extended_interventions", "minimised_extended_interventions"]:
                 if trace in attack:
-                    attack[trace] = len(attack[trace])
+                    attack[trace] = len(set(map(tuple, attack[trace])))
             if "error" in attack:
                 if "treatment_strategies" not in attack:
                     assert attack["error"] in [

@@ -69,6 +69,8 @@ def build_attack(attack: dict):
     interventions_to_add = list(treatment_strategies["intervention_index"])
     while not still_fault and interventions_to_add:
         t, v, _ = attack["attack"][interventions_to_add.pop(0)]
+        if (t, v, intervention_values[v]) in interventions:
+            continue
         interventions.append((t, v, intervention_values[v]))
         still_fault, _ = reproduce_fault(
             timesteps=499,

@@ -88,7 +88,10 @@ def build_attack(attack: dict):
 
     interventions_to_add = list(treatment_strategies["intervention_index"])
     while not still_fault and interventions_to_add:
-        interventions.append(attack["attack"][interventions_to_add.pop(0)])
+        next_intervention = attack["attack"][interventions_to_add.pop(0)]
+        if next_intervention in interventions:
+            continue
+        interventions.append(next_intervention)
         still_fault = reproduce_fault(interventions=interventions, minimal=attack["minimal"])
         simulator_runs += 1
     attack["extended_estimate_fault"] = still_fault
