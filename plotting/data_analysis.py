@@ -168,6 +168,7 @@ for length, size in sizes.items():
         xlabel="Attack ID",
         # ylabel="Tool-minimised\ntrace length" if len(axs[row]) == 1 else None,
     )
+    ax.axhline(y=length, color="black", linestyle="--")
     if len(axs[row]) > 1:
         ax.tick_params(labelleft=False)
 
@@ -190,8 +191,8 @@ plt.ylabel("Tool-minimised trace length", labelpad=20)
 
 
 colours = [RED, BLUE, GREEN, MAGENTA]
-lines = [Line2D([0], [0], color=c) for c in colours]
-labels = labels = [BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"]
+lines = [Line2D([0], [0], color=c) for c in colours] + [Line2D([0], [0], color="black", linestyle="--")]
+labels = labels = [BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)", "Original length"]
 axs[0][0].legend(lines, labels, bbox_to_anchor=(-1, 1), loc="upper left")
 
 plt.savefig(f"{figures}/rq1-attack-lengths-per-trace.pgf", bbox_inches="tight", pad_inches=0)
