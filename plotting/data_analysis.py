@@ -134,6 +134,29 @@ plot_grouped_boxplot(
     position_offsets=POSITION_OFFSETS,
 )
 
+print("maximum_minimal_attack_length", np.max([np.max(x) for x in greedy_attack_lengths_combinatorial]))
+
+print(
+    "greedy_attack_lengths_optimal",
+    [round(np.median(y) / np.median(x), 3) for x, y in zip(greedy_attack_lengths, greedy_attack_lengths_combinatorial)],
+)
+print(
+    "greedy_attack_lengths_original",
+    [round(np.median(x) / y, 3) for x, y in zip(greedy_attack_lengths, original_attack_lengths)],
+)
+print(
+    "our_attack_lengths_optimal",
+    [
+        round(np.median(y) / np.median(x), 3)
+        for x, y in zip(our_attack_lengths, our_attack_lengths_combinatorial)
+        if len(y) > 0
+    ],
+)
+print(
+    "our_attack_lengths_original",
+    [round(np.median(x) / y, 3) for x, y in zip(our_attack_lengths, original_attack_lengths)],
+)
+
 if "case-2" in logs:
     kwargs = {
         "marker": "^",
