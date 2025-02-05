@@ -47,7 +47,13 @@ for root, dirs, files in os.walk(logs):
             # assert (
             #     len(attack["extended_interventions"]) < attack["original_length"]
             # ), f'Attack grew from {attack["original_length"]} to {len(attack["extended_interventions"])} in {os.path.join(root, file)}'
-            for trace in ["greedy_minimal", "minimal", "extended_interventions", "minimised_extended_interventions"]:
+            for trace in [
+                "greedy_minimal",
+                "minimal",
+                "extended_interventions",
+                "minimised_extended_interventions",
+                "reduced_extended_interventions",
+            ]:
                 if trace in attack:
                     attack[trace] = len(set(map(tuple, attack[trace])))
             if "error" in attack:
@@ -112,6 +118,8 @@ else:
 greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal"].apply(list))
 greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal"].apply(list))
 our_attack_lengths = list(df.groupby("original_length")["extended_interventions"].apply(list))
+# df["reduced_extended_interventions"] = 0
+our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions"].apply(list))
 our_attack_lengths_combinatorial = list(
     df.groupby("original_length")["minimised_extended_interventions"].apply(
         # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
@@ -122,7 +130,7 @@ our_attack_lengths_combinatorial = list(
 fig, ax = plt.subplots()
 
 plot_grouped_boxplot(
-    [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_attack_lengths_combinatorial],
+    [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_greedy_attack_lengths],
     ax=ax,
     labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
     colours=[RED, BLUE, GREEN, MAGENTA],
@@ -133,6 +141,22 @@ plot_grouped_boxplot(
     ylabel="Tool-minimised trace length",
     position_offsets=POSITION_OFFSETS,
 )
+
+if "case-2" in logs:
+    kwargs = {
+        "marker": "^",
+        "markersize": 12,
+        "linestyle": "none",
+        "color": "w",
+        "mec": "w",
+        "mew": 1,
+        "clip_on": False,
+    }
+    ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
+    ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
+
+plt.savefig(f"{figures}/rq1-attack-lengths.pgf", bbox_inches="tight", pad_inches=0)
+plt.clf()
 
 print("maximum_minimal_attack_length", np.max([np.max(x) for x in greedy_attack_lengths_combinatorial]))
 
@@ -156,22 +180,6 @@ print(
     "our_attack_lengths_original",
     [round(np.median(x) / y, 3) for x, y in zip(our_attack_lengths, original_attack_lengths)],
 )
-
-if "case-2" in logs:
-    kwargs = {
-        "marker": "^",
-        "markersize": 12,
-        "linestyle": "none",
-        "color": "w",
-        "mec": "w",
-        "mew": 1,
-        "clip_on": False,
-    }
-    ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
-    ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
-
-plt.savefig(f"{figures}/rq1-attack-lengths.pgf", bbox_inches="tight", pad_inches=0)
-plt.clf()
 
 # </break plot>
 
@@ -420,14 +428,17 @@ plt.clf()
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
+# our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
+df["reduced_simulator_runs"] = df["simulator_runs"] + df["extended_interventions"] - 1
+our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
 greedy_executions = [[l] for l in original_attack_lengths]
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
-    [greedy_executions, our_executions],
+    [greedy_executions, our_executions, our_executions_extra],
     ax=ax,
-    labels=[BASELINE, TOOLNAME],
-    colours=[RED, GREEN],
-    markers=["x", "s"],
+    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+    colours=[RED, GREEN, MAGENTA],
+    markers=["x", "s", 2],
     # title="Simulator Executions",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
@@ -435,7 +446,9 @@ plot_grouped_boxplot(
     position_offsets=POSITION_OFFSETS,
 )
 
+# Greedy fit
 ax.plot(ax.get_xticks()[:11] - 0.5, np.median(greedy_executions[:11], axis=1), color=RED, alpha=0.5)
+# CausalCut fit
 flat_data = [(x, y) for x, Y in zip(original_attack_lengths, our_executions) for y in Y]
 x, y = zip(*flat_data)
 model = ols(
@@ -446,6 +459,19 @@ ax.plot(
     ax.get_xticks()[:11] + 0.5,
     model.predict(pd.DataFrame({"trace_length": original_attack_lengths[:11]})),
     color=GREEN,
+    alpha=0.5,
+)
+# CausalCut + Greedy fit
+flat_data = [(x, y) for x, Y in zip(original_attack_lengths, our_executions_extra) for y in Y]
+x, y = zip(*flat_data)
+model = ols(
+    "executions ~ np.log(trace_length) + trace_length - 1",
+    pd.DataFrame({"trace_length": x, "executions": y}),
+).fit()
+ax.plot(
+    ax.get_xticks()[:11] + 0.5,
+    model.predict(pd.DataFrame({"trace_length": original_attack_lengths[:11]})),
+    color=MAGENTA,
     alpha=0.5,
 )
 

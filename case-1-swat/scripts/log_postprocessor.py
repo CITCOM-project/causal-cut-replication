@@ -52,7 +52,7 @@ def build_attack(attack: dict):
     ]
     treatment_strategies = pd.DataFrame(treatment_strategies)
 
-    # If we've been able to estimate stuff, reorder according to causality
+    # If we've been able to estimate anything, reorder according to causality
     if "ci_low" in treatment_strategies and "ci_high" in treatment_strategies:
         treatment_strategies["ci_low"] = [c[0] for c in treatment_strategies["ci_low"]]
         treatment_strategies["ci_high"] = [c[0] for c in treatment_strategies["ci_high"]]
@@ -60,23 +60,26 @@ def build_attack(attack: dict):
             treatment_strategies["ci_high"] < 1
         )
         treatment_strategies = treatment_strategies.loc[~treatment_strategies["significant"]]
-        treatment_strategies["below_1"] = 1 - treatment_strategies["ci_low"]
-        treatment_strategies["above_1"] = treatment_strategies["ci_high"] - 1
+        treatment_strategies["below_1"] = (1 - treatment_strategies["ci_low"]) / (
+            treatment_strategies["ci_high"] - treatment_strategies["ci_low"]
+        )
+        treatment_strategies["above_1"] = (treatment_strategies["ci_high"] - 1) / (
+            treatment_strategies["ci_high"] - treatment_strategies["ci_low"]
+        )
         treatment_strategies["rank"] = treatment_strategies[["below_1", "above_1"]].min(axis=1)
-        treatment_strategies.sort_values(["rank", "intervention_index"], inplace=True)
+        # Sort by rank (low -> high), then last -> first
+        treatment_strategies.sort_values(["rank", "intervention_index"], inplace=True, ascending=[True, False])
         # TODO
         # Other potential orderings include swapping rank and intervention index
         # and also sorting first by score, and then merging in the unestimated events by time step
     else:
         # else default to greedy minimal
-        treatment_strategies.sort_values("intervention_index", inplace=True)
+        treatment_strategies.sort_values("intervention_index", inplace=True, ascending=False)
 
     interventions = []
     for treatment_strategy in attack["treatment_strategies"]:
-        if (
-            # "result" not in treatment_strategy or
-            "result" in treatment_strategy
-            and not (treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0])
+        if "result" in treatment_strategy and not (
+            treatment_strategy["result"]["ci_low"][0] < 1 < treatment_strategy["result"]["ci_high"][0]
         ):
             interventions.append(attack["attack"][treatment_strategy["intervention_index"]])
 
@@ -94,9 +97,18 @@ def build_attack(attack: dict):
         interventions.append(next_intervention)
         still_fault = reproduce_fault(interventions=interventions, minimal=attack["minimal"])
         simulator_runs += 1
+    interventions.sort()
     attack["extended_estimate_fault"] = still_fault
     attack["extended_interventions"] = list(interventions)
     attack["simulator_runs"] = simulator_runs
+
+    # Apply the greedy heuristic to the tool-minimised trace
+    for intervention in sorted(attack["estimated_interventions"]):
+        simulator_runs += 1
+        if reproduce_fault(interventions=[i for i in interventions if i != intervention], minimal=attack["minimal"]):
+            interventions.remove(intervention)
+    attack["reduced_extended_interventions"] = list(interventions)
+    attack["reduced_simulator_runs"] = simulator_runs
 
     # Further minimise the trace by considering all combinations of the remaining interventions, starting with the
     # minimum number of interventions and gradually working back up.
