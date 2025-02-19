@@ -132,7 +132,7 @@ fig, ax = plt.subplots()
 plot_grouped_boxplot(
     [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_greedy_attack_lengths],
     ax=ax,
-    labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} (optimal)"],
+    labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, BLUE, GREEN, MAGENTA],
     markers=["x", "o", "s", 2],
     # title="Pruned Trace Lengths",
