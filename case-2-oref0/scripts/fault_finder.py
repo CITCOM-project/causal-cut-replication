@@ -113,7 +113,7 @@ def negate(timestep: int, label: str, value: int) -> tuple:
 
 
 # pylint: disable=R0914,R0913
-def minimise_attack(group: pd.DataFrame, save_path: str, minutes=500):
+def minimise_attack(group: pd.DataFrame, save_path: str, minutes: int=500):
     """
     Find the minimal set of interventions that still causes the system to fail
     in the same way. I.e. if the original failure was a hypo, the failure caused
