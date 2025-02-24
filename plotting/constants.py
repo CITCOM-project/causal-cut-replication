@@ -9,3 +9,4 @@ MAGENTA = "#CC79A7"
 
 TOOLNAME = "CausalCut"
 BASELINE = "Greedy Heuristic"
+GOLD_STANDARD = "Gold Standard"

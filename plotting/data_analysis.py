@@ -14,8 +14,8 @@ import numpy as np
 from matplotlib.lines import Line2D
 from statsmodels.formula.api import ols
 
-from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA
-from grouped_boxplot import plot_grouped_boxplot, bag_plot
+from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD
+from grouped_boxplot import plot_grouped_boxplot
 
 plt.style.use("ggplot")
 
@@ -67,6 +67,7 @@ for root, dirs, files in os.walk(logs):
 
 df = pd.DataFrame(attacks)
 df = df.loc[df["original_length"] > 1]
+df["reduced_simulator_runs"] = df["simulator_runs"] + df["extended_interventions"] - 1
 
 attack_id_length = pd.Series(df.original_length.values, index=df.attack_index).to_dict()
 original_attack_lengths = sorted(list(set(df.original_length)))
@@ -118,21 +119,14 @@ else:
 greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal"].apply(list))
 greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal"].apply(list))
 our_attack_lengths = list(df.groupby("original_length")["extended_interventions"].apply(list))
-# df["reduced_extended_interventions"] = 0
 our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions"].apply(list))
-our_attack_lengths_combinatorial = list(
-    df.groupby("original_length")["minimised_extended_interventions"].apply(
-        # We can't feasibly minimise attacks of length greater than 20 as there's over 16M combinations (16,777,215)
-        lambda group: list(group) if group.name < 20 else []
-    )
-)
 
 fig, ax = plt.subplots()
 
 plot_grouped_boxplot(
     [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_greedy_attack_lengths],
     ax=ax,
-    labels=[BASELINE, f"{BASELINE} (optimal)", TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+    labels=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, BLUE, GREEN, MAGENTA],
     markers=["x", "o", "s", 2],
     # title="Pruned Trace Lengths",
@@ -142,6 +136,7 @@ plot_grouped_boxplot(
     position_offsets=POSITION_OFFSETS,
 )
 
+# Show the gap in data with a zigzag on x axis
 if "case-2" in logs:
     kwargs = {
         "marker": "^",
@@ -169,19 +164,95 @@ print(
     [round(np.median(x) / y, 3) for x, y in zip(greedy_attack_lengths, original_attack_lengths)],
 )
 print(
-    "our_attack_lengths_optimal",
-    [
-        round(np.median(y) / np.median(x), 3)
-        for x, y in zip(our_attack_lengths, our_attack_lengths_combinatorial)
-        if len(y) > 0
-    ],
-)
-print(
     "our_attack_lengths_original",
     [round(np.median(x) / y, 3) for x, y in zip(our_attack_lengths, original_attack_lengths)],
 )
 
-# </break plot>
+
+# (1b) Separate out amounts of test data
+fig, axs = plt.subplots(2, 2, figsize=(16, 8), sharex="col", sharey="row")
+plt.subplots_adjust(wspace=0.05, hspace=0.15)
+axs = axs.flatten()
+
+sample_sizes = [50, 500, 1000, 5000] if "case-2" in logs else [500, 1000, 5000, 449920]
+
+for ax, sample_size in zip(axs, sample_sizes):
+    df_sample = df.loc[df.sample_size == sample_size]
+    greedy_attack_lengths = list(df_sample.groupby("original_length")["greedy_minimal"].apply(list))
+    greedy_attack_lengths_combinatorial = list(df_sample.groupby("original_length")["minimal"].apply(list))
+    our_attack_lengths = list(df_sample.groupby("original_length")["extended_interventions"].apply(list))
+    our_greedy_attack_lengths = list(df_sample.groupby("original_length")["reduced_extended_interventions"].apply(list))
+
+    plot_grouped_boxplot(
+        [greedy_attack_lengths, greedy_attack_lengths_combinatorial, our_attack_lengths, our_greedy_attack_lengths],
+        ax=ax,
+        labels=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+        colours=[RED, BLUE, GREEN, MAGENTA],
+        markers=["x", "o", "s", 2],
+        title=f"{sample_size} test runs",
+        xticklabels=original_attack_lengths,
+        xlabel="Original trace length" if ax.get_subplotspec().is_last_row() else None,
+        ylabel="Tool-minimised trace length" if ax.get_subplotspec().is_first_col() else None,
+        position_offsets=POSITION_OFFSETS,
+    )
+
+    # Show the gap in data with a zigzag on x axis
+    if "case-2" in logs:
+        kwargs = {
+            "marker": "^",
+            "markersize": 12,
+            "linestyle": "none",
+            "color": "w",
+            "mec": "w",
+            "mew": 1,
+            "clip_on": False,
+        }
+        ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
+        ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
+
+plt.savefig(f"{figures}/rq1-attack-lengths-by-data-size.png", bbox_inches="tight", pad_inches=0)
+plt.clf()
+
+fig, axs = plt.subplots(2, 2, figsize=(16, 8), sharex="col", sharey="row")
+plt.subplots_adjust(wspace=0.05, hspace=0.15)
+axs = axs.flatten()
+
+for ax, sample_size in zip(axs, sample_sizes):
+    df_sample = df.loc[df.sample_size == sample_size]
+    our_executions = df_sample.groupby("original_length")["simulator_runs"].apply(list)
+    our_executions_extra = df_sample.groupby("original_length")["reduced_simulator_runs"].apply(list)
+    greedy_executions = [[l] for l in original_attack_lengths]
+
+    plot_grouped_boxplot(
+        [greedy_executions, our_executions, our_executions_extra],
+        ax=ax,
+        labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+        colours=[RED, GREEN, MAGENTA],
+        markers=["x", "s", 2],
+        title=f"{sample_size} test runs",
+        xticklabels=original_attack_lengths,
+        xlabel="Original trace length" if ax.get_subplotspec().is_last_row() else None,
+        ylabel="Simulator runs" if ax.get_subplotspec().is_first_col() else None,
+        position_offsets=POSITION_OFFSETS,
+        legend_args={"loc":"upper left"}
+    )
+
+    # Show the gap in data with a zigzag on x axis
+    if "case-2" in logs:
+        kwargs = {
+            "marker": "^",
+            "markersize": 12,
+            "linestyle": "none",
+            "color": "w",
+            "mec": "w",
+            "mew": 1,
+            "clip_on": False,
+        }
+        ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
+        ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
+
+plt.savefig(f"{figures}/rq2-simulator-executions-by-data-size.png", bbox_inches="tight", pad_inches=0)
+plt.clf()
 
 
 # (1b) Measure the length of the "tool-minimised" traces, comparing to length of original
@@ -428,8 +499,6 @@ plt.clf()
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
-# our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
-df["reduced_simulator_runs"] = df["simulator_runs"] + df["extended_interventions"] - 1
 our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
 greedy_executions = [[l] for l in original_attack_lengths]
 fig, ax = plt.subplots()
@@ -489,45 +558,6 @@ if "case-2" in logs:
     ax.plot([0.765, 0.915], [0, 0], transform=ax.transAxes, **kwargs)
 plt.savefig(f"{figures}/rq2-simulator-executions.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
-
-bag_plot(
-    [item for y, l in zip(greedy_spurious, original_attack_lengths) if l < 20 for item in [l] * len(y)],
-    [item for y, l in zip(greedy_spurious, original_attack_lengths) if l < 20 for item in y],
-    colour=GREEN,
-    marker="s",
-    label=BASELINE,
-)
-bag_plot(
-    [item for x, l in zip(our_executions, original_attack_lengths) if l < 20 for item in x],
-    [item for y, l in zip(our_spurious, original_attack_lengths) if l < 20 for item in y],
-    colour=RED,
-    marker="x",
-    label=TOOLNAME,
-    # title="Remaining Spurious per Simulation",
-    xlabel="Number of Simulations to Minimise the Trace",
-    ylabel="Proportion of Remaining Spurious Events",
-    savepath=f"{figures}/rq2-executions-spurious.pgf",
-)
-
-bag_plot(
-    [item for y, l in zip(greedy_attack_lengths, original_attack_lengths) if l < 20 for item in [l] * len(y)],
-    [item for y, l in zip(greedy_attack_lengths, original_attack_lengths) if l < 20 for item in y],
-    colour=GREEN,
-    marker="s",
-    label=BASELINE,
-)
-bag_plot(
-    [item for x, l in zip(our_executions, original_attack_lengths) if l < 20 for item in x],
-    [item for y, l in zip(our_attack_lengths, original_attack_lengths) if l < 20 for item in y],
-    colour=RED,
-    marker="x",
-    label=TOOLNAME,
-    # title="Pruning per Simulation",
-    xlabel="Number of Simulations to Minimise the Trace",
-    ylabel="Length of tool-minimised trace",
-    savepath=f"{figures}/rq1-executions-pruning.pgf",
-)
-
 
 # RQ3:
 # look into the impact of the different levels of data provision.
