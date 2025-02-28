@@ -6,8 +6,6 @@ import pygraphviz as pgv
 import networkx as nx
 import pandas as pd
 
-import config
-
 
 # Memoisation for SPEED!
 def add_edge(memo, cause, effect):
@@ -44,7 +42,6 @@ def main(timesteps):
 if __name__ == "__main__":
     flow = pgv.AGraph("dcg.dot")
     flow.write("dcg_raw.dot")
-    data = pd.read_csv(config.data_path, index_col=0)
 
     # Validate that I've drawn the flow graph correctly
     for node1 in flow.nodes():
