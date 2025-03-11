@@ -5,8 +5,6 @@ This module provides common code to define a grouped boxplot.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from matplotlib.patches import Polygon
-
 
 def color(colour, flierprops=None):
     if flierprops is None:
@@ -43,15 +41,18 @@ def plot_grouped_boxplot(
     if isinstance(labels, list) and len(labels) != plots:
         raise ValueError("If providing labels, please ensure that you provide as many as you have plots")
     if isinstance(colours, list) and len(colours) != plots:
-        raise ValueError("If providing colours, please ensure that you provide as many as you have plots")
+        raise ValueError(
+            f"If providing {len(colours)} colours, please ensure that you provide as many as you have plots ({plots})"
+        )
     if position_offsets is None:
         position_offsets = [0] * positions
     if isinstance(np.array(position_offsets), list) and len(np.array(position_offsets)) != positions:
         raise ValueError("If providing position_offsets, please ensure that you provide as many as you have positions")
+    boxplots = {}
     for i, boxes in enumerate(groups):
         marker = markers[i] if isinstance(markers, list) else markers if markers is not None else "o"
 
-        ax.boxplot(
+        boxes = ax.boxplot(
             boxes,
             positions=np.array(range(positions)) * (plots + 1) + i + np.array(position_offsets),
             widths=width,
@@ -61,6 +62,10 @@ def plot_grouped_boxplot(
                 flierprops={"marker": marker, "markersize": width * 2},
             ),
         )
+        for k, v in boxes.items():
+            if k not in boxplots:
+                boxplots[k] = []
+            boxplots[k] += v
 
     if xticklabels is not None:
         ax.set_xticks(
@@ -82,3 +87,4 @@ def plot_grouped_boxplot(
     if savepath is not None:
         plt.savefig(savepath, bbox_inches="tight", pad_inches=0)
         plt.clf()
+    return boxplots
