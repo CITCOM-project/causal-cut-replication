@@ -7,14 +7,9 @@ import os
 import json
 import re
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from math import ceil
 import pandas as pd
 import numpy as np
-from matplotlib.lines import Line2D
 from statsmodels.formula.api import ols
-from scipy.stats import friedmanchisquare
-from scikit_posthocs import posthoc_nemenyi_friedman
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
@@ -284,7 +279,7 @@ plot_grouped(
 # Measure number of executions required from simulator / CPS.
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
 our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
-greedy_executions = df.groupby("greedy_executions")["greedy_minimal"].apply(list)
+greedy_executions = df.groupby("original_length")["greedy_executions"].apply(list)
 
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
@@ -296,14 +291,14 @@ plot_grouped_boxplot(
     # title="Simulator Executions",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
-    ylabel="Number of Simulations to Minimise the Trace",
+    ylabel="Simulation runs",
     position_offsets=POSITION_OFFSETS,
 )
 
 # Greedy fit
 ax.plot(
     ax.get_xticks()[:11] - 0.5,
-    df.groupby("greedy_executions")["greedy_minimal"].apply(np.median)[:11],
+    df.groupby("original_length")["greedy_executions"].apply(np.median)[:11],
     color=RED,
     alpha=0.5,
 )
@@ -364,7 +359,7 @@ plot_grouped(
     ],
     [greedy_executions],
     "Original trace length",
-    "Number of Simulations to Minimise the Trace",
+    "Simulation runs",
     "rq2-simulator-executions-by-sample-size.pgf",
 )
 
@@ -385,6 +380,6 @@ plot_grouped(
     ],
     [greedy_executions],
     "Original trace length",
-    "Number of Simulations to Minimise the Trace",
+    "Simulation runs",
     "rq2-simulator-executions-by-confidence.pgf",
 )
