@@ -1,5 +1,5 @@
 """
-This module processes the causal test logs and draws the figures for openAPS.
+This module processes the causal test logs and draws the figures.
 """
 
 import sys
@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from statsmodels.formula.api import ols
+from scipy.stats import mannwhitneyu
+from itertools import combinations
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
@@ -21,9 +23,12 @@ if len(sys.argv) != 2:
     raise ValueError("Please provide the directory of the log files, e.g. case-2-oref0/logs")
 logs = sys.argv[1]
 figures = sys.argv[1].replace("/logs", "/figures")
+stats_dir = sys.argv[1].replace("/logs", "/stats")
 
 if not os.path.exists(figures):
     os.mkdir(figures)
+if not os.path.exists(stats_dir):
+    os.mkdir(stats_dir)
 
 
 attacks = []
@@ -41,9 +46,6 @@ for root, dirs, files in os.walk(logs):
             attack["sample_size"] = sample_size
             attack["ci_alpha"] = ci_alpha
             attack["original_length"] = len(attack["attack"])
-            # assert (
-            #     len(attack["extended_interventions"]) < attack["original_length"]
-            # ), f'Attack grew from {attack["original_length"]} to {len(attack["extended_interventions"])} in {os.path.join(root, file)}'
             for trace in [
                 "greedy_minimal",
                 "minimal",
@@ -123,6 +125,7 @@ spurious_events = df["original_length"] - df["minimal"]
 our_prune = df["original_length"] - df["extended_interventions"]
 our_greedy_prune = df["original_length"] - df["reduced_extended_interventions"]
 
+print("Fraction of spurius events removed")
 print("our_prune", (our_prune / spurious_events).mean(), (our_prune / spurious_events).median())
 print("our_greedy_prune", (our_greedy_prune / spurious_events).mean(), (our_greedy_prune / spurious_events).median())
 
@@ -174,10 +177,52 @@ print(
 )
 
 
-def plot_grouped(our_groups, greedy_groups, xlabel, ylabel, fname):
-    fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(16, 6), sharex=True)
+def plot_grouped(our_groups, greedy_groups, xlabel, ylabel, fname, cc_alternative="greater", ccg_alternative="greater"):
+    _, [ax1, ax2] = plt.subplots(2, 1, figsize=(16, 6), sharex=True)
 
     causal_cut_labels, causal_cut_data, causal_cut_greedy_labels, causal_cut_greedy_data = zip(*our_groups)
+
+    stats = []
+    for g1, g2 in combinations(our_groups, 2):
+        ccl1, ccd1, ccgl1, ccgd1 = g1
+        ccl2, ccd2, ccgl2, ccgd2 = g2
+        ccd1_overall = np.array([x for xs in ccd1 for x in xs])
+        ccd2_overall = np.array([x for xs in ccd2 for x in xs])
+        ccgd1_overall = np.array([x for xs in ccgd1 for x in xs])
+        ccgd2_overall = np.array([x for xs in ccgd2 for x in xs])
+
+        cc_results = {
+            l: mannwhitneyu(x, y, alternative=cc_alternative).pvalue
+            for l, x, y in zip(original_attack_lengths, ccd1, ccd2)
+        }
+        cc_results["overall"] = mannwhitneyu(ccd1_overall, ccd2_overall, alternative=cc_alternative).pvalue
+        ccg_results = {
+            l: mannwhitneyu(x, y, alternative=ccg_alternative).pvalue
+            for l, x, y in zip(original_attack_lengths, ccgd1, ccgd2)
+        }
+        ccg_results["overall"] = mannwhitneyu(ccgd1_overall, ccgd2_overall, alternative=ccg_alternative).pvalue
+        stats.append(
+            {
+                "System": "CausalCut",
+                "Pair": ccl1[10:] + ("<" if cc_alternative == "less" else ">") + ccl2[10:],
+            }
+            | cc_results
+        )
+        stats.append(
+            {
+                "System": "CausalCut+Greedy",
+                "Pair": ccgl1[29:] + ("<" if ccg_alternative == "less" else ">") + ccgl2[29:],
+            }
+            | ccg_results
+        )
+    stats = pd.DataFrame(stats)
+    if len(causal_cut_data) == 4:
+        by = "data-sample"
+    else:
+        by = "confidence-intervals"
+    stats.to_csv(os.path.join(stats_dir, ylabel.lower().replace(" ", "-") + "-by-" + by + ".csv"))
+    print(stats)
+
     baseline_labels = [BASELINE]
     baseline_colours = [RED]
     if len(greedy_groups) == 2:
@@ -215,8 +260,10 @@ def plot_grouped(our_groups, greedy_groups, xlabel, ylabel, fname):
             "mew": 1,
             "clip_on": False,
         }
-        ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
-        ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
+        ax1.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
+        ax1.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
+        ax2.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
+        ax2.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
 
     plt.savefig(os.path.join(figures, fname), bbox_inches="tight", pad_inches=0)
     plt.clf()
@@ -272,8 +319,9 @@ plot_grouped(
     "Original trace length",
     "Tool-minimised trace length",
     "rq1-attack-lengths-by-confidence.pgf",
+    cc_alternative="greater",
+    ccg_alternative="less",
 )
-
 
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
@@ -363,7 +411,7 @@ plot_grouped(
     "rq2-simulator-executions-by-sample-size.pgf",
 )
 
-# 2b. Group by confidence
+# 2c. Group by confidence
 plot_grouped(
     [
         (
@@ -382,4 +430,6 @@ plot_grouped(
     "Original trace length",
     "Simulation runs",
     "rq2-simulator-executions-by-confidence.pgf",
+    cc_alternative="less",
+    ccg_alternative="greater",
 )
