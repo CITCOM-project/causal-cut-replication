@@ -2,8 +2,8 @@
 This repository contains the replication package for our temporal causal testing paper.
 
 ## Pre-requisites
-We use an [Anaconda](https://www.anaconda.com/download) virtual environment.
-This is not strictly necessary, but you will need Python>=3.10, and will need to adapt the setup and replication instructions accordingly.
+We use a python virtualenv.
+This is not strictly necessary, but you will need Python>=3.10, and may need to adapt the setup and replication instructions accordingly.
 
 ## OpenAPS Data Collection
 One of our subject systems is a [simulator](https://github.com/CITCOM-project/APSDigitalTwin) for the OpenAPS/oref0 artificial pancreas system, which re redistribute as part of this replication package to make it self-contained.
@@ -19,11 +19,15 @@ This will potentially lead to different failures and different causal test outco
 1. Clone the repository.
 1. Create a new virtual environment:
 ```
-conda env create -f environment.yaml --name tci
+virtualenv -p python3.10 venv
 ```
 1. Activate the virtual environment:
 ```
-conda activate tci
+source venv/bin/activate
+```
+1. Install the dependencies:
+```
+pip install .
 ```
 1. For each case (`case-1-swat` and `case-2-oref0`), `cd` into the directory.
 1. To run on HPC with SLURM, run `bash hpc-submissions.sh`. To run locally, run `bash local_run.sh`.
