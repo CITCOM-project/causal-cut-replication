@@ -12,6 +12,7 @@ import numpy as np
 from statsmodels.formula.api import ols
 from scipy.stats import mannwhitneyu
 from itertools import combinations
+from multiprocessing import Pool
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
@@ -50,7 +51,7 @@ for root, dirs, files in os.walk(logs):
                 "greedy_minimal",
                 "minimal",
                 "extended_interventions",
-                "minimised_extended_interventions",
+                # "minimised_extended_interventions",
                 "reduced_extended_interventions",
             ]:
                 if trace in attack:
@@ -67,6 +68,44 @@ for root, dirs, files in os.walk(logs):
 df = pd.DataFrame(attacks)
 df["greedy_executions"] = df["original_length"]
 df = df.loc[df["original_length"] > 1]
+
+
+def calculate_percentage_reduction(data):
+    return pd.DataFrame(
+        {
+            col: ((data["original_length"] - data[col]) / data["original_length"]) * 100
+            for col in ["greedy_minimal", "minimal", "extended_interventions", "reduced_extended_interventions"]
+        }
+    ).replace(float("inf"), 100)
+
+
+def calculate_percentage_removed(data):
+    return pd.DataFrame(
+        {
+            col: ((data["original_length"] - data[col]) / (data["original_length"] - data["minimal"])) * 100
+            for col in ["greedy_minimal", "minimal", "extended_interventions", "reduced_extended_interventions"]
+        }
+    ).replace(np.nan, 100)
+
+
+percentage_reduction = calculate_percentage_reduction(df)
+percentage_removed = calculate_percentage_removed(df)
+
+pd.DataFrame(
+    {
+        "Mean": [f"{mean:.2f}" for mean in percentage_reduction.median()],
+        "Median": [f"{median:.2f}" for median in percentage_reduction.mean()],
+    },
+    index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+).to_latex(f"{stats_dir}/percentage_reduction.tex")
+
+pd.DataFrame(
+    {
+        "Mean": [f"{mean:.2f}" for mean in percentage_removed.median()],
+        "Median": [f"{median:.2f}" for median in percentage_removed.mean()],
+    },
+    index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+).to_latex(f"{stats_dir}/percentage_removed.tex")
 
 attack_id_length = pd.Series(df.original_length.values, index=df.attack_index).to_dict()
 original_attack_lengths = sorted(list(set(df.original_length)))
@@ -295,6 +334,36 @@ plot_grouped(
     "rq1-attack-lengths-by-data-size.pgf",
 )
 
+test_sample_sizes = {}
+for x, y in combinations(sample_sizes, 2):
+    test_sample_sizes[f"{x} > {y}"] = [
+        mannwhitneyu(
+            df.loc[df.sample_size == x, "extended_interventions"],
+            df.loc[df.sample_size == y, "extended_interventions"],
+            alternative="greater",
+        ).pvalue,
+        mannwhitneyu(
+            df.loc[df.sample_size == x, "reduced_extended_interventions"],
+            df.loc[df.sample_size == y, "reduced_extended_interventions"],
+            alternative="greater",
+        ).pvalue,
+    ]
+for x, y in combinations(sample_sizes, 2):
+    test_sample_sizes[f"{x} < {y}"] = [
+        mannwhitneyu(
+            df.loc[df.sample_size == x, "extended_interventions"],
+            df.loc[df.sample_size == y, "extended_interventions"],
+            alternative="less",
+        ).pvalue,
+        mannwhitneyu(
+            df.loc[df.sample_size == x, "reduced_extended_interventions"],
+            df.loc[df.sample_size == y, "reduced_extended_interventions"],
+            alternative="less",
+        ).pvalue,
+    ]
+pd.DataFrame(test_sample_sizes).T.rename({0: "CausalCut", 1: "CausalCut+"}, axis=1).to_latex(
+    f"{stats_dir}/sample_sizes.tex"
+)
 
 # 1c. Group by confidence intervals
 plot_grouped(
