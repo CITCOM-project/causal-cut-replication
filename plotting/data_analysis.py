@@ -6,13 +6,13 @@ import sys
 import os
 import json
 import re
+from itertools import combinations
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from statsmodels.formula.api import ols
 from scipy.stats import mannwhitneyu
-from itertools import combinations
-from multiprocessing import Pool
+from cliffs_delta import cliffs_delta
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
@@ -97,7 +97,7 @@ pd.DataFrame(
         "Median": [f"{median:.2f}" for median in percentage_reduction.mean()],
     },
     index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-).to_latex(f"{stats_dir}/percentage_reduction.tex")
+).to_csv(f"{stats_dir}/percentage_reduction.tex")
 
 pd.DataFrame(
     {
@@ -105,7 +105,7 @@ pd.DataFrame(
         "Median": [f"{median:.2f}" for median in percentage_removed.mean()],
     },
     index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-).to_latex(f"{stats_dir}/percentage_removed.tex")
+).to_csv(f"{stats_dir}/percentage_removed.tex")
 
 attack_id_length = pd.Series(df.original_length.values, index=df.attack_index).to_dict()
 original_attack_lengths = sorted(list(set(df.original_length)))
@@ -158,6 +158,51 @@ greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal"].app
 greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal"].apply(list))
 our_attack_lengths = list(df.groupby("original_length")["extended_interventions"].apply(list))
 our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions"].apply(list))
+
+df["greedy_executions_per_event"] = df["greedy_executions"] / df["original_length"]
+df["simulator_runs_per_event"] = df["simulator_runs"] / df["original_length"]
+df["reduced_simulator_runs_per_event"] = df["reduced_simulator_runs"] / df["original_length"]
+
+df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
+df["extended_interventions_per_event"] = df["extended_interventions"] / df["original_length"]
+df["reduced_extended_interventions_per_event"] = df["reduced_extended_interventions"] / df["original_length"]
+
+# plot_grouped_boxplot(
+#     [
+#         list(df.groupby("sample_size")["greedy_executions_per_event"].apply(list)),
+#         list(df.groupby("sample_size")["simulator_runs_per_event"].apply(list)),
+#         list(df.groupby("sample_size")["reduced_simulator_runs_per_event"].apply(list)),
+#     ],
+#     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+#     colours=[RED, GREEN, MAGENTA],
+#     markers=["x", "s", 2],
+#     # title="Pruned Trace Lengths",
+#     xticklabels=sample_sizes,
+#     xlabel="Test Data",
+#     ylabel="Simulator Executions",
+#     # position_offsets=POSITION_OFFSETS,
+#     savepath=f"{figures}/rq1-attack-lengths-by-data-size.png",
+# )
+fig, ax = plt.subplots()
+plot_grouped_boxplot(
+    [
+        list(df.groupby("sample_size")["greedy_minimal_per_event"].apply(list)),
+        list(df.groupby("sample_size")["extended_interventions_per_event"].apply(list)),
+        list(df.groupby("sample_size")["reduced_extended_interventions_per_event"].apply(list)),
+    ],
+    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+    colours=[RED, GREEN, MAGENTA],
+    markers=["x", "s", 2],
+    ax=ax,
+    # title="Pruned Trace Lengths",
+    xticklabels=sample_sizes,
+    xlabel="Number of executions",
+    ylabel="Tool-minimised trace length\n(normalised by original length)",
+    # position_offsets=POSITION_OFFSETS,
+)
+ax.legend(loc="upper left")
+plt.savefig(f"{figures}/rq1-attack-lengths-by-data-size-only.png", bbox_inches="tight", pad_inches=0)
+plt.clf()
 
 spurious_events = df["original_length"] - df["minimal"]
 
@@ -235,11 +280,13 @@ def plot_grouped(our_groups, greedy_groups, xlabel, ylabel, fname, cc_alternativ
             for l, x, y in zip(original_attack_lengths, ccd1, ccd2)
         }
         cc_results["overall"] = mannwhitneyu(ccd1_overall, ccd2_overall, alternative=cc_alternative).pvalue
+        cc_results["overall_effect"], cc_results["overall_effect_class"] = cliffs_delta(ccd1_overall, ccd2_overall)
         ccg_results = {
             l: mannwhitneyu(x, y, alternative=ccg_alternative).pvalue
             for l, x, y in zip(original_attack_lengths, ccgd1, ccgd2)
         }
         ccg_results["overall"] = mannwhitneyu(ccgd1_overall, ccgd2_overall, alternative=ccg_alternative).pvalue
+        ccg_results["overall_effect"], ccg_results["overall_effect_class"] = cliffs_delta(ccgd1_overall, ccgd2_overall)
         stats.append(
             {
                 "System": "CausalCut",
@@ -259,8 +306,7 @@ def plot_grouped(our_groups, greedy_groups, xlabel, ylabel, fname, cc_alternativ
         by = "data-sample"
     else:
         by = "confidence-intervals"
-    stats.to_csv(os.path.join(stats_dir, ylabel.lower().replace(" ", "-") + "-by-" + by + ".csv"))
-    print(stats)
+    stats.T.to_latex(os.path.join(stats_dir, ylabel.lower().replace(" ", "-") + "-by-" + by + ".tex"), escape=True)
 
     baseline_labels = [BASELINE]
     baseline_colours = [RED]
@@ -334,36 +380,60 @@ plot_grouped(
     "rq1-attack-lengths-by-data-size.pgf",
 )
 
-test_sample_sizes = {}
-for x, y in combinations(sample_sizes, 2):
-    test_sample_sizes[f"{x} > {y}"] = [
-        mannwhitneyu(
-            df.loc[df.sample_size == x, "extended_interventions"],
-            df.loc[df.sample_size == y, "extended_interventions"],
-            alternative="greater",
-        ).pvalue,
-        mannwhitneyu(
-            df.loc[df.sample_size == x, "reduced_extended_interventions"],
-            df.loc[df.sample_size == y, "reduced_extended_interventions"],
-            alternative="greater",
-        ).pvalue,
-    ]
-for x, y in combinations(sample_sizes, 2):
-    test_sample_sizes[f"{x} < {y}"] = [
-        mannwhitneyu(
-            df.loc[df.sample_size == x, "extended_interventions"],
-            df.loc[df.sample_size == y, "extended_interventions"],
-            alternative="less",
-        ).pvalue,
-        mannwhitneyu(
-            df.loc[df.sample_size == x, "reduced_extended_interventions"],
-            df.loc[df.sample_size == y, "reduced_extended_interventions"],
-            alternative="less",
-        ).pvalue,
-    ]
-pd.DataFrame(test_sample_sizes).T.rename({0: "CausalCut", 1: "CausalCut+"}, axis=1).to_latex(
-    f"{stats_dir}/sample_sizes.tex"
+
+# Define a function to apply the formatting
+def format_and_bold(val):
+    # Check if the value is a number (int or float)
+    if isinstance(val, (int, float)):
+        # If it's a number, format it and apply the bolding logic
+        if val < 0.05:
+            return f"\\textbf{{{val:.3f}}}"
+        else:
+            return f"{val:.3f}"
+    else:
+        # If it's not a number (e.g., a string or list),
+        # just return the value as a string to avoid errors.
+        return str(val)
+
+
+def test_u_shape(causal_cut_col, causal_cut_plus_col, outfile, sizes=None):
+    if sizes is None:
+        sizes = combinations(sample_sizes, 2)
+    test_sample_sizes = {}
+    for x, y in sizes:
+        test_sample_sizes[f"{x} > {y}"] = {
+            "causal_cut_longer": mannwhitneyu(
+                df.loc[df.sample_size == x, causal_cut_col],
+                df.loc[df.sample_size == y, causal_cut_col],
+                alternative="greater",
+            ).pvalue,
+            "causal_cut_shorter": mannwhitneyu(
+                df.loc[df.sample_size == x, causal_cut_col],
+                df.loc[df.sample_size == y, causal_cut_col],
+                alternative="less",
+            ).pvalue,
+            "causal_cut+_longer": mannwhitneyu(
+                df.loc[df.sample_size == x, causal_cut_plus_col],
+                df.loc[df.sample_size == y, causal_cut_plus_col],
+                alternative="greater",
+            ).pvalue,
+            "causal_cut+_shorter": mannwhitneyu(
+                df.loc[df.sample_size == x, causal_cut_plus_col],
+                df.loc[df.sample_size == y, causal_cut_plus_col],
+                alternative="less",
+            ).pvalue,
+        }
+    pd.DataFrame(test_sample_sizes).round(3).map(format_and_bold).to_latex(f"{stats_dir}/{outfile}.tex")
+
+
+test_u_shape("extended_interventions", "reduced_extended_interventions", "minimisation_by_sample_size")
+test_u_shape(
+    "extended_interventions",
+    "reduced_extended_interventions",
+    "rq1-minimisation_by_sample_size",
+    sizes=[(50, 100), (100, 250), (250, 500), (500, 1000), (1000, 2000), (2000, 3000), (3000, 4000), (4000, 5000)],
 )
+
 
 # 1c. Group by confidence intervals
 plot_grouped(
@@ -397,6 +467,31 @@ plot_grouped(
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
 our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
 greedy_executions = df.groupby("original_length")["greedy_executions"].apply(list)
+
+pd.concat(
+    [
+        df.groupby("original_length")[["greedy_executions", "simulator_runs", "reduced_simulator_runs"]]
+        .apply(lambda x: x.mean())
+        .rename(
+            {
+                "simulator_runs": "causal_cut",
+                "reduced_simulator_runs": "causal_cut_plus",
+                "greedy_executions": "greedy",
+            },
+            axis=1,
+        ),
+        pd.DataFrame(
+            {
+                "greedy": {"mean": df["greedy_executions"].mean(), "median": df["greedy_executions"].median()},
+                "causal_cut": {"mean": df["simulator_runs"].mean(), "median": df["simulator_runs"].median()},
+                "causal_cut_plus": {
+                    "mean": df["reduced_simulator_runs"].mean(),
+                    "median": df["reduced_simulator_runs"].median(),
+                },
+            }
+        ),
+    ]
+).T.round(3).to_latex(f"{stats_dir}/simulator_runs.tex")
 
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
@@ -479,6 +574,9 @@ plot_grouped(
     "Simulation runs",
     "rq2-simulator-executions-by-sample-size.pgf",
 )
+
+test_u_shape("simulator_runs", "reduced_simulator_runs", "simulator_runs_by_sample_size")
+
 
 # 2c. Group by confidence
 plot_grouped(

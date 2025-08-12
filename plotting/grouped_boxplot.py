@@ -57,6 +57,7 @@ def plot_grouped_boxplot(
             positions=np.array(range(positions)) * (plots + 1) + i + np.array(position_offsets),
             widths=width,
             label=labels[i] if labels is not None else None,
+            patch_artist=True,  # fill with color
             **color(
                 colours[i] if colours is not None else None,
                 flierprops={"marker": marker, "markersize": width * 2},
@@ -66,6 +67,11 @@ def plot_grouped_boxplot(
             if k not in boxplots:
                 boxplots[k] = []
             boxplots[k] += v
+        if colours is not None:
+            for patch in boxes["boxes"]:
+                patch.set_facecolor(colours[i])
+        for median in boxes["medians"]:
+            median.set_color("black")
 
     if xticklabels is not None:
         ax.set_xticks(
