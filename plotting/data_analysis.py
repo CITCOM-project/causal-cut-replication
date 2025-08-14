@@ -13,13 +13,14 @@ import numpy as np
 from statsmodels.formula.api import ols
 from scipy.stats import mannwhitneyu
 from cliffs_delta import cliffs_delta
+from collections import Counter
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
 
 plt.style.use("ggplot")
 
-
+# Setup IO
 if len(sys.argv) != 2:
     raise ValueError("Please provide the directory of the log files, e.g. case-2-oref0/logs")
 logs = sys.argv[1]
@@ -31,7 +32,7 @@ if not os.path.exists(figures):
 if not os.path.exists(stats_dir):
     os.mkdir(stats_dir)
 
-
+# Read in data and convert to dataframe
 attacks = []
 for root, dirs, files in os.walk(logs):
     for file in files:
@@ -66,8 +67,32 @@ for root, dirs, files in os.walk(logs):
         attacks += log
 
 df = pd.DataFrame(attacks)
-df["greedy_executions"] = df["original_length"]
 df = df.loc[df["original_length"] > 1]
+df["attack"] = df["attack"].apply(lambda a: tuple(map(tuple, a)))
+
+lengths = [
+    (len(attack), len_minimal)
+    for attack, len_minimal in df[["attack", "minimal"]].groupby(["attack", "minimal"]).groups.keys()
+]
+
+minimised_lengths = {}
+for original_length, minimised_length in lengths:
+    minimised_lengths[minimised_length] = sorted(minimised_lengths.get(minimised_length, []) + [original_length])
+minimised_lengths = {k: dict(Counter(v)) for k, v in minimised_lengths.items()}
+pd.Series(minimised_lengths).sort_index().to_latex(f"{stats_dir}/attack_lengths.tex")
+
+assert False
+
+# Add extra columns
+df["greedy_executions"] = df["original_length"]
+df["greedy_executions_per_event"] = df["greedy_executions"] / df["original_length"]
+df["simulator_runs_per_event"] = df["simulator_runs"] / df["original_length"]
+df["reduced_simulator_runs_per_event"] = df["reduced_simulator_runs"] / df["original_length"]
+
+df["minimal_per_event"] = df["minimal"] / df["original_length"]
+df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
+df["extended_interventions_per_event"] = df["extended_interventions"] / df["original_length"]
+df["reduced_extended_interventions_per_event"] = df["reduced_extended_interventions"] / df["original_length"]
 
 
 def calculate_percentage_reduction(data):
@@ -154,35 +179,12 @@ else:
 # RQ1: Baseline - minimal traces produced by Poskitt [2023]
 # (1a) Measure the length of the "tool-minimised" traces, comparing to length of original
 # Group by trace length
-greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal"].apply(list))
-greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal"].apply(list))
-our_attack_lengths = list(df.groupby("original_length")["extended_interventions"].apply(list))
-our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions"].apply(list))
+greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal_per_event"].apply(list))
+greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal_per_event"].apply(list))
+our_attack_lengths = list(df.groupby("original_length")["extended_interventions_per_event"].apply(list))
+our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions_per_event"].apply(list))
 
-df["greedy_executions_per_event"] = df["greedy_executions"] / df["original_length"]
-df["simulator_runs_per_event"] = df["simulator_runs"] / df["original_length"]
-df["reduced_simulator_runs_per_event"] = df["reduced_simulator_runs"] / df["original_length"]
 
-df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
-df["extended_interventions_per_event"] = df["extended_interventions"] / df["original_length"]
-df["reduced_extended_interventions_per_event"] = df["reduced_extended_interventions"] / df["original_length"]
-
-# plot_grouped_boxplot(
-#     [
-#         list(df.groupby("sample_size")["greedy_executions_per_event"].apply(list)),
-#         list(df.groupby("sample_size")["simulator_runs_per_event"].apply(list)),
-#         list(df.groupby("sample_size")["reduced_simulator_runs_per_event"].apply(list)),
-#     ],
-#     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-#     colours=[RED, GREEN, MAGENTA],
-#     markers=["x", "s", 2],
-#     # title="Pruned Trace Lengths",
-#     xticklabels=sample_sizes,
-#     xlabel="Test Data",
-#     ylabel="Simulator Executions",
-#     # position_offsets=POSITION_OFFSETS,
-#     savepath=f"{figures}/rq1-attack-lengths-by-data-size.png",
-# )
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
     [
@@ -194,14 +196,12 @@ plot_grouped_boxplot(
     colours=[RED, GREEN, MAGENTA],
     markers=["x", "s", 2],
     ax=ax,
-    # title="Pruned Trace Lengths",
     xticklabels=sample_sizes,
     xlabel="Number of executions",
     ylabel="Tool-minimised trace length\n(normalised by original length)",
-    # position_offsets=POSITION_OFFSETS,
 )
 ax.legend(loc="upper left")
-plt.savefig(f"{figures}/rq1-attack-lengths-by-data-size-only.png", bbox_inches="tight", pad_inches=0)
+plt.savefig(f"{figures}/rq1-attack-lengths-by-data-size.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
 spurious_events = df["original_length"] - df["minimal"]
@@ -377,7 +377,7 @@ plot_grouped(
     [greedy_attack_lengths, greedy_attack_lengths_combinatorial],
     "Original trace length",
     "Tool-minimised trace length",
-    "rq1-attack-lengths-by-data-size.pgf",
+    "rq1-attack-lengths-by-data-size-and-length.pgf",
 )
 
 
