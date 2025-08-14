@@ -75,11 +75,14 @@ lengths = [
     for attack, len_minimal in df[["attack", "minimal"]].groupby(["attack", "minimal"]).groups.keys()
 ]
 
+print(lengths)
+
 minimised_lengths = {}
 for original_length, minimised_length in lengths:
     minimised_lengths[minimised_length] = sorted(minimised_lengths.get(minimised_length, []) + [original_length])
 minimised_lengths = {k: dict(Counter(v)) for k, v in minimised_lengths.items()}
-pd.Series(minimised_lengths).sort_index().to_latex(f"{stats_dir}/attack_lengths.tex")
+minimised_lengths = pd.DataFrame(minimised_lengths).sort_index().T.fillna(0).astype(int).replace(0, "")
+minimised_lengths.sort_index().to_latex(f"{stats_dir}/attack_lengths.tex")
 
 assert False
 
