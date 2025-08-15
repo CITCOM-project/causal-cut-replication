@@ -52,7 +52,6 @@ for root, dirs, files in os.walk(logs):
                 "greedy_minimal",
                 "minimal",
                 "extended_interventions",
-                # "minimised_extended_interventions",
                 "reduced_extended_interventions",
             ]:
                 if trace in attack:
@@ -69,6 +68,17 @@ for root, dirs, files in os.walk(logs):
 df = pd.DataFrame(attacks)
 df = df.loc[df["original_length"] > 1]
 df["attack"] = df["attack"].apply(lambda a: tuple(map(tuple, a)))
+# Make the names easier to read
+df.rename(
+    {
+        "simulator_runs": "causal_cut_executions",
+        "reduced_simulator_runs": "causal_cut_plus_greedy_executions",
+        "reduced_extended_interventions": "causal_cut_plus_greedy",
+        "extended_interventions": "causal_cut",
+    },
+    axis=1,
+    inplace=True,
+)
 
 lengths = [
     (len(attack), len_minimal)
@@ -85,17 +95,17 @@ minimised_lengths.sort_index().to_latex(f"{stats_dir}/attack_lengths.tex")
 # Add extra columns
 df["greedy_executions"] = df["original_length"]
 df["greedy_executions_per_event"] = df["greedy_executions"] / df["original_length"]
-df["simulator_runs_per_event"] = df["simulator_runs"] / df["original_length"]
-df["reduced_simulator_runs_per_event"] = df["reduced_simulator_runs"] / df["original_length"]
+df["causal_cut_executions_per_event"] = df["causal_cut_executions"] / df["original_length"]
+df["causal_cut_plus_greedy_executions_per_event"] = df["causal_cut_plus_greedy_executions"] / df["original_length"]
 
 df["minimal_per_event"] = df["minimal"] / df["original_length"]
 df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
-df["extended_interventions_per_event"] = df["extended_interventions"] / df["original_length"]
-df["reduced_extended_interventions_per_event"] = df["reduced_extended_interventions"] / df["original_length"]
+df["causal_cut_per_event"] = df["causal_cut"] / df["original_length"]
+df["causal_cut_plus_greedy_per_event"] = df["causal_cut_plus_greedy"] / df["original_length"]
 
 print("Original trace length")
 trace_length_stats = []
-for technique in ["minimal", "greedy_minimal", "extended_interventions", "reduced_extended_interventions"]:
+for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_greedy"]:
     raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
     normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
     trace_length_stats.append(
@@ -114,7 +124,7 @@ def calculate_percentage_reduction(data):
     return pd.DataFrame(
         {
             col: ((data["original_length"] - data[col]) / data["original_length"]) * 100
-            for col in ["greedy_minimal", "minimal", "extended_interventions", "reduced_extended_interventions"]
+            for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
         }
     ).replace(float("inf"), 100)
 
@@ -123,7 +133,7 @@ def calculate_percentage_removed(data):
     return pd.DataFrame(
         {
             col: ((data["original_length"] - data[col]) / (data["original_length"] - data["minimal"])) * 100
-            for col in ["greedy_minimal", "minimal", "extended_interventions", "reduced_extended_interventions"]
+            for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
         }
     ).replace(np.nan, 100)
 
@@ -196,16 +206,16 @@ else:
 # Group by trace length
 greedy_attack_lengths = list(df.groupby("original_length")["greedy_minimal_per_event"].apply(list))
 greedy_attack_lengths_combinatorial = list(df.groupby("original_length")["minimal_per_event"].apply(list))
-our_attack_lengths = list(df.groupby("original_length")["extended_interventions_per_event"].apply(list))
-our_greedy_attack_lengths = list(df.groupby("original_length")["reduced_extended_interventions_per_event"].apply(list))
+our_attack_lengths = list(df.groupby("original_length")["causal_cut_per_event"].apply(list))
+our_greedy_attack_lengths = list(df.groupby("original_length")["causal_cut_plus_greedy_per_event"].apply(list))
 
 
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
     [
         list(df.groupby("sample_size")["greedy_minimal_per_event"].apply(list)),
-        list(df.groupby("sample_size")["extended_interventions_per_event"].apply(list)),
-        list(df.groupby("sample_size")["reduced_extended_interventions_per_event"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_per_event"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_plus_greedy_per_event"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -369,14 +379,10 @@ plot_grouped(
     [
         (
             f"{TOOLNAME} ({sample_size} test runs)",
-            list(
-                df.loc[df.sample_size == sample_size].groupby("original_length")["extended_interventions"].apply(list)
-            ),
+            list(df.loc[df.sample_size == sample_size].groupby("original_length")["causal_cut"].apply(list)),
             f"{TOOLNAME} + {BASELINE} ({sample_size} test runs)",
             list(
-                df.loc[df.sample_size == sample_size]
-                .groupby("original_length")["reduced_extended_interventions"]
-                .apply(list)
+                df.loc[df.sample_size == sample_size].groupby("original_length")["causal_cut_plus_greedy"].apply(list)
             ),
         )
         for sample_size in sample_sizes
@@ -433,10 +439,10 @@ def test_u_shape(causal_cut_col, causal_cut_plus_col, outfile, sizes=None):
     pd.DataFrame(test_sample_sizes).round(3).map(format_and_bold).to_latex(f"{stats_dir}/{outfile}.tex")
 
 
-test_u_shape("extended_interventions", "reduced_extended_interventions", "minimisation_by_sample_size")
+test_u_shape("causal_cut", "causal_cut_plus_greedy", "minimisation_by_sample_size")
 test_u_shape(
-    "extended_interventions",
-    "reduced_extended_interventions",
+    "causal_cut",
+    "causal_cut_plus_greedy",
     "rq1-minimisation_by_sample_size",
     sizes=[(50, 100), (100, 250), (250, 500), (500, 1000), (1000, 2000), (2000, 3000), (3000, 4000), (4000, 5000)],
 )
@@ -447,15 +453,11 @@ plot_grouped(
     [
         (
             f"{TOOLNAME} ({confidence_interval}% confidence)",
-            list(
-                df.loc[df.ci_alpha == confidence_interval]
-                .groupby("original_length")["extended_interventions"]
-                .apply(list)
-            ),
+            list(df.loc[df.ci_alpha == confidence_interval].groupby("original_length")["causal_cut"].apply(list)),
             f"{TOOLNAME} + {BASELINE} ({confidence_interval}% confidence)",
             list(
                 df.loc[df.ci_alpha == confidence_interval]
-                .groupby("original_length")["reduced_extended_interventions"]
+                .groupby("original_length")["causal_cut_plus_greedy"]
                 .apply(list)
             ),
         )
@@ -471,16 +473,16 @@ plot_grouped(
 
 # RQ2: Baseline - minimal traces produced by Poskitt [2023]
 # Measure number of executions required from simulator / CPS.
-our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
-our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
+our_executions = df.groupby("original_length")["causal_cut_executions"].apply(list)
+our_executions_extra = df.groupby("original_length")["causal_cut_plus_greedy_executions"].apply(list)
 greedy_executions = df.groupby("original_length")["greedy_executions"].apply(list)
 
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
     [
         list(df.groupby("sample_size")["greedy_executions"].apply(list)),
-        list(df.groupby("sample_size")["simulator_runs"].apply(list)),
-        list(df.groupby("sample_size")["reduced_simulator_runs"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_executions"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_plus_greedy_executions"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -496,12 +498,14 @@ plt.clf()
 
 pd.concat(
     [
-        df.groupby("original_length")[["greedy_executions", "simulator_runs", "reduced_simulator_runs"]]
+        df.groupby("original_length")[
+            ["greedy_executions", "causal_cut_executions", "causal_cut_plus_greedy_executions"]
+        ]
         .apply(lambda x: x.mean())
         .rename(
             {
-                "simulator_runs": "causal_cut",
-                "reduced_simulator_runs": "causal_cut_plus",
+                "causal_cut_executions": "causal_cut",
+                "causal_cut_plus_greedy_executions": "causal_cut_plus",
                 "greedy_executions": "greedy",
             },
             axis=1,
@@ -509,15 +513,18 @@ pd.concat(
         pd.DataFrame(
             {
                 "greedy": {"mean": df["greedy_executions"].mean(), "median": df["greedy_executions"].median()},
-                "causal_cut": {"mean": df["simulator_runs"].mean(), "median": df["simulator_runs"].median()},
+                "causal_cut": {
+                    "mean": df["causal_cut_executions"].mean(),
+                    "median": df["causal_cut_executions"].median(),
+                },
                 "causal_cut_plus": {
-                    "mean": df["reduced_simulator_runs"].mean(),
-                    "median": df["reduced_simulator_runs"].median(),
+                    "mean": df["causal_cut_plus_greedy_executions"].mean(),
+                    "median": df["causal_cut_plus_greedy_executions"].median(),
                 },
             }
         ),
     ]
-).T.round(3).to_latex(f"{stats_dir}/simulator_runs.tex")
+).T.round(3).to_latex(f"{stats_dir}/causal_cut_executions.tex")
 
 fig, ax = plt.subplots()
 plot_grouped_boxplot(
@@ -587,10 +594,12 @@ plot_grouped(
     [
         (
             f"{TOOLNAME} ({sample_size} test runs)",
-            list(df.loc[df.sample_size == sample_size].groupby("original_length")["simulator_runs"].apply(list)),
+            list(df.loc[df.sample_size == sample_size].groupby("original_length")["causal_cut_executions"].apply(list)),
             f"{TOOLNAME} + {BASELINE} ({sample_size} test runs)",
             list(
-                df.loc[df.sample_size == sample_size].groupby("original_length")["reduced_simulator_runs"].apply(list)
+                df.loc[df.sample_size == sample_size]
+                .groupby("original_length")["causal_cut_plus_greedy_executions"]
+                .apply(list)
             ),
         )
         for sample_size in sample_sizes
@@ -601,7 +610,7 @@ plot_grouped(
     "rq2-simulator-executions-by-sample-size.pgf",
 )
 
-test_u_shape("simulator_runs", "reduced_simulator_runs", "simulator_runs_by_sample_size")
+test_u_shape("causal_cut_executions", "causal_cut_plus_greedy_executions", "causal_cut_executions_by_sample_size")
 
 
 # 2c. Group by confidence
@@ -609,11 +618,15 @@ plot_grouped(
     [
         (
             f"{TOOLNAME} ({confidence_interval}% confidence)",
-            list(df.loc[df.ci_alpha == confidence_interval].groupby("original_length")["simulator_runs"].apply(list)),
+            list(
+                df.loc[df.ci_alpha == confidence_interval]
+                .groupby("original_length")["causal_cut_executions"]
+                .apply(list)
+            ),
             f"{TOOLNAME} + {BASELINE} ({confidence_interval}% confidence)",
             list(
                 df.loc[df.ci_alpha == confidence_interval]
-                .groupby("original_length")["reduced_simulator_runs"]
+                .groupby("original_length")["causal_cut_plus_greedy_executions"]
                 .apply(list)
             ),
         )
