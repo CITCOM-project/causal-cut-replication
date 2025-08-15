@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from statsmodels.formula.api import ols
-from scipy.stats import mannwhitneyu
+from scipy.stats import mannwhitneyu, spearmanr
 from cliffs_delta import cliffs_delta
 from collections import Counter
 
@@ -75,16 +75,12 @@ lengths = [
     for attack, len_minimal in df[["attack", "minimal"]].groupby(["attack", "minimal"]).groups.keys()
 ]
 
-print(lengths)
-
 minimised_lengths = {}
 for original_length, minimised_length in lengths:
     minimised_lengths[minimised_length] = sorted(minimised_lengths.get(minimised_length, []) + [original_length])
 minimised_lengths = {k: dict(Counter(v)) for k, v in minimised_lengths.items()}
 minimised_lengths = pd.DataFrame(minimised_lengths).sort_index().T.fillna(0).astype(int).replace(0, "")
 minimised_lengths.sort_index().to_latex(f"{stats_dir}/attack_lengths.tex")
-
-assert False
 
 # Add extra columns
 df["greedy_executions"] = df["original_length"]
@@ -96,6 +92,22 @@ df["minimal_per_event"] = df["minimal"] / df["original_length"]
 df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
 df["extended_interventions_per_event"] = df["extended_interventions"] / df["original_length"]
 df["reduced_extended_interventions_per_event"] = df["reduced_extended_interventions"] / df["original_length"]
+
+print("Original trace length")
+trace_length_stats = []
+for technique in ["minimal", "greedy_minimal", "extended_interventions", "reduced_extended_interventions"]:
+    raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
+    normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
+    trace_length_stats.append(
+        {
+            "technique": technique,
+            "raw_stat": raw_stat,
+            "raw_p_value": raw_p_value,
+            "normalised_stat": normalised_stat,
+            "normalised_p_value": normalised_p_value,
+        }
+    )
+print(pd.DataFrame(trace_length_stats))
 
 
 def calculate_percentage_reduction(data):
@@ -207,14 +219,6 @@ ax.legend(loc="upper left")
 plt.savefig(f"{figures}/rq1-attack-lengths-by-data-size.pgf", bbox_inches="tight", pad_inches=0)
 plt.clf()
 
-spurious_events = df["original_length"] - df["minimal"]
-
-our_prune = df["original_length"] - df["extended_interventions"]
-our_greedy_prune = df["original_length"] - df["reduced_extended_interventions"]
-
-print("Fraction of spurius events removed")
-print("our_prune", (our_prune / spurious_events).mean(), (our_prune / spurious_events).median())
-print("our_greedy_prune", (our_greedy_prune / spurious_events).mean(), (our_greedy_prune / spurious_events).median())
 
 fig, ax = plt.subplots()
 
@@ -227,7 +231,7 @@ plot_grouped_boxplot(
     # title="Pruned Trace Lengths",
     xticklabels=original_attack_lengths,
     xlabel="Original trace length",
-    ylabel="Tool-minimised trace length",
+    ylabel="Tool-minimised trace length\n(normalised by original length)",
     position_offsets=POSITION_OFFSETS,
 )
 
@@ -470,6 +474,25 @@ plot_grouped(
 our_executions = df.groupby("original_length")["simulator_runs"].apply(list)
 our_executions_extra = df.groupby("original_length")["reduced_simulator_runs"].apply(list)
 greedy_executions = df.groupby("original_length")["greedy_executions"].apply(list)
+
+fig, ax = plt.subplots()
+plot_grouped_boxplot(
+    [
+        list(df.groupby("sample_size")["greedy_executions"].apply(list)),
+        list(df.groupby("sample_size")["simulator_runs"].apply(list)),
+        list(df.groupby("sample_size")["reduced_simulator_runs"].apply(list)),
+    ],
+    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+    colours=[RED, GREEN, MAGENTA],
+    markers=["x", "s", 2],
+    ax=ax,
+    xticklabels=sorted(list(set(df.sample_size))),
+    xlabel="Number of executions",
+    ylabel="Simulation runs",
+)
+ax.legend(loc="upper left")
+plt.savefig(f"{figures}/rq2-simulator-runs-by-data-size.pgf", bbox_inches="tight", pad_inches=0)
+plt.clf()
 
 pd.concat(
     [
