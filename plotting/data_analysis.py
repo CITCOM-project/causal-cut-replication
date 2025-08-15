@@ -7,13 +7,13 @@ import os
 import json
 import re
 from itertools import combinations
+from collections import Counter
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from statsmodels.formula.api import ols
 from scipy.stats import mannwhitneyu, spearmanr
 from cliffs_delta import cliffs_delta
-from collections import Counter
 
 from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
 from grouped_boxplot import plot_grouped_boxplot
@@ -80,6 +80,23 @@ df.rename(
     inplace=True,
 )
 
+
+def round_format(val):
+    if val == 0:
+        return "0"
+    if abs(val) < 0.001:
+        return f"{val:.2e}"
+    return f"{val:.3f}"
+
+
+def bold_if_significant(val):
+    if isinstance(val, (int, float)):
+        if val < 0.05:
+            return f"\\textbf{{{round_format(val)}}}"
+        return f"{round_format(val)}"
+    return str(val)
+
+
 lengths = [
     (len(attack), len_minimal)
     for attack, len_minimal in df[["attack", "minimal"]].groupby(["attack", "minimal"]).groups.keys()
@@ -117,7 +134,11 @@ for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_gr
             "normalised_p_value": normalised_p_value,
         }
     )
-print(pd.DataFrame(trace_length_stats))
+
+
+pd.DataFrame(trace_length_stats).map(bold_if_significant).to_latex(
+    os.path.join(stats_dir, "rq1_trace-length_minimisation.tex"), index=False
+)
 
 
 def calculate_percentage_reduction(data):
@@ -147,7 +168,7 @@ pd.DataFrame(
         "Median": [f"{median:.2f}" for median in percentage_reduction.mean()],
     },
     index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-).to_csv(f"{stats_dir}/percentage_reduction.tex")
+).to_latex(f"{stats_dir}/percentage_reduction.tex")
 
 pd.DataFrame(
     {
@@ -155,7 +176,7 @@ pd.DataFrame(
         "Median": [f"{median:.2f}" for median in percentage_removed.mean()],
     },
     index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-).to_csv(f"{stats_dir}/percentage_removed.tex")
+).to_latex(f"{stats_dir}/percentage_removed.tex")
 
 attack_id_length = pd.Series(df.original_length.values, index=df.attack_index).to_dict()
 original_attack_lengths = sorted(list(set(df.original_length)))
@@ -394,52 +415,37 @@ plot_grouped(
 )
 
 
-# Define a function to apply the formatting
-def format_and_bold(val):
-    # Check if the value is a number (int or float)
-    if isinstance(val, (int, float)):
-        # If it's a number, format it and apply the bolding logic
-        if val < 0.05:
-            return f"\\textbf{{{val:.3f}}}"
-        else:
-            return f"{val:.3f}"
-    else:
-        # If it's not a number (e.g., a string or list),
-        # just return the value as a string to avoid errors.
-        return str(val)
-
-
 def test_u_shape(causal_cut_col, causal_cut_plus_col, outfile, sizes=None):
     if sizes is None:
         sizes = combinations(sample_sizes, 2)
     test_sample_sizes = {}
     for x, y in sizes:
         test_sample_sizes[f"{x} > {y}"] = {
-            "causal_cut_longer": mannwhitneyu(
+            "causal_cut_shorter": mannwhitneyu(
                 df.loc[df.sample_size == x, causal_cut_col],
                 df.loc[df.sample_size == y, causal_cut_col],
                 alternative="greater",
             ).pvalue,
-            "causal_cut_shorter": mannwhitneyu(
+            "causal_cut_longer": mannwhitneyu(
                 df.loc[df.sample_size == x, causal_cut_col],
                 df.loc[df.sample_size == y, causal_cut_col],
                 alternative="less",
             ).pvalue,
-            "causal_cut+_longer": mannwhitneyu(
+            "causal_cut+_shorter": mannwhitneyu(
                 df.loc[df.sample_size == x, causal_cut_plus_col],
                 df.loc[df.sample_size == y, causal_cut_plus_col],
                 alternative="greater",
             ).pvalue,
-            "causal_cut+_shorter": mannwhitneyu(
+            "causal_cut+_longer": mannwhitneyu(
                 df.loc[df.sample_size == x, causal_cut_plus_col],
                 df.loc[df.sample_size == y, causal_cut_plus_col],
                 alternative="less",
             ).pvalue,
         }
-    pd.DataFrame(test_sample_sizes).round(3).map(format_and_bold).to_latex(f"{stats_dir}/{outfile}.tex")
+    pd.DataFrame(test_sample_sizes).round(3).map(bold_if_significant).to_latex(f"{stats_dir}/{outfile}.tex")
 
 
-test_u_shape("causal_cut", "causal_cut_plus_greedy", "minimisation_by_sample_size")
+test_u_shape("causal_cut", "causal_cut_plus_greedy", "rq1_minimisation_sample-size")
 test_u_shape(
     "causal_cut",
     "causal_cut_plus_greedy",
