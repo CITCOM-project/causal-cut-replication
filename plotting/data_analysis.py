@@ -120,7 +120,6 @@ df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
 df["causal_cut_per_event"] = df["causal_cut"] / df["original_length"]
 df["causal_cut_plus_greedy_per_event"] = df["causal_cut_plus_greedy"] / df["original_length"]
 
-print("Original trace length")
 trace_length_stats = []
 for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_greedy"]:
     raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
@@ -141,26 +140,19 @@ pd.DataFrame(trace_length_stats).map(bold_if_significant).to_latex(
 )
 
 
-def calculate_percentage_reduction(data):
-    return pd.DataFrame(
-        {
-            col: ((data["original_length"] - data[col]) / data["original_length"]) * 100
-            for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
-        }
-    ).replace(float("inf"), 100)
+percentage_reduction = pd.DataFrame(
+    {
+        col: ((df["original_length"] - df[col]) / df["original_length"]) * 100
+        for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
+    }
+).replace(float("inf"), 100)
 
-
-def calculate_percentage_removed(data):
-    return pd.DataFrame(
-        {
-            col: ((data["original_length"] - data[col]) / (data["original_length"] - data["minimal"])) * 100
-            for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
-        }
-    ).replace(np.nan, 100)
-
-
-percentage_reduction = calculate_percentage_reduction(df)
-percentage_removed = calculate_percentage_removed(df)
+percentage_removed = pd.DataFrame(
+    {
+        col: ((df["original_length"] - df[col]) / (df["original_length"] - df["minimal"])) * 100
+        for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
+    }
+).replace(np.nan, 100)
 
 pd.DataFrame(
     {
