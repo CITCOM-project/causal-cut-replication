@@ -33,6 +33,7 @@ def plot_grouped_boxplot(
     ax=None,
     legend_args={},
     position_offsets=None,
+    showfliers=True,
 ):
     if ax is None:
         _, ax = plt.subplots()
@@ -62,16 +63,20 @@ def plot_grouped_boxplot(
                 colours[i] if colours is not None else None,
                 flierprops={"marker": marker, "markersize": width * 2},
             ),
+            showfliers=showfliers,
         )
         for k, v in boxes.items():
             if k not in boxplots:
                 boxplots[k] = []
             boxplots[k] += v
         if colours is not None:
-            for patch in boxes["boxes"]:
+            for patch, median in zip(boxes["boxes"], boxes["medians"]):
                 patch.set_facecolor(colours[i])
-        for median in boxes["medians"]:
-            median.set_color("black")
+                vertices = patch.get_path().vertices
+                box_y_min = vertices[0, 1]
+                box_y_max = vertices[2, 1]
+                if box_y_min < box_y_max:
+                    median.set_color("black")
 
     if xticklabels is not None:
         ax.set_xticks(
