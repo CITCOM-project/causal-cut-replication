@@ -513,116 +513,50 @@ pd.DataFrame().from_dict(test_sample_sizes, orient="index", columns=["p_value", 
 ).to_latex(f"{stats_dir}/rq2-confidence-inverval.tex")
 
 # RQ3 practicality
-max_x = df[[f"{technique}_removed_per_event" for technique in TECHNIQUES]].max().max()
+max_x = df[[f"{technique}_executions_per_event" for technique in TECHNIQUES]].max().max()
 fig, ax = plt.subplots()
 for technique, marker, color in zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]):
     ax.scatter(
-        df[f"{technique}_removed_per_event"],
         df[f"{technique}_executions_per_event"],
+        df[f"{technique}_removed_per_event"],
         label=technique,
         marker=marker,
         color=color,
     )
-    ax.plot(
-        np.linspace(0, max_x),
-        ols(f"{technique}_executions_per_event ~ {technique}_removed_per_event", df)
-        .fit()
-        .predict(pd.DataFrame({f"{technique}_removed_per_event": np.linspace(0, max_x)}))
-        .values,
-        color=color,
-    )
+    if technique != "greedy_minimal":
+        ax.plot(
+            np.linspace(0, max_x),
+            ols(f"{technique}_removed_per_event ~ {technique}_executions_per_event", df)
+            .fit()
+            .predict(pd.DataFrame({f"{technique}_executions_per_event": np.linspace(0, max_x)}))
+            .values,
+            color=color,
+        )
 # ax.legend(loc="lower left")
-ax.set_xlabel("Proportion of test removed")
-ax.set_ylabel("Executions (normalised by original length)")
+ax.vlines(1, ymin=0, ymax=1, color=RED)
+ax.set_ylabel("Proportion of test removed")
+ax.set_xlabel("Executions per event")
+ax.set_xlim(0)
+ax.set_ylim(0, 1)
 plt.savefig(f"{figures}/rq3.png", bbox_inches="tight", pad_inches=0)
 
-fig, axs = plt.subplots(3, 4)
+fig, axs = plt.subplots(3, 4, sharex=True, sharey=True)
+max_x = df[[f"{technique}_executions_per_event" for technique in TECHNIQUES]].max().max()
 for original_length, ax in zip(ORIGINAL_ATTACK_LENGTHS, axs.reshape(-1)):
-    max_x = (
-        df.loc[df.original_length == original_length, [f"{technique}_removed_per_event" for technique in TECHNIQUES]]
-        .max()
-        .max()
-    )
-    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
+    for technique, marker, color in zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]):
         ax.set_title(f"Length {original_length}")
         ax.scatter(
-            df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
             df.loc[df.original_length == original_length, f"{technique}_executions_per_event"],
+            df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
             label=technique,
             marker=marker,
             color=color,
         )
-        if technique != "greedy_minimal":
-            ax.plot(
-                np.linspace(0, max_x),
-                ols(
-                    f"{technique}_executions_per_event ~ {technique}_removed_per_event",
-                    df.loc[df.original_length == original_length],
-                )
-                .fit()
-                .predict(pd.DataFrame({f"{technique}_removed_per_event": np.linspace(0, max_x)}))
-                .values,
-                color=color,
-            )
+        ax.set_xlim(0)
+        ax.set_ylim(0, 1)
 
 # plt.legend(loc="upper left")
-# plt.xlabel("Proportion of test removed")
-# plt.ylabel("Executions (normalised by original length)")
+fig.text(0.5, 0, "Executions per event", ha="center", va="center")
+fig.text(0, 0.5, "Proportion of test removed", ha="center", va="center", rotation="vertical")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq3_subplots_per_event.png", bbox_inches="tight", pad_inches=0)
-
-fig, axs = plt.subplots(3, 4)
-for original_length, ax in zip(ORIGINAL_ATTACK_LENGTHS, axs.reshape(-1)):
-    max_x = (
-        df.loc[df.original_length == original_length, [f"{technique}_removed" for technique in TECHNIQUES]].max().max()
-    )
-    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
-        ax.set_title(f"Length {original_length}")
-        ax.scatter(
-            df.loc[df.original_length == original_length, f"{technique}_removed"],
-            df.loc[df.original_length == original_length, f"{technique}_executions"],
-            label=technique,
-            marker=marker,
-            color=color,
-        )
-        if technique != "greedy_minimal":
-            ax.plot(
-                np.linspace(0, max_x),
-                ols(
-                    f"{technique}_executions ~ {technique}_removed",
-                    df.loc[df.original_length == original_length],
-                )
-                .fit()
-                .predict(pd.DataFrame({f"{technique}_removed": np.linspace(0, max_x)}))
-                .values,
-                color=color,
-            )
-
-# plt.legend(loc="upper left")
-# plt.xlabel("Proportion of test removed")
-# plt.ylabel("Executions (normalised by original length)")
-plt.tight_layout()
-plt.savefig(f"{figures}/rq3_subplots.png", bbox_inches="tight", pad_inches=0)
-
-fig, ax = plt.subplots()
-for original_length in ORIGINAL_ATTACK_LENGTHS[7:]:
-    max_x = (
-        df.loc[df.original_length == original_length, [f"{technique}_removed" for technique in TECHNIQUES]].max().max()
-    )
-    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
-        ax.set_title(f"Length {original_length}")
-        if technique != "greedy_minimal":
-            ax.scatter(
-                df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
-                df.loc[df.original_length == original_length, f"{technique}_executions_per_event"],
-                label=technique,
-                marker=marker,
-                color=color,
-            )
-
-
-# ax.legend(loc="upper left")
-ax.set_xlabel("Proportion of test removed")
-ax.set_ylabel("Executions (normalised by original length)")
-plt.tight_layout()
-plt.savefig(f"{figures}/rq3_subplots_layers.png", bbox_inches="tight", pad_inches=0)
