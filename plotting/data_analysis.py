@@ -72,8 +72,8 @@ df["attack"] = df["attack"].apply(lambda a: tuple(map(tuple, a)))
 df.rename(
     {
         "simulator_runs": "causal_cut_executions",
-        "reduced_simulator_runs": "causal_cut_plus_greedy_executions",
-        "reduced_extended_interventions": "causal_cut_plus_greedy",
+        "reduced_simulator_runs": "causal_cut_plus_greedy_minimal_executions",
+        "reduced_extended_interventions": "causal_cut_plus_greedy_minimal",
         "extended_interventions": "causal_cut",
     },
     axis=1,
@@ -81,15 +81,22 @@ df.rename(
 )
 
 # Add extra columns
-df["greedy_executions"] = df["original_length"]
-df["greedy_executions_per_event"] = df["greedy_executions"] / df["original_length"]
-df["causal_cut_executions_per_event"] = df["causal_cut_executions"] / df["original_length"]
-df["causal_cut_plus_greedy_executions_per_event"] = df["causal_cut_plus_greedy_executions"] / df["original_length"]
-
+df["greedy_minimal_executions"] = df["original_length"]
 df["minimal_per_event"] = df["minimal"] / df["original_length"]
-df["greedy_minimal_per_event"] = df["greedy_minimal"] / df["original_length"]
-df["causal_cut_per_event"] = df["causal_cut"] / df["original_length"]
-df["causal_cut_plus_greedy_per_event"] = df["causal_cut_plus_greedy"] / df["original_length"]
+
+TECHNIQUES = ["greedy_minimal", "causal_cut", "causal_cut_plus_greedy_minimal"]
+
+for technique in TECHNIQUES + ["minimal"]:
+    if technique != "minimal":
+        df[f"{technique}_executions_per_event"] = df[f"{technique}_executions"] / df["original_length"]
+    df[f"{technique}_per_event"] = df[technique] / df["original_length"]
+    df[f"{technique}_removed"] = df["original_length"] - df[technique]
+    df[f"{technique}_removed_per_event"] = (df["original_length"] - df[technique]) / df["original_length"]
+    df[f"{technique}_percentage_reduction"] = ((df["original_length"] - df[technique]) / df["original_length"]) * 100
+    df[f"{technique}_percentage_removed"] = (
+        (df["original_length"] - df[technique]) / (df["original_length"] - df["minimal"])
+    ).replace(np.nan, 1) * 100
+
 
 ORIGINAL_ATTACK_LENGTHS = sorted(list(set(df.original_length)))
 POSITION_OFFSETS = ([0] * 10) + [3] + [6] if "case-2" in logs else None
@@ -129,29 +136,31 @@ def round_format(val):
 
 
 # RQ1: Factors that influence pruning ability
-percentage_reduction = pd.DataFrame(
-    {
-        col: ((df["original_length"] - df[col]) / df["original_length"]) * 100
-        for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
-    }
-).replace(float("inf"), 100)
-
-percentage_removed = pd.DataFrame(
-    {
-        col: ((df["original_length"] - df[col]) / (df["original_length"] - df["minimal"])) * 100
-        for col in ["greedy_minimal", "minimal", "causal_cut", "causal_cut_plus_greedy"]
-    }
-).replace(np.nan, 100)
-
-pd.DataFrame(
-    {
-        "Mean reduction": [f"{mean:.2f}" for mean in percentage_reduction.median()],
-        "Median reduction": [f"{median:.2f}" for median in percentage_reduction.mean()],
-        "Mean spurious events removed": [f"{mean:.2f}" for mean in percentage_removed.median()],
-        "Median spurious events removed": [f"{median:.2f}" for median in percentage_removed.mean()],
-    },
-    index=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-).to_latex(f"{stats_dir}/rq1-pruning.tex")
+pd.concat(
+    [
+        pd.concat(
+            [
+                df[[f"{technique}_percentage_reduction" for technique in TECHNIQUES + ["minimal"]]].median(),
+                df[[f"{technique}_percentage_reduction" for technique in TECHNIQUES + ["minimal"]]].mean(),
+            ],
+            axis=1,
+        )
+        .reset_index(drop=True)
+        .rename(dict(enumerate(TECHNIQUES + ["minimal"])))
+        .rename({0: "Mean reduction", 1: "Median reduction"}, axis=1),
+        pd.concat(
+            [
+                df[[f"{technique}_percentage_removed" for technique in TECHNIQUES + ["minimal"]]].median(),
+                df[[f"{technique}_percentage_removed" for technique in TECHNIQUES + ["minimal"]]].mean(),
+            ],
+            axis=1,
+        )
+        .reset_index(drop=True)
+        .rename(dict(enumerate(TECHNIQUES + ["minimal"])))
+        .rename({0: "Mean spurious events removed", 1: "Median spurious events removed"}, axis=1),
+    ],
+    axis=1,
+).to_latex(f"{stats_dir}/rq1-pruning.tex", float_format="%.2f")
 
 
 # 1a. original test length
@@ -162,7 +171,7 @@ plot_grouped_boxplot(
         list(df.groupby("original_length")["greedy_minimal_per_event"].apply(list)),
         list(df.groupby("original_length")["minimal_per_event"].apply(list)),
         list(df.groupby("original_length")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_plus_greedy_per_event"].apply(list)),
+        list(df.groupby("original_length")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
     ],
     ax=ax,
     labels=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
@@ -192,7 +201,7 @@ plt.clf()
 
 # Correlation between original test length and pruned test length
 test_length_stats = []
-for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_greedy"]:
+for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_greedy_minimal"]:
     raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
     normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
     test_length_stats.append(
@@ -214,7 +223,7 @@ plot_grouped_boxplot(
     [
         list(df.groupby("sample_size")["greedy_minimal_per_event"].apply(list)),
         list(df.groupby("sample_size")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_plus_greedy_per_event"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -250,13 +259,13 @@ for x, y in size_intervals:
             alternative="less",
         ).pvalue,
         "causal_cut+_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy"],
+            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal"],
+            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal"],
             alternative="greater",
         ).pvalue,
         "causal_cut+_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy"],
+            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal"],
+            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal"],
             alternative="less",
         ).pvalue,
     }
@@ -267,7 +276,7 @@ plot_grouped_boxplot(
     [
         list(df.groupby("ci_alpha")["greedy_minimal_per_event"].apply(list)),
         list(df.groupby("ci_alpha")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_per_event"].apply(list)),
+        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -288,7 +297,7 @@ test_sample_sizes = {
         ).pvalue
     ]
     + list(cliffs_delta(df.loc[df.ci_alpha == x, toolname], df.loc[df.ci_alpha == y, toolname]))
-    for toolname in ["causal_cut", "causal_cut_plus_greedy"]
+    for toolname in ["causal_cut", "causal_cut_plus_greedy_minimal"]
     for x, y in [(80, 90), (90, 80)]
 }
 
@@ -302,27 +311,30 @@ pd.DataFrame().from_dict(test_sample_sizes, orient="index", columns=["p_value", 
 pd.concat(
     [
         df.groupby("original_length")[
-            ["greedy_executions", "causal_cut_executions", "causal_cut_plus_greedy_executions"]
+            ["greedy_minimal_executions", "causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]
         ]
         .apply(lambda x: x.mean())
         .rename(
             {
-                "greedy_executions": BASELINE,
+                "greedy_minimal_executions": BASELINE,
                 "causal_cut_executions": TOOLNAME,
-                "causal_cut_plus_greedy_executions": f"{TOOLNAME} + {BASELINE}",
+                "causal_cut_plus_greedy_minimal_executions": f"{TOOLNAME} + {BASELINE}",
             },
             axis=1,
         ),
         pd.DataFrame(
             {
-                BASELINE: {"Mean": df["greedy_executions"].mean(), "Median": df["greedy_executions"].median()},
+                BASELINE: {
+                    "Mean": df["greedy_minimal_executions"].mean(),
+                    "Median": df["greedy_minimal_executions"].median(),
+                },
                 TOOLNAME: {
                     "Mean": df["causal_cut_executions"].mean(),
                     "Median": df["causal_cut_executions"].median(),
                 },
                 f"{TOOLNAME} + {BASELINE}": {
-                    "Mean": df["causal_cut_plus_greedy_executions"].mean(),
-                    "Median": df["causal_cut_plus_greedy_executions"].median(),
+                    "Mean": df["causal_cut_plus_greedy_minimal_executions"].mean(),
+                    "Median": df["causal_cut_plus_greedy_minimal_executions"].median(),
                 },
             }
         ),
@@ -334,9 +346,9 @@ fig, ax = plt.subplots()
 
 plot_grouped_boxplot(
     [
-        list(df.groupby("original_length")["greedy_executions"].apply(list)),
+        list(df.groupby("original_length")["greedy_minimal_executions"].apply(list)),
         list(df.groupby("original_length")["causal_cut_executions"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_plus_greedy_executions"].apply(list)),
+        list(df.groupby("original_length")["causal_cut_plus_greedy_minimal_executions"].apply(list)),
     ],
     ax=ax,
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
@@ -364,7 +376,7 @@ if "case-2" in logs:
 # Greedy fit
 ax.plot(
     ax.get_xticks()[:11] - 0.5,
-    df.groupby("original_length")["greedy_executions"].apply(np.median)[:11],
+    df.groupby("original_length")["greedy_minimal_executions"].apply(np.median)[:11],
     color=RED,
     alpha=0.5,
 )
@@ -381,8 +393,8 @@ ax.plot(
 )
 # CausalCut + Greedy fit
 model = ols(
-    "causal_cut_plus_greedy_executions ~ np.log(original_length) + original_length - 1",
-    df[["original_length", "causal_cut_plus_greedy_executions"]],
+    "causal_cut_plus_greedy_minimal_executions ~ np.log(original_length) + original_length - 1",
+    df[["original_length", "causal_cut_plus_greedy_minimal_executions"]],
 ).fit()
 ax.plot(
     ax.get_xticks()[:11] + 0.5,
@@ -396,7 +408,7 @@ plt.clf()
 
 # Correlation between original test length and pruned test length
 test_length_stats = []
-for technique in ["greedy_executions", "causal_cut_executions", "causal_cut_plus_greedy_executions"]:
+for technique in ["greedy_minimal_executions", "causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]:
     raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
     normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
     test_length_stats.append(
@@ -416,9 +428,9 @@ pd.DataFrame(test_length_stats).map(round_format).to_latex(os.path.join(stats_di
 # 2b. data available
 plot_grouped_boxplot(
     [
-        list(df.groupby("sample_size")["greedy_executions_per_event"].apply(list)),
+        list(df.groupby("sample_size")["greedy_minimal_executions_per_event"].apply(list)),
         list(df.groupby("sample_size")["causal_cut_executions_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_plus_greedy_executions_per_event"].apply(list)),
+        list(df.groupby("sample_size")["causal_cut_plus_greedy_minimal_executions_per_event"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -454,13 +466,13 @@ for x, y in size_intervals:
             alternative="less",
         ).pvalue,
         "causal_cut+_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_executions"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_executions"],
+            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal_executions"],
+            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal_executions"],
             alternative="greater",
         ).pvalue,
         "causal_cut+_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_executions"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_executions"],
+            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal_executions"],
+            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal_executions"],
             alternative="less",
         ).pvalue,
     }
@@ -469,9 +481,9 @@ pd.DataFrame(test_sample_sizes).map(bold_if_significant).to_latex(f"{stats_dir}/
 # 2c. confidence intervals
 plot_grouped_boxplot(
     [
-        list(df.groupby("ci_alpha")["greedy_executions"].apply(list)),
+        list(df.groupby("ci_alpha")["greedy_minimal_executions"].apply(list)),
         list(df.groupby("ci_alpha")["causal_cut_executions"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_executions"].apply(list)),
+        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_minimal_executions"].apply(list)),
     ],
     labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
     colours=[RED, GREEN, MAGENTA],
@@ -492,10 +504,125 @@ test_sample_sizes = {
         ).pvalue
     ]
     + list(cliffs_delta(df.loc[df.ci_alpha == x, toolname], df.loc[df.ci_alpha == y, toolname]))
-    for toolname in ["causal_cut_executions", "causal_cut_plus_greedy_executions"]
+    for toolname in ["causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]
     for x, y in [(80, 90), (90, 80)]
 }
 
 pd.DataFrame().from_dict(test_sample_sizes, orient="index", columns=["p_value", "effect_size", "effect_class"]).map(
     round_format
 ).to_latex(f"{stats_dir}/rq2-confidence-inverval.tex")
+
+# RQ3 practicality
+max_x = df[[f"{technique}_removed_per_event" for technique in TECHNIQUES]].max().max()
+fig, ax = plt.subplots()
+for technique, marker, color in zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]):
+    ax.scatter(
+        df[f"{technique}_removed_per_event"],
+        df[f"{technique}_executions_per_event"],
+        label=technique,
+        marker=marker,
+        color=color,
+    )
+    ax.plot(
+        np.linspace(0, max_x),
+        ols(f"{technique}_executions_per_event ~ {technique}_removed_per_event", df)
+        .fit()
+        .predict(pd.DataFrame({f"{technique}_removed_per_event": np.linspace(0, max_x)}))
+        .values,
+        color=color,
+    )
+# ax.legend(loc="lower left")
+ax.set_xlabel("Proportion of test removed")
+ax.set_ylabel("Executions (normalised by original length)")
+plt.savefig(f"{figures}/rq3.png", bbox_inches="tight", pad_inches=0)
+
+fig, axs = plt.subplots(3, 4)
+for original_length, ax in zip(ORIGINAL_ATTACK_LENGTHS, axs.reshape(-1)):
+    max_x = (
+        df.loc[df.original_length == original_length, [f"{technique}_removed_per_event" for technique in TECHNIQUES]]
+        .max()
+        .max()
+    )
+    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
+        ax.set_title(f"Length {original_length}")
+        ax.scatter(
+            df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
+            df.loc[df.original_length == original_length, f"{technique}_executions_per_event"],
+            label=technique,
+            marker=marker,
+            color=color,
+        )
+        if technique != "greedy_minimal":
+            ax.plot(
+                np.linspace(0, max_x),
+                ols(
+                    f"{technique}_executions_per_event ~ {technique}_removed_per_event",
+                    df.loc[df.original_length == original_length],
+                )
+                .fit()
+                .predict(pd.DataFrame({f"{technique}_removed_per_event": np.linspace(0, max_x)}))
+                .values,
+                color=color,
+            )
+
+# plt.legend(loc="upper left")
+# plt.xlabel("Proportion of test removed")
+# plt.ylabel("Executions (normalised by original length)")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq3_subplots_per_event.png", bbox_inches="tight", pad_inches=0)
+
+fig, axs = plt.subplots(3, 4)
+for original_length, ax in zip(ORIGINAL_ATTACK_LENGTHS, axs.reshape(-1)):
+    max_x = (
+        df.loc[df.original_length == original_length, [f"{technique}_removed" for technique in TECHNIQUES]].max().max()
+    )
+    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
+        ax.set_title(f"Length {original_length}")
+        ax.scatter(
+            df.loc[df.original_length == original_length, f"{technique}_removed"],
+            df.loc[df.original_length == original_length, f"{technique}_executions"],
+            label=technique,
+            marker=marker,
+            color=color,
+        )
+        if technique != "greedy_minimal":
+            ax.plot(
+                np.linspace(0, max_x),
+                ols(
+                    f"{technique}_executions ~ {technique}_removed",
+                    df.loc[df.original_length == original_length],
+                )
+                .fit()
+                .predict(pd.DataFrame({f"{technique}_removed": np.linspace(0, max_x)}))
+                .values,
+                color=color,
+            )
+
+# plt.legend(loc="upper left")
+# plt.xlabel("Proportion of test removed")
+# plt.ylabel("Executions (normalised by original length)")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq3_subplots.png", bbox_inches="tight", pad_inches=0)
+
+fig, ax = plt.subplots()
+for original_length in ORIGINAL_ATTACK_LENGTHS[7:]:
+    max_x = (
+        df.loc[df.original_length == original_length, [f"{technique}_removed" for technique in TECHNIQUES]].max().max()
+    )
+    for technique, marker, color in zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]):
+        ax.set_title(f"Length {original_length}")
+        if technique != "greedy_minimal":
+            ax.scatter(
+                df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
+                df.loc[df.original_length == original_length, f"{technique}_executions_per_event"],
+                label=technique,
+                marker=marker,
+                color=color,
+            )
+
+
+# ax.legend(loc="upper left")
+ax.set_xlabel("Proportion of test removed")
+ax.set_ylabel("Executions (normalised by original length)")
+plt.tight_layout()
+plt.savefig(f"{figures}/rq3_subplots_layers.png", bbox_inches="tight", pad_inches=0)
