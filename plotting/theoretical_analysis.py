@@ -73,7 +73,7 @@ plt.savefig("technique-bounds.pgf", bbox_inches="tight", pad_inches=0)
 
 # Numbers
 df = []
-for original_length in range(MIN_LENGTH, MAX_LENGTH):
+for original_length in range(MIN_LENGTH, MAX_LENGTH + 1):
     for necessary_prefix in range(1, original_length + 1):
         for necessary_interventions in range(1, necessary_prefix + 1):
             for correct_estimates in range(necessary_interventions + 1):
