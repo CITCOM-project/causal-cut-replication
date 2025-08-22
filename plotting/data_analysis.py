@@ -87,15 +87,20 @@ df["minimal_per_event"] = df["minimal"] / df["original_length"]
 TECHNIQUES = ["greedy_minimal", "causal_cut", "causal_cut_plus_greedy_minimal"]
 
 for technique in TECHNIQUES + ["minimal"]:
-    if technique != "minimal":
-        df[f"{technique}_executions_per_event"] = df[f"{technique}_executions"] / df["original_length"]
     df[f"{technique}_per_event"] = df[technique] / df["original_length"]
     df[f"{technique}_removed"] = df["original_length"] - df[technique]
     df[f"{technique}_removed_per_event"] = (df["original_length"] - df[technique]) / df["original_length"]
     df[f"{technique}_percentage_reduction"] = ((df["original_length"] - df[technique]) / df["original_length"]) * 100
-    df[f"{technique}_percentage_removed"] = (
+    df[f"{technique}_percentage_spurious_removed"] = (
         (df["original_length"] - df[technique]) / (df["original_length"] - df["minimal"])
     ).replace(np.nan, 1) * 100
+    df[f"{technique}_ppv"] = df["minimal"] / df[technique]
+    df[f"{technique}_specificity"] = (df[technique] - (df["original_length"] - df["minimal"])) / (
+        df["original_length"] - df["minimal"]
+    )
+    if technique != "minimal":
+        df[f"{technique}_executions_per_event"] = df[f"{technique}_executions"] / df["original_length"]
+        df[f"{technique}_executions_per_event_removed"] = df[f"{technique}_executions"] / df[f"{technique}_removed"]
 
 
 ORIGINAL_ATTACK_LENGTHS = sorted(list(set(df.original_length)))
@@ -150,8 +155,8 @@ pd.concat(
         .rename({0: "Mean reduction", 1: "Median reduction"}, axis=1),
         pd.concat(
             [
-                df[[f"{technique}_percentage_removed" for technique in TECHNIQUES + ["minimal"]]].median(),
-                df[[f"{technique}_percentage_removed" for technique in TECHNIQUES + ["minimal"]]].mean(),
+                df[[f"{technique}_percentage_spurious_removed" for technique in TECHNIQUES + ["minimal"]]].median(),
+                df[[f"{technique}_percentage_spurious_removed" for technique in TECHNIQUES + ["minimal"]]].mean(),
             ],
             axis=1,
         )
@@ -560,3 +565,65 @@ fig.text(0.5, 0, "Executions per event", ha="center", va="center")
 fig.text(0, 0.5, "Proportion of test removed", ha="center", va="center", rotation="vertical")
 plt.tight_layout()
 plt.savefig(f"{figures}/rq3_subplots_per_event.png", bbox_inches="tight", pad_inches=0)
+
+
+# EXPERIMENTAL
+print(
+    df[["original_length"] + [f"{technique}_executions" for technique in TECHNIQUES]].sort_values(
+        "causal_cut_executions"
+    )
+)
+print(df.loc[df.original_length == 24, "causal_cut_executions"].sort_values())
+
+fig, ax = plt.subplots()
+for technique, marker, color in reversed(list(zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]))):
+    ax.scatter(
+        df["original_length"],
+        df[f"{technique}_ppv"] / df[f"{technique}_executions"],
+        label=technique,
+        marker=marker,
+        color=color,
+    )
+    # if technique != "greedy_minimal":
+    #     ax.plot(
+    #         np.linspace(0, max_x),
+    #         ols(f"{technique}_executions_per_event_removed ~ {technique}_percentage_spurious_removed", df)
+    #         .fit()
+    #         .predict(pd.DataFrame({f"{technique}_percentage_spurious_removed": np.linspace(0, max_x)}))
+    #         .values,
+    #         color=color,
+    #     )
+ax.legend(loc="upper right")
+# ax.vlines(1, ymin=0, ymax=1, color=RED)
+ax.set_xlabel("Test length")
+ax.set_ylabel("RoI")
+# ax.set_xlim(0)
+# ax.set_ylim(0, 1)
+plt.savefig(f"{figures}/rq3_specificity.png", bbox_inches="tight", pad_inches=0)
+
+
+fig, ax = plt.subplots()
+for technique, marker, color in reversed(list(zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]))):
+    ax.scatter(
+        df[f"{technique}_percentage_spurious_removed"],
+        df[f"{technique}_executions_per_event_removed"],
+        label=technique,
+        marker=marker,
+        color=color,
+    )
+    if technique != "greedy_minimal":
+        ax.plot(
+            np.linspace(0, max_x),
+            ols(f"{technique}_executions_per_event_removed ~ {technique}_percentage_spurious_removed", df)
+            .fit()
+            .predict(pd.DataFrame({f"{technique}_percentage_spurious_removed": np.linspace(0, max_x)}))
+            .values,
+            color=color,
+        )
+ax.legend(loc="upper right")
+# ax.vlines(1, ymin=0, ymax=1, color=RED)
+ax.set_xlabel("Percentage of spurious events removed")
+ax.set_ylabel("Executions per event removed")
+# ax.set_xlim(0)
+# ax.set_ylim(0, 1)
+plt.savefig(f"{figures}/rq3_spurious.png", bbox_inches="tight", pad_inches=0)

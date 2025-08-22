@@ -6,6 +6,7 @@ __pycache__
 *.zip
 *.pdf
 *.png
+*.pgf
 *.log
 *.xlsx
 tmp/
