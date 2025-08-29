@@ -148,6 +148,11 @@ x_labels = {
     "ci_alpha": "CI alpha",
 }
 x_ticks = {k: sorted(list(set(df[k]))) for k in FEATURES}
+technique_labels = {
+    "greedy_heuristic": "\\greedy",
+    "causal_cut": "\\toolname",
+    "causal_cut_plus_greedy_heuristic": "\\toolnamePlus",
+}
 
 
 # Original and gold standard attack lengths (Table 1)
@@ -194,18 +199,18 @@ def format_latex(df, filename, **kwargs):
     pad_lengths = df.map(lambda x: len(str(x))).apply(max)
     output = []
     for line in df.to_latex(**kwargs).split("\n"):
-        if "&" not in line:
-            output.append(line)
-        else:
-            output.append("&".join(val.ljust(pad + 2) for val, pad in zip(line[:-2].split("&"), pad_lengths)) + "\\\\")
+        if "&" in line:
+            output.append(
+                "& " + "&".join(val.ljust(pad + 2) for val, pad in zip(line[:-2].split("&"), pad_lengths)) + "\\\\"
+            )
     with open(filename, "w") as f:
         f.write("\n".join(output))
 
 
 for rq, outcome in enumerate(OUTCOMES, 1):
-    rq_stats = [pd.DataFrame({"technique": technique for technique in TECHNIQUES}, index=range(len(TECHNIQUES)))]
+    rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
     for feature in FEATURES:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(6.5, 4))
         plot_grouped_boxplot(
             [
                 list(df.groupby(feature)[f"greedy_heuristic{outcome}"].apply(list)),
@@ -221,15 +226,16 @@ for rq, outcome in enumerate(OUTCOMES, 1):
             legend_args={
                 "ncol": 3,
                 "loc": "upper center",
-                "bbox_to_anchor": (0.444, 1.1),
+                "bbox_to_anchor": (0.5, 1.11),
                 "columnspacing": 0.7,
                 "handletextpad": 0.5,
+                "handlelength": 1,
             },
             position_offsets=position_offsets(feature),
             # Highlight the gap in data with a zigzag on x axis
             zigzag=zigzag(feature),
         )
-        plt.savefig(f"{figures}/rq{rq}-{feature}.pgf", bbox_inches="tight", pad_inches=0)
+        plt.savefig(f"{figures}/rq{rq}-{feature}.pdf", bbox_inches="tight", pad_inches=0)
 
         stats = []
         for technique in [f"{t}{outcome}" for t in TECHNIQUES]:
@@ -241,4 +247,4 @@ for rq, outcome in enumerate(OUTCOMES, 1):
                 }
             )
         rq_stats.append(pd.DataFrame(stats))
-    format_latex(pd.concat(rq_stats, axis=1), f"{stats_dir}/rq{rq}.tex", index=False)
+    format_latex(pd.concat(rq_stats, axis=1), f"{stats_dir}/rq{rq}.tex", index=False, header=False)
