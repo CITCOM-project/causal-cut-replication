@@ -34,6 +34,7 @@ def plot_grouped_boxplot(
     legend_args={},
     position_offsets=None,
     showfliers=True,
+    zigzag=[],
 ):
     if ax is None:
         _, ax = plt.subplots()
@@ -77,7 +78,19 @@ def plot_grouped_boxplot(
                 box_y_max = vertices[2, 1]
                 if box_y_min < box_y_max:
                     median.set_color("black")
-
+    for mark in zigzag:
+        ax.plot(
+            mark,
+            [0, 0],
+            transform=ax.transAxes,
+            marker="^",
+            markersize=12,
+            linestyle="none",
+            color="w",
+            mec="w",
+            mew=1,
+            clip_on=False,
+        )
     if xticklabels is not None:
         ax.set_xticks(
             np.array(range(len(xticklabels))) * (plots + 1)

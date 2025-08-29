@@ -12,26 +12,28 @@ MAX_LENGTH = 25
 TRACE_LENGTHS = np.linspace(MIN_LENGTH, MAX_LENGTH)
 
 # Greedy
-plt.plot(TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)) / TRACE_LENGTHS, color=RED, label=BASELINE)
+(greedy,) = plt.plot(TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)) / TRACE_LENGTHS, color=RED, label=BASELINE)
 
 # CausalCut best
-plt.plot(TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)), color=GREEN, label=TOOLNAME + " best")
+(cc_best,) = plt.plot(
+    TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)), color=GREEN, label=TOOLNAME + " best", linestyle="dashed"
+)
 
 
 # CausalCut worst
-plt.plot(
+(cc_worst_n1,) = plt.plot(
     TRACE_LENGTHS,
     (1 / TRACE_LENGTHS) / (TRACE_LENGTHS + 1),
     color=GREEN,
     label=TOOLNAME + " worst (|n|=1)",
-    linestyle="dashed",
+    linestyle=(0, (5, 3)),
 )
-plt.plot(
+(cc_worst_nt,) = plt.plot(
     TRACE_LENGTHS,
     np.ones(len(TRACE_LENGTHS)) / (TRACE_LENGTHS + 1),
     color=GREEN,
     label=TOOLNAME + " worst (n=t)",
-    linestyle="dotted",
+    linestyle=(2, (1, 7)),
     zorder=10,
 )
 
@@ -46,15 +48,28 @@ plt.fill_between(
 )
 
 # CausalCut+ best
-plt.plot(TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)) / 2, color=MAGENTA, label=f"{TOOLNAME}+{BASELINE} best (|n|=1)")
-plt.plot(
+(cc_plus_best,) = plt.plot(
+    TRACE_LENGTHS,
+    np.ones(len(TRACE_LENGTHS)) / 2,
+    color=MAGENTA,
+    label=f"{TOOLNAME}+{BASELINE} best (|n|=1)",
+    linestyle="dashed",
+)
+(cc_plus_best_nt,) = plt.plot(
     TRACE_LENGTHS,
     np.ones(len(TRACE_LENGTHS)) / (TRACE_LENGTHS + 1),
     color=MAGENTA,
     label=f"{TOOLNAME}+{BASELINE} best (n=t)",
-    linestyle="dashdot",
+    linestyle=(0, (5, 3)),
 )
-# CausalCut+ worst is same as CausalCut
+# CausalCut+ worst
+(cc_plus_worst_n1,) = plt.plot(
+    TRACE_LENGTHS,
+    (1 / TRACE_LENGTHS) / (TRACE_LENGTHS + 1),
+    color=MAGENTA,
+    label=f"{TOOLNAME}+{BASELINE} worst (|n|=1)",
+    linestyle=(2, (1, 7)),
+)
 
 
 plt.fill_between(
@@ -68,7 +83,13 @@ plt.fill_between(
 )
 plt.xlabel("Test length")
 plt.ylabel("PPV per execution")
-plt.legend(loc="upper right", bbox_to_anchor=(0.95, 0.95))
+handles = [cc_best, cc_plus_best, greedy, (cc_worst_nt, cc_plus_best_nt), (cc_worst_n1, cc_plus_worst_n1)]
+plt.legend(
+    handles=handles,
+    labels=[h.get_label() if hasattr(h, "get_label") else "\n".join(h1.get_label() for h1 in h) for h in handles],
+    loc="upper right",
+    bbox_to_anchor=(0.95, 0.95),
+)
 plt.savefig("technique-bounds.pgf", bbox_inches="tight", pad_inches=0)
 
 # Numbers

@@ -32,6 +32,12 @@ if not os.path.exists(figures):
 if not os.path.exists(stats_dir):
     os.mkdir(stats_dir)
 
+
+def find_necessary_prefix(m, t):
+    max_intervention = t.index(max(m))
+    return t[: max_intervention + 1]
+
+
 # Read in data and convert to dataframe
 attacks = []
 for root, dirs, files in os.walk(logs):
@@ -44,13 +50,16 @@ for root, dirs, files in os.walk(logs):
         sample_size = int(sample_size) if sample_size != "None" else 449920
         ci_alpha = int(re.search(r"ci_(\w+)", root).group(1))
         for attack in log:
-            assert "greedy_minimal" in attack, f"No greedy_minimal in {os.path.join(root, file)}"
+            assert "greedy_minimal" in attack, f"No greedy_heuristic in {os.path.join(root, file)}"
             attack["sample_size"] = sample_size
             attack["ci_alpha"] = ci_alpha
             attack["original_length"] = len(attack["attack"])
+            latest_minimal_event = max(attack["minimal"])
+            attack["necessary_prefix"] = find_necessary_prefix(attack["minimal"], attack["attack"])
             for test in [
                 "greedy_minimal",
                 "minimal",
+                "necessary_prefix",
                 "extended_interventions",
                 "reduced_extended_interventions",
             ]:
@@ -66,25 +75,27 @@ for root, dirs, files in os.walk(logs):
         attacks += log
 
 df = pd.DataFrame(attacks)
+
 df = df.loc[df["original_length"] > 1]
 df["attack"] = df["attack"].apply(lambda a: tuple(map(tuple, a)))
-# Make the names easier to read
+# Make field names consistent with the paper
 df.rename(
     {
         "simulator_runs": "causal_cut_executions",
-        "reduced_simulator_runs": "causal_cut_plus_greedy_minimal_executions",
-        "reduced_extended_interventions": "causal_cut_plus_greedy_minimal",
+        "reduced_simulator_runs": "causal_cut_plus_greedy_heuristic_executions",
+        "reduced_extended_interventions": "causal_cut_plus_greedy_heuristic",
         "extended_interventions": "causal_cut",
+        "greedy_minimal": "greedy_heuristic",
     },
     axis=1,
     inplace=True,
 )
 
 # Add extra columns
-df["greedy_minimal_executions"] = df["original_length"]
+df["greedy_heuristic_executions"] = df["original_length"]
 df["minimal_per_event"] = df["minimal"] / df["original_length"]
 
-TECHNIQUES = ["greedy_minimal", "causal_cut", "causal_cut_plus_greedy_minimal"]
+TECHNIQUES = ["greedy_heuristic", "causal_cut", "causal_cut_plus_greedy_heuristic"]
 
 for technique in TECHNIQUES + ["minimal"]:
     df[f"{technique}_per_event"] = df[technique] / df["original_length"]
@@ -100,26 +111,65 @@ for technique in TECHNIQUES + ["minimal"]:
     )
     if technique != "minimal":
         df[f"{technique}_executions_per_event"] = df[f"{technique}_executions"] / df["original_length"]
-        df[f"{technique}_executions_per_event_removed"] = df[f"{technique}_executions"] / df[f"{technique}_removed"]
+        df[f"{technique}_cost_efficiency"] = df["minimal"] / (df[technique] * df[f"{technique}_executions"])
+
+if "case-1" in logs:
+    df = df.query("sample_size <= 5000 | sample_size > 9000")
 
 
-ORIGINAL_ATTACK_LENGTHS = sorted(list(set(df.original_length)))
-POSITION_OFFSETS = ([0] * 10) + [3] + [6] if "case-2" in logs else None
+def position_offsets(feature):
+    if "case-2" in logs and feature == "original_length":
+        return ([0] * 10) + [3] + [6]
+    if "case-1" in logs and feature == "sample_size":
+        return ([0] * 6) + [1] + [2]
+    return None
+
+
+def zigzag(feature):
+    if "case-2" in logs and feature == "original_length":
+        return [[0.77, 0.905], [0.78, 0.915]]
+    if "case-1" in logs and feature == "sample_size":
+        return [[0.725, 0.88], [0.735, 0.89]]
+    return []
+
+
+ORIGINAL_TEST_LENGTHS = sorted(list(set(df.original_length)))
+NECESSARY_INTERVENTIONS = sorted(list(set(df.minimal)))
 SAMPLE_SIZES = sorted(list(set(df.sample_size)))
 CONFIDENCE_INTERVALS = [80, 90]
 
+OUTCOMES = ["_cost_efficiency", "", "_executions"]
+y_labels = {"_cost_efficiency": "Cost efficiency", "": "Tool-minimised test length", "_executions": "Executions"}
+FEATURES = ["original_length", "minimal", "sample_size", "ci_alpha"]
+x_labels = {
+    "original_length": "Original test length",
+    "minimal": "Necessary interventions",
+    "sample_size": "Executions available",
+    "ci_alpha": "CI alpha",
+}
+x_ticks = {k: sorted(list(set(df[k]))) for k in FEATURES}
+
+
 # Original and gold standard attack lengths (Table 1)
 lengths = [
-    (len(attack), len_minimal)
-    for attack, len_minimal in df[["attack", "minimal"]].groupby(["attack", "minimal"]).groups.keys()
+    (len(attack), necessary_prefix, len_minimal)
+    for attack, necessary_prefix, len_minimal in df[["attack", "necessary_prefix", "minimal"]]
+    .groupby(["attack", "necessary_prefix", "minimal"])
+    .groups.keys()
 ]
 
 minimised_lengths = {}
-for original_length, minimised_length in lengths:
+necessary_prefixes = {}
+for original_length, necessary_prefix, minimised_length in lengths:
     minimised_lengths[minimised_length] = sorted(minimised_lengths.get(minimised_length, []) + [original_length])
+    necessary_prefixes[necessary_prefix] = sorted(necessary_prefixes.get(necessary_prefix, []) + [original_length])
 minimised_lengths = {k: dict(Counter(v)) for k, v in minimised_lengths.items()}
 minimised_lengths = pd.DataFrame(minimised_lengths).sort_index().T.fillna(0).astype(int).replace(0, "")
 minimised_lengths.sort_index().to_latex(f"{stats_dir}/attack-lengths.tex")
+
+necessary_prefixes = {k: dict(Counter(v)) for k, v in necessary_prefixes.items()}
+necessary_prefixes = pd.DataFrame(necessary_prefixes).sort_index().T.fillna(0).astype(int).replace(0, "")
+necessary_prefixes.sort_index().to_latex(f"{stats_dir}/necessary-prefixes.tex")
 
 
 def bold_if_significant(val):
@@ -140,490 +190,55 @@ def round_format(val):
     return f"{val:.3f}"
 
 
-# RQ1: Factors that influence pruning ability
-pd.concat(
-    [
-        pd.concat(
+def format_latex(df, filename, **kwargs):
+    pad_lengths = df.map(lambda x: len(str(x))).apply(max)
+    output = []
+    for line in df.to_latex(**kwargs).split("\n"):
+        if "&" not in line:
+            output.append(line)
+        else:
+            output.append("&".join(val.ljust(pad + 2) for val, pad in zip(line[:-2].split("&"), pad_lengths)) + "\\\\")
+    with open(filename, "w") as f:
+        f.write("\n".join(output))
+
+
+for rq, outcome in enumerate(OUTCOMES, 1):
+    rq_stats = [pd.DataFrame({"technique": technique for technique in TECHNIQUES}, index=range(len(TECHNIQUES)))]
+    for feature in FEATURES:
+        fig, ax = plt.subplots()
+        plot_grouped_boxplot(
             [
-                df[[f"{technique}_percentage_reduction" for technique in TECHNIQUES + ["minimal"]]].median(),
-                df[[f"{technique}_percentage_reduction" for technique in TECHNIQUES + ["minimal"]]].mean(),
+                list(df.groupby(feature)[f"greedy_heuristic{outcome}"].apply(list)),
+                list(df.groupby(feature)[f"causal_cut{outcome}"].apply(list)),
+                list(df.groupby(feature)[f"causal_cut_plus_greedy_heuristic{outcome}"].apply(list)),
             ],
-            axis=1,
-        )
-        .reset_index(drop=True)
-        .rename(dict(enumerate(TECHNIQUES + ["minimal"])))
-        .rename({0: "Mean reduction", 1: "Median reduction"}, axis=1),
-        pd.concat(
-            [
-                df[[f"{technique}_percentage_spurious_removed" for technique in TECHNIQUES + ["minimal"]]].median(),
-                df[[f"{technique}_percentage_spurious_removed" for technique in TECHNIQUES + ["minimal"]]].mean(),
-            ],
-            axis=1,
-        )
-        .reset_index(drop=True)
-        .rename(dict(enumerate(TECHNIQUES + ["minimal"])))
-        .rename({0: "Mean spurious events removed", 1: "Median spurious events removed"}, axis=1),
-    ],
-    axis=1,
-).to_latex(f"{stats_dir}/rq1-pruning.tex", float_format="%.2f")
-
-
-# 1a. original test length
-fig, ax = plt.subplots()
-
-plot_grouped_boxplot(
-    [
-        list(df.groupby("original_length")["greedy_minimal_per_event"].apply(list)),
-        list(df.groupby("original_length")["minimal_per_event"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
-    ],
-    ax=ax,
-    labels=[BASELINE, GOLD_STANDARD, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, BLUE, GREEN, MAGENTA],
-    xticklabels=ORIGINAL_ATTACK_LENGTHS,
-    xlabel="Original test length",
-    ylabel="Tool-minimised test length\n(normalised by original length)",
-    position_offsets=POSITION_OFFSETS,
-)
-
-# Show the gap in data with a zigzag on x axis
-if "case-2" in logs:
-    kwargs = {
-        "marker": "^",
-        "markersize": 12,
-        "linestyle": "none",
-        "color": "w",
-        "mec": "w",
-        "mew": 1,
-        "clip_on": False,
-    }
-    ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
-    ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
-
-plt.savefig(f"{figures}/rq1-test-length.pgf", bbox_inches="tight", pad_inches=0)
-plt.clf()
-
-# Correlation between original test length and pruned test length
-test_length_stats = []
-for technique in ["minimal", "greedy_minimal", "causal_cut", "causal_cut_plus_greedy_minimal"]:
-    raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
-    normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
-    test_length_stats.append(
-        {
-            "technique": technique,
-            "raw_stat": raw_stat,
-            "raw_p_value": raw_p_value,
-            "normalised_stat": normalised_stat,
-            "normalised_p_value": normalised_p_value,
-        }
-    )
-
-
-pd.DataFrame(test_length_stats).map(round_format).to_latex(os.path.join(stats_dir, "rq1-test-length.tex"), index=False)
-
-
-# 1b. data available
-plot_grouped_boxplot(
-    [
-        list(df.groupby("sample_size")["greedy_minimal_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
-    ],
-    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, GREEN, MAGENTA],
-    xticklabels=SAMPLE_SIZES,
-    xlabel="Number of executions",
-    ylabel="Tool-minimised test length\n(normalised by original length)",
-    legend_args={"loc": "upper left"},
-    savepath=f"{figures}/rq1-data-size.pgf",
-)
-
-# Test whether adding each increment of data makes the minimised test longer or shorter
-test_sample_sizes = {}
-size_intervals = [
-    (50, 100),
-    (100, 250),
-    (250, 500),
-    (500, 1000),
-    (1000, 2000),
-    (2000, 3000),
-    (3000, 4000),
-    (4000, 5000),
-]
-for x, y in size_intervals:
-    test_sample_sizes[f"{x} > {y}"] = {
-        "causal_cut_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut"],
-            df.loc[df.sample_size == y, "causal_cut"],
-            alternative="greater",
-        ).pvalue,
-        "causal_cut_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut"],
-            df.loc[df.sample_size == y, "causal_cut"],
-            alternative="less",
-        ).pvalue,
-        "causal_cut+_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal"],
-            alternative="greater",
-        ).pvalue,
-        "causal_cut+_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal"],
-            alternative="less",
-        ).pvalue,
-    }
-pd.DataFrame(test_sample_sizes).map(bold_if_significant).to_latex(f"{stats_dir}/rq1-data-size.tex")
-
-# 1c. confidence intervals
-plot_grouped_boxplot(
-    [
-        list(df.groupby("ci_alpha")["greedy_minimal_per_event"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_per_event"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_minimal_per_event"].apply(list)),
-    ],
-    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, GREEN, MAGENTA],
-    xticklabels=CONFIDENCE_INTERVALS,
-    xlabel="CI alpha",
-    ylabel="Tool-minimised test length\n(normalised by original length)",
-    legend_args={"loc": "upper right"},
-    savepath=f"{figures}/rq1-confidence-intervals.pgf",
-)
-
-# Test whether 80% or 90% confidence intervals make the minimised test longer or shorter
-test_sample_sizes = {
-    f"{toolname}_{x}_less": [
-        mannwhitneyu(
-            df.loc[df.ci_alpha == x, toolname],
-            df.loc[df.ci_alpha == y, toolname],
-            alternative="less",
-        ).pvalue
-    ]
-    + list(cliffs_delta(df.loc[df.ci_alpha == x, toolname], df.loc[df.ci_alpha == y, toolname]))
-    for toolname in ["causal_cut", "causal_cut_plus_greedy_minimal"]
-    for x, y in [(80, 90), (90, 80)]
-}
-
-pd.DataFrame().from_dict(test_sample_sizes, orient="index", columns=["p_value", "effect_size", "effect_class"]).map(
-    round_format
-).to_latex(f"{stats_dir}/rq1-confidence-inverval.tex")
-
-# RQ2: Factors that influence number of executions
-
-
-pd.concat(
-    [
-        df.groupby("original_length")[
-            ["greedy_minimal_executions", "causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]
-        ]
-        .apply(lambda x: x.mean())
-        .rename(
-            {
-                "greedy_minimal_executions": BASELINE,
-                "causal_cut_executions": TOOLNAME,
-                "causal_cut_plus_greedy_minimal_executions": f"{TOOLNAME} + {BASELINE}",
+            ax=ax,
+            labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+            colours=[RED, GREEN, MAGENTA],
+            xticklabels=x_ticks[feature],
+            xlabel=x_labels[feature],
+            ylabel=y_labels[outcome],
+            legend_args={
+                "ncol": 3,
+                "loc": "upper center",
+                "bbox_to_anchor": (0.444, 1.1),
+                "columnspacing": 0.7,
+                "handletextpad": 0.5,
             },
-            axis=1,
-        ),
-        pd.DataFrame(
-            {
-                BASELINE: {
-                    "Mean": df["greedy_minimal_executions"].mean(),
-                    "Median": df["greedy_minimal_executions"].median(),
-                },
-                TOOLNAME: {
-                    "Mean": df["causal_cut_executions"].mean(),
-                    "Median": df["causal_cut_executions"].median(),
-                },
-                f"{TOOLNAME} + {BASELINE}": {
-                    "Mean": df["causal_cut_plus_greedy_minimal_executions"].mean(),
-                    "Median": df["causal_cut_plus_greedy_minimal_executions"].median(),
-                },
-            }
-        ),
-    ]
-).T.round(2).to_latex(f"{stats_dir}/rq2-executions.tex", float_format="%.2f")
-
-# 2a. original test length
-fig, ax = plt.subplots()
-
-plot_grouped_boxplot(
-    [
-        list(df.groupby("original_length")["greedy_minimal_executions"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_executions"].apply(list)),
-        list(df.groupby("original_length")["causal_cut_plus_greedy_minimal_executions"].apply(list)),
-    ],
-    ax=ax,
-    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, GREEN, MAGENTA],
-    xticklabels=ORIGINAL_ATTACK_LENGTHS,
-    xlabel="Original test length",
-    ylabel="Minimisation executions",
-    position_offsets=POSITION_OFFSETS,
-)
-
-# Show the gap in data with a zigzag on x axis
-if "case-2" in logs:
-    kwargs = {
-        "marker": "^",
-        "markersize": 12,
-        "linestyle": "none",
-        "color": "w",
-        "mec": "w",
-        "mew": 1,
-        "clip_on": False,
-    }
-    ax.plot([0.78, 0.91], [0, 0], transform=ax.transAxes, **kwargs)
-    ax.plot([0.79, 0.92], [0, 0], transform=ax.transAxes, **kwargs)
-
-# Greedy fit
-ax.plot(
-    ax.get_xticks()[:11] - 0.5,
-    df.groupby("original_length")["greedy_minimal_executions"].apply(np.median)[:11],
-    color=RED,
-    alpha=0.5,
-)
-# CausalCut fit
-model = ols(
-    "causal_cut_executions ~ np.log(original_length) + original_length - 1",
-    df[["original_length", "causal_cut_executions"]],
-).fit()
-ax.plot(
-    ax.get_xticks()[:11] + 0.5,
-    model.predict(pd.DataFrame({"original_length": ORIGINAL_ATTACK_LENGTHS[:11]})),
-    color=GREEN,
-    alpha=0.5,
-)
-# CausalCut + Greedy fit
-model = ols(
-    "causal_cut_plus_greedy_minimal_executions ~ np.log(original_length) + original_length - 1",
-    df[["original_length", "causal_cut_plus_greedy_minimal_executions"]],
-).fit()
-ax.plot(
-    ax.get_xticks()[:11] + 0.5,
-    model.predict(pd.DataFrame({"original_length": ORIGINAL_ATTACK_LENGTHS[:11]})),
-    color=MAGENTA,
-    alpha=0.5,
-)
-
-plt.savefig(f"{figures}/rq2-test-length.pgf", bbox_inches="tight", pad_inches=0)
-plt.clf()
-
-# Correlation between original test length and pruned test length
-test_length_stats = []
-for technique in ["greedy_minimal_executions", "causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]:
-    raw_stat, raw_p_value = spearmanr(df["original_length"], df[technique])
-    normalised_stat, normalised_p_value = spearmanr(df["original_length"], df[technique + "_per_event"])
-    test_length_stats.append(
-        {
-            "technique": technique,
-            "raw_stat": raw_stat,
-            "raw_p_value": raw_p_value,
-            "normalised_stat": normalised_stat,
-            "normalised_p_value": normalised_p_value,
-        }
-    )
-
-
-pd.DataFrame(test_length_stats).map(round_format).to_latex(os.path.join(stats_dir, "rq2-test-length.tex"), index=False)
-
-
-# 2b. data available
-plot_grouped_boxplot(
-    [
-        list(df.groupby("sample_size")["greedy_minimal_executions_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_executions_per_event"].apply(list)),
-        list(df.groupby("sample_size")["causal_cut_plus_greedy_minimal_executions_per_event"].apply(list)),
-    ],
-    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, GREEN, MAGENTA],
-    xticklabels=SAMPLE_SIZES,
-    xlabel="Number of executions",
-    ylabel="Minimisation executions\n(normalised by original length)",
-    legend_args={"loc": "upper left"},
-    savepath=f"{figures}/rq2-data-size.pgf",
-)
-
-# Test whether adding each increment of data makes the minimised test longer or shorter
-test_sample_sizes = {}
-size_intervals = [
-    (50, 100),
-    (100, 250),
-    (250, 500),
-    (500, 1000),
-    (1000, 2000),
-    (2000, 3000),
-    (3000, 4000),
-    (4000, 5000),
-]
-for x, y in size_intervals:
-    test_sample_sizes[f"{x} > {y}"] = {
-        "causal_cut_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_executions"],
-            df.loc[df.sample_size == y, "causal_cut_executions"],
-            alternative="greater",
-        ).pvalue,
-        "causal_cut_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_executions"],
-            df.loc[df.sample_size == y, "causal_cut_executions"],
-            alternative="less",
-        ).pvalue,
-        "causal_cut+_shorter": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal_executions"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal_executions"],
-            alternative="greater",
-        ).pvalue,
-        "causal_cut+_longer": mannwhitneyu(
-            df.loc[df.sample_size == x, "causal_cut_plus_greedy_minimal_executions"],
-            df.loc[df.sample_size == y, "causal_cut_plus_greedy_minimal_executions"],
-            alternative="less",
-        ).pvalue,
-    }
-pd.DataFrame(test_sample_sizes).map(bold_if_significant).to_latex(f"{stats_dir}/rq2-data-size.tex")
-
-# 2c. confidence intervals
-plot_grouped_boxplot(
-    [
-        list(df.groupby("ci_alpha")["greedy_minimal_executions"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_executions"].apply(list)),
-        list(df.groupby("ci_alpha")["causal_cut_plus_greedy_minimal_executions"].apply(list)),
-    ],
-    labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-    colours=[RED, GREEN, MAGENTA],
-    xticklabels=CONFIDENCE_INTERVALS,
-    xlabel="CI alpha",
-    ylabel="Minimisation executions",
-    legend_args={"loc": "upper right"},
-    savepath=f"{figures}/rq2-confidence-intervals.pgf",
-)
-
-# Test whether 80% or 90% confidence intervals make the minimised test longer or shorter
-test_sample_sizes = {
-    f"{toolname}_{x}_less": [
-        mannwhitneyu(
-            df.loc[df.ci_alpha == x, toolname],
-            df.loc[df.ci_alpha == y, toolname],
-            alternative="less",
-        ).pvalue
-    ]
-    + list(cliffs_delta(df.loc[df.ci_alpha == x, toolname], df.loc[df.ci_alpha == y, toolname]))
-    for toolname in ["causal_cut_executions", "causal_cut_plus_greedy_minimal_executions"]
-    for x, y in [(80, 90), (90, 80)]
-}
-
-pd.DataFrame().from_dict(test_sample_sizes, orient="index", columns=["p_value", "effect_size", "effect_class"]).map(
-    round_format
-).to_latex(f"{stats_dir}/rq2-confidence-inverval.tex")
-
-# RQ3 practicality
-max_x = df[[f"{technique}_executions_per_event" for technique in TECHNIQUES]].max().max()
-fig, ax = plt.subplots()
-for technique, marker, color in zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]):
-    ax.scatter(
-        df[f"{technique}_executions_per_event"],
-        df[f"{technique}_removed_per_event"],
-        label=technique,
-        marker=marker,
-        color=color,
-    )
-    if technique != "greedy_minimal":
-        ax.plot(
-            np.linspace(0, max_x),
-            ols(f"{technique}_removed_per_event ~ {technique}_executions_per_event", df)
-            .fit()
-            .predict(pd.DataFrame({f"{technique}_executions_per_event": np.linspace(0, max_x)}))
-            .values,
-            color=color,
+            position_offsets=position_offsets(feature),
+            # Highlight the gap in data with a zigzag on x axis
+            zigzag=zigzag(feature),
         )
-# ax.legend(loc="lower left")
-ax.vlines(1, ymin=0, ymax=1, color=RED)
-ax.set_ylabel("Proportion of test removed")
-ax.set_xlabel("Executions per event")
-ax.set_xlim(0)
-ax.set_ylim(0, 1)
-plt.savefig(f"{figures}/rq3.png", bbox_inches="tight", pad_inches=0)
+        plt.savefig(f"{figures}/rq{rq}-{feature}.pgf", bbox_inches="tight", pad_inches=0)
 
-fig, axs = plt.subplots(3, 4, sharex=True, sharey=True)
-max_x = df[[f"{technique}_executions_per_event" for technique in TECHNIQUES]].max().max()
-for original_length, ax in zip(ORIGINAL_ATTACK_LENGTHS, axs.reshape(-1)):
-    for technique, marker, color in zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]):
-        ax.set_title(f"Length {original_length}")
-        ax.scatter(
-            df.loc[df.original_length == original_length, f"{technique}_executions_per_event"],
-            df.loc[df.original_length == original_length, f"{technique}_removed_per_event"],
-            label=technique,
-            marker=marker,
-            color=color,
-        )
-        ax.set_xlim(0)
-        ax.set_ylim(0, 1)
-
-# plt.legend(loc="upper left")
-fig.text(0.5, 0, "Executions per event", ha="center", va="center")
-fig.text(0, 0.5, "Proportion of test removed", ha="center", va="center", rotation="vertical")
-plt.tight_layout()
-plt.savefig(f"{figures}/rq3_subplots_per_event.png", bbox_inches="tight", pad_inches=0)
-
-
-# EXPERIMENTAL
-print(
-    df[["original_length"] + [f"{technique}_executions" for technique in TECHNIQUES]].sort_values(
-        "causal_cut_executions"
-    )
-)
-print(df.loc[df.original_length == 24, "causal_cut_executions"].sort_values())
-
-fig, ax = plt.subplots()
-for technique, marker, color in reversed(list(zip(TECHNIQUES, ["o", "+", "x"], [RED, GREEN, MAGENTA]))):
-    ax.scatter(
-        df["original_length"],
-        df[f"{technique}_ppv"] / df[f"{technique}_executions"],
-        label=technique,
-        marker=marker,
-        color=color,
-    )
-    # if technique != "greedy_minimal":
-    #     ax.plot(
-    #         np.linspace(0, max_x),
-    #         ols(f"{technique}_executions_per_event_removed ~ {technique}_percentage_spurious_removed", df)
-    #         .fit()
-    #         .predict(pd.DataFrame({f"{technique}_percentage_spurious_removed": np.linspace(0, max_x)}))
-    #         .values,
-    #         color=color,
-    #     )
-ax.legend(loc="upper right")
-# ax.vlines(1, ymin=0, ymax=1, color=RED)
-ax.set_xlabel("Test length")
-ax.set_ylabel("RoI")
-# ax.set_xlim(0)
-# ax.set_ylim(0, 1)
-plt.savefig(f"{figures}/rq3_specificity.png", bbox_inches="tight", pad_inches=0)
-
-
-fig, ax = plt.subplots()
-for technique, marker, color in reversed(list(zip(TECHNIQUES, ["o", "x", "+"], [RED, GREEN, MAGENTA]))):
-    ax.scatter(
-        df[f"{technique}_percentage_spurious_removed"],
-        df[f"{technique}_executions_per_event_removed"],
-        label=technique,
-        marker=marker,
-        color=color,
-    )
-    if technique != "greedy_minimal":
-        ax.plot(
-            np.linspace(0, max_x),
-            ols(f"{technique}_executions_per_event_removed ~ {technique}_percentage_spurious_removed", df)
-            .fit()
-            .predict(pd.DataFrame({f"{technique}_percentage_spurious_removed": np.linspace(0, max_x)}))
-            .values,
-            color=color,
-        )
-ax.legend(loc="upper right")
-# ax.vlines(1, ymin=0, ymax=1, color=RED)
-ax.set_xlabel("Percentage of spurious events removed")
-ax.set_ylabel("Executions per event removed")
-# ax.set_xlim(0)
-# ax.set_ylim(0, 1)
-plt.savefig(f"{figures}/rq3_spurious.png", bbox_inches="tight", pad_inches=0)
+        stats = []
+        for technique in [f"{t}{outcome}" for t in TECHNIQUES]:
+            raw_stat, raw_p_value = spearmanr(df[feature], df[technique])
+            stats.append(
+                {
+                    f"{feature}_stat": round_format(raw_stat),
+                    f"{feature}_p_value": bold_if_significant(raw_p_value),
+                }
+            )
+        rq_stats.append(pd.DataFrame(stats))
+    format_latex(pd.concat(rq_stats, axis=1), f"{stats_dir}/rq{rq}.tex", index=False)

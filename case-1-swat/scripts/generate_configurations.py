@@ -12,7 +12,7 @@ TIMESTEPS = 210
 attack_ids = list(range(119))
 
 configurations = []
-for sample_size in [500, 1000, 2000, 3000, 4000, 5000, None]:
+for sample_size in [500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, None]:
     for confidence in [0.1, 0.2]:
         logs = f"{ROOT}/logs/sample_{sample_size}/ci_{round(100 - (100 * confidence))}"
         for i in attack_ids:
