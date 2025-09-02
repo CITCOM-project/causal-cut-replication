@@ -6,16 +6,13 @@ import sys
 import os
 import json
 import re
-from itertools import combinations
+from scipy.stats import spearmanr
 from collections import Counter
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from statsmodels.formula.api import ols
-from scipy.stats import mannwhitneyu, spearmanr
-from cliffs_delta import cliffs_delta
 
-from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
+from constants import BASELINE, TOOLNAME, RED, GREEN, MAGENTA
 from grouped_boxplot import plot_grouped_boxplot
 
 plt.style.use("ggplot")
@@ -56,15 +53,15 @@ for root, dirs, files in os.walk(logs):
             attack["original_length"] = len(attack["attack"])
             latest_minimal_event = max(attack["minimal"])
             attack["necessary_prefix"] = find_necessary_prefix(attack["minimal"], attack["attack"])
-            for test in [
-                "greedy_minimal",
-                "minimal",
-                "necessary_prefix",
-                "extended_interventions",
-                "reduced_extended_interventions",
-            ]:
-                if test in attack:
-                    attack[test] = len(set(map(tuple, attack[test])))
+            # for test in [
+            #     "greedy_minimal",
+            #     "minimal",
+            #     "necessary_prefix",
+            #     "extended_interventions",
+            #     "reduced_extended_interventions",
+            # ]:
+            #     if test in attack:
+            #         attack[test] = len(set(map(tuple, attack[test])))
             if "error" in attack:
                 if "treatment_strategies" not in attack:
                     assert attack["error"] in [
@@ -74,10 +71,41 @@ for root, dirs, files in os.walk(logs):
                     attack["treatment_strategies"] = []
         attacks += log
 
+# FIT101 False
+# FIT201 False
+# FIT301 True # No test with FIT301 as an outcome can be failure-inducing on our dataset
+# FIT401 False
+# FIT501 False
+# FIT601 False
+# DPIT301 False
+# LIT101 False
+# LIT301 False
+# LIT401 False
+
 df = pd.DataFrame(attacks)
+df["attack"] = df["attack"].apply(lambda x: tuple(map(tuple, x)))
+df["minimal"] = df["minimal"].apply(lambda x: tuple(map(tuple, x)))
+df["necessary_prefix"] = df["necessary_prefix"].apply(lambda x: len(tuple(map(tuple, x))))
+
+# print(df.loc[df["error"] == "Missing data for control_strategy", ["attack_index", "outcome"]])  # FIT401
+print(len(df))
+df = df.query("outcome != 'FIT301'")
+df = df.query("outcome != 'FIT401'")
+print(len(df))
+print(len(set(df["attack"])), "long attacks")
+df["minimal_no_time"] = df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t)))
+print(len(list(map(str, df.groupby(["outcome", "minimal_no_time"]).groups.keys()))), "minimal attacks")
+
+
+print("\n".join(map(str, df.groupby(["outcome", "minimal_no_time"]).groups.keys())))
+
+
+# print("\n".join(map(str, sorted(df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t))).unique()))))
+df["treatment_strategies"] = [
+    sum(["result" in intervention for intervention in test]) for test in df["treatment_strategies"]
+]
 
 df = df.loc[df["original_length"] > 1]
-df["attack"] = df["attack"].apply(lambda a: tuple(map(tuple, a)))
 # Make field names consistent with the paper
 df.rename(
     {
@@ -93,11 +121,12 @@ df.rename(
 
 # Add extra columns
 df["greedy_heuristic_executions"] = df["original_length"]
-df["minimal_per_event"] = df["minimal"] / df["original_length"]
+# df["minimal_per_event"] = df["minimal"] / df["original_length"]
 
 TECHNIQUES = ["greedy_heuristic", "causal_cut", "causal_cut_plus_greedy_heuristic"]
 
-for technique in TECHNIQUES + ["minimal"]:
+for technique in ["minimal"] + TECHNIQUES:
+    df[technique] = df[technique].apply(lambda a: len(tuple(map(tuple, a))))
     df[f"{technique}_per_event"] = df[technique] / df["original_length"]
     df[f"{technique}_removed"] = df["original_length"] - df[technique]
     df[f"{technique}_removed_per_event"] = (df["original_length"] - df[technique]) / df["original_length"]
@@ -112,6 +141,9 @@ for technique in TECHNIQUES + ["minimal"]:
     if technique != "minimal":
         df[f"{technique}_executions_per_event"] = df[f"{technique}_executions"] / df["original_length"]
         df[f"{technique}_cost_efficiency"] = df["minimal"] / (df[technique] * df[f"{technique}_executions"])
+
+df["estimated_interventions"] = df["estimated_interventions"].apply(len)
+
 
 if "case-1" in logs:
     df = df.query("sample_size <= 5000 | sample_size > 9000")
@@ -207,8 +239,19 @@ def format_latex(df, filename, **kwargs):
         f.write("\n".join(output))
 
 
+print("Median percentage of spurious events removed")
+print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].median())
+print("Mean percentage of spurious events removed")
+print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].mean())
+
+
 for rq, outcome in enumerate(OUTCOMES, 1):
     rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
+    df[f"greedy_heuristic{outcome}"] = df[f"greedy_heuristic{outcome}"] / df["original_length"]
+    df[f"causal_cut{outcome}"] = df[f"causal_cut{outcome}"] / df["original_length"]
+    df[f"causal_cut_plus_greedy_heuristic{outcome}"] = (
+        df[f"causal_cut_plus_greedy_heuristic{outcome}"] / df["original_length"]
+    )
     for feature in FEATURES:
         fig, ax = plt.subplots(figsize=(6.5, 4))
         plot_grouped_boxplot(
@@ -235,6 +278,7 @@ for rq, outcome in enumerate(OUTCOMES, 1):
             # Highlight the gap in data with a zigzag on x axis
             zigzag=zigzag(feature),
         )
+        ax.set_ylim(0)
         plt.savefig(f"{figures}/rq{rq}-{feature}.pdf", bbox_inches="tight", pad_inches=0)
 
         stats = []

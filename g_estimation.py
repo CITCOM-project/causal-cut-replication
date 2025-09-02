@@ -92,7 +92,7 @@ parser.add_argument(
     "-n",
     "--num_individuals",
     type=int,
-    help="The number of interventions to consider at once.",
+    help="The number of individuals in the study.",
     default=None,
 )
 parser.add_argument(
