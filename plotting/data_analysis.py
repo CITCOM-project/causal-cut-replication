@@ -83,27 +83,23 @@ for root, dirs, files in os.walk(logs):
 # LIT401 False
 
 df = pd.DataFrame(attacks)
-df["attack"] = df["attack"].apply(lambda x: tuple(map(tuple, x)))
-df["minimal"] = df["minimal"].apply(lambda x: tuple(map(tuple, x)))
-df["necessary_prefix"] = df["necessary_prefix"].apply(lambda x: len(tuple(map(tuple, x))))
+for col in ["attack", "minimal", "estimated_interventions", "necessary_prefix"]:
+    df[col] = df[col].apply(lambda x: tuple(map(tuple, x)))
 
 # print(df.loc[df["error"] == "Missing data for control_strategy", ["attack_index", "outcome"]])  # FIT401
-print(len(df))
 df = df.query("outcome != 'FIT301'")
 df = df.query("outcome != 'FIT401'")
-print(len(df))
-print(len(set(df["attack"])), "long attacks")
 df["minimal_no_time"] = df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t)))
-print(len(list(map(str, df.groupby(["outcome", "minimal_no_time"]).groups.keys()))), "minimal attacks")
+df["last_necessary_intervention"] = [max(x)[0] for x in df["minimal"]]
+df["total_time"] = [max(x)[0] for x in df["attack"]]
 
 
 print("\n".join(map(str, df.groupby(["outcome", "minimal_no_time"]).groups.keys())))
 
 
 # print("\n".join(map(str, sorted(df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t))).unique()))))
-df["treatment_strategies"] = [
-    sum(["result" in intervention for intervention in test]) for test in df["treatment_strategies"]
-]
+df["estimable"] = [sum("result" in intervention for intervention in test) for test in df["treatment_strategies"]]
+df["estimable_per_event"] = df["estimable"] / df["original_length"]
 
 df = df.loc[df["original_length"] > 1]
 # Make field names consistent with the paper
@@ -144,7 +140,6 @@ for technique in ["minimal"] + TECHNIQUES:
 
 df["estimated_interventions"] = df["estimated_interventions"].apply(len)
 
-
 if "case-1" in logs:
     df = df.query("sample_size <= 5000 | sample_size > 9000")
 
@@ -172,11 +167,12 @@ CONFIDENCE_INTERVALS = [80, 90]
 
 OUTCOMES = ["_cost_efficiency", "", "_executions"]
 y_labels = {"_cost_efficiency": "Cost efficiency", "": "Tool-minimised test length", "_executions": "Executions"}
-FEATURES = ["original_length", "minimal", "sample_size", "ci_alpha"]
+FEATURES = ["original_length", "minimal", "sample_size", "ci_alpha", "estimable_per_event"]
 x_labels = {
     "original_length": "Original test length",
-    "minimal": "Necessary interventions",
+    "minimal": "Proportion of necessary interventions",
     "sample_size": "Executions available",
+    "estimable_per_event": "Proportion of estimable interventions",
     "ci_alpha": "CI alpha",
 }
 x_ticks = {k: sorted(list(set(df[k]))) for k in FEATURES}
@@ -244,40 +240,85 @@ print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].median())
 print("Mean percentage of spurious events removed")
 print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].mean())
 
+print(df[[f"{t}_cost_efficiency" for t in TECHNIQUES]].max())
+
+# Estimable events in the dataset by sample size
+fig, ax = plt.subplots(figsize=(6.5, 4))
+plot_grouped_boxplot(
+    [
+        list(df.groupby("sample_size")["estimable_per_event"].apply(list)),
+    ],
+    ax=ax,
+    colours=[GREEN],
+    xticklabels=x_ticks["sample_size"],
+    xlabel=x_labels["sample_size"],
+    ylabel="Proportion of interventions estimable",
+    savepath=f"{figures}/estimable.pdf",
+)
+
+# Position of last necessary intervention
+plt.hist(df["last_necessary_intervention"] / df["total_time"], bins=25, color=GREEN)
+plt.savefig(f"{figures}/last_necessary.pdf")
+
+legend_args = {
+    "ncol": 3,
+    "loc": "upper center",
+    "bbox_to_anchor": (0.5, 1.11),
+    "columnspacing": 0.7,
+    "handletextpad": 0.5,
+    "handlelength": 1,
+}
+
+df["minimal"] = df["minimal"] / df["original_length"]
 
 for rq, outcome in enumerate(OUTCOMES, 1):
     rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
-    df[f"greedy_heuristic{outcome}"] = df[f"greedy_heuristic{outcome}"] / df["original_length"]
-    df[f"causal_cut{outcome}"] = df[f"causal_cut{outcome}"] / df["original_length"]
-    df[f"causal_cut_plus_greedy_heuristic{outcome}"] = (
-        df[f"causal_cut_plus_greedy_heuristic{outcome}"] / df["original_length"]
-    )
+    if rq > 1:
+        df[f"greedy_heuristic{outcome}"] = df[f"greedy_heuristic{outcome}"] / df["original_length"]
+        df[f"causal_cut{outcome}"] = df[f"causal_cut{outcome}"] / df["original_length"]
+        df[f"causal_cut_plus_greedy_heuristic{outcome}"] = (
+            df[f"causal_cut_plus_greedy_heuristic{outcome}"] / df["original_length"]
+        )
     for feature in FEATURES:
         fig, ax = plt.subplots(figsize=(6.5, 4))
-        plot_grouped_boxplot(
-            [
-                list(df.groupby(feature)[f"greedy_heuristic{outcome}"].apply(list)),
-                list(df.groupby(feature)[f"causal_cut{outcome}"].apply(list)),
-                list(df.groupby(feature)[f"causal_cut_plus_greedy_heuristic{outcome}"].apply(list)),
-            ],
-            ax=ax,
-            labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-            colours=[RED, GREEN, MAGENTA],
-            xticklabels=x_ticks[feature],
-            xlabel=x_labels[feature],
-            ylabel=y_labels[outcome],
-            legend_args={
-                "ncol": 3,
-                "loc": "upper center",
-                "bbox_to_anchor": (0.5, 1.11),
-                "columnspacing": 0.7,
-                "handletextpad": 0.5,
-                "handlelength": 1,
-            },
-            position_offsets=position_offsets(feature),
-            # Highlight the gap in data with a zigzag on x axis
-            zigzag=zigzag(feature),
-        )
+        if feature == "estimable_per_event" or feature == "minimal":
+            cc = ax.scatter(df[feature], df[f"causal_cut{outcome}"], color=GREEN, alpha=0.1)
+            cc_plus = ax.scatter(
+                df[feature], df[f"causal_cut_plus_greedy_heuristic{outcome}"], color=MAGENTA, marker="+", alpha=0.1
+            )
+            greedy = ax.scatter(df[feature], df[f"greedy_heuristic{outcome}"], color=RED, marker="x", alpha=0.1)
+            # ax.set_xticklabels(x_ticks[feature])
+            ax.set_xlabel(x_labels[feature])
+            ax.set_ylabel(y_labels[outcome])
+            ax.set_xticks(np.linspace(0, 1, 11))
+            ax.set_xlim(-0.01)
+            ax.legend(
+                handles=[
+                    plt.scatter([None], [None], marker="x", color=RED),
+                    plt.scatter([None], [None], marker="o", color=GREEN),
+                    plt.scatter([None], [None], marker="+", color=MAGENTA),
+                ],
+                labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+                **legend_args,
+            )
+        else:
+            plot_grouped_boxplot(
+                [
+                    list(df.groupby(feature)[f"greedy_heuristic{outcome}"].apply(list)),
+                    list(df.groupby(feature)[f"causal_cut{outcome}"].apply(list)),
+                    list(df.groupby(feature)[f"causal_cut_plus_greedy_heuristic{outcome}"].apply(list)),
+                ],
+                ax=ax,
+                labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+                colours=[RED, GREEN, MAGENTA],
+                xticklabels=x_ticks[feature],
+                xlabel=x_labels[feature],
+                ylabel=y_labels[outcome],
+                legend_args=legend_args,
+                position_offsets=position_offsets(feature),
+                # Highlight the gap in data with a zigzag on x axis
+                zigzag=zigzag(feature),
+            )
         ax.set_ylim(0)
         plt.savefig(f"{figures}/rq{rq}-{feature}.pdf", bbox_inches="tight", pad_inches=0)
 

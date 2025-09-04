@@ -52,11 +52,12 @@ def plot_grouped_boxplot(
         raise ValueError("If providing position_offsets, please ensure that you provide as many as you have positions")
     boxplots = {}
     for i, boxes in enumerate(groups):
+        shift = i + 0.15 if len(groups) == 1 else i
         marker = markers[i] if isinstance(markers, list) else markers if markers is not None else "o"
 
         boxes = ax.boxplot(
             boxes,
-            positions=np.array(range(positions)) * (plots + 1) + i + np.array(position_offsets),
+            positions=np.array(range(positions)) * (plots + 1) + shift + np.array(position_offsets),
             widths=width,
             label=labels[i] if labels is not None else None,
             patch_artist=True,  # fill with color
