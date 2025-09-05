@@ -15,6 +15,10 @@ import numpy as np
 from constants import BASELINE, TOOLNAME, RED, GREEN, MAGENTA
 from grouped_boxplot import plot_grouped_boxplot
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 plt.style.use("ggplot")
 
 # Setup IO
@@ -92,9 +96,6 @@ df = df.query("outcome != 'FIT401'")
 df["minimal_no_time"] = df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t)))
 df["last_necessary_intervention"] = [max(x)[0] for x in df["minimal"]]
 df["total_time"] = [max(x)[0] for x in df["attack"]]
-
-
-print("\n".join(map(str, df.groupby(["outcome", "minimal_no_time"]).groups.keys())))
 
 
 # print("\n".join(map(str, sorted(df["minimal"].apply(lambda t: tuple(map(lambda i: i[1:], t))).unique()))))
@@ -235,12 +236,22 @@ def format_latex(df, filename, **kwargs):
         f.write("\n".join(output))
 
 
+print("=" * 40, "Cost efficiency", "=" * 40)
+print(df[[f"{t}_cost_efficiency" for t in TECHNIQUES]].max())
+
+print("=" * 40, "Spurious events", "=" * 40)
 print("Median percentage of spurious events removed")
 print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].median())
 print("Mean percentage of spurious events removed")
 print(df[[f"{t}_percentage_spurious_removed" for t in TECHNIQUES]].mean())
 
-print(df[[f"{t}_cost_efficiency" for t in TECHNIQUES]].max())
+print("=" * 40, "Executions", "=" * 40)
+print("Median executions")
+print(df[[f"{t}_executions_per_event" for t in TECHNIQUES]].median())
+print("Mean executions")
+print(df[[f"{t}_executions_per_event" for t in TECHNIQUES]].mean())
+print("=" * 80)
+
 
 # Estimable events in the dataset by sample size
 fig, ax = plt.subplots(figsize=(6.5, 4))
@@ -318,6 +329,7 @@ for rq, outcome in enumerate(OUTCOMES, 1):
                 position_offsets=position_offsets(feature),
                 # Highlight the gap in data with a zigzag on x axis
                 zigzag=zigzag(feature),
+                # logscale=(rq == 3 and feature == "sample_size"),
             )
         ax.set_ylim(0)
         plt.savefig(f"{figures}/rq{rq}-{feature}.pdf", bbox_inches="tight", pad_inches=0)

@@ -35,6 +35,7 @@ def plot_grouped_boxplot(
     position_offsets=None,
     showfliers=True,
     zigzag=[],
+    logscale=False,
 ):
     if ax is None:
         _, ax = plt.subplots()
@@ -52,6 +53,8 @@ def plot_grouped_boxplot(
         raise ValueError("If providing position_offsets, please ensure that you provide as many as you have positions")
     boxplots = {}
     for i, boxes in enumerate(groups):
+        if logscale:
+            boxes = [np.log(box) for box in boxes]
         shift = i + 0.15 if len(groups) == 1 else i
         marker = markers[i] if isinstance(markers, list) else markers if markers is not None else "o"
 
