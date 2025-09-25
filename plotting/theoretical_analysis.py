@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, GOLD_STANDARD, RANGE_1
+from constants import BASELINE, TOOLNAME, RED, GREEN, MAGENTA
 
 plt.style.use("ggplot")
 
@@ -12,8 +12,20 @@ MAX_LENGTH = 25
 TRACE_LENGTHS = np.linspace(MIN_LENGTH, MAX_LENGTH)
 
 # Greedy
-(greedy,) = plt.plot(TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)) / TRACE_LENGTHS, color=RED, label=BASELINE)
-
+(greedy,) = plt.plot(
+    TRACE_LENGTHS,
+    np.ones(len(TRACE_LENGTHS)) / TRACE_LENGTHS,
+    color=RED,
+    label=f"{BASELINE}\n{BASELINE} with interaction |n|=t",
+)
+(greedy_worst_n1,) = plt.plot(
+    TRACE_LENGTHS,
+    (1 / TRACE_LENGTHS) / (TRACE_LENGTHS),
+    color=RED,
+    label=BASELINE + " interaction (|n|=1, i=t)",
+    linestyle=(4.5, (2, 6)),
+    zorder=10,
+)
 # CausalCut best
 (cc_best,) = plt.plot(
     TRACE_LENGTHS, np.ones(len(TRACE_LENGTHS)), color=GREEN, label=TOOLNAME + " best", linestyle="dashed"
@@ -83,7 +95,14 @@ plt.fill_between(
 )
 plt.xlabel("Test length")
 plt.ylabel("PPV per execution")
-handles = [cc_best, cc_plus_best, greedy, (cc_worst_nt, cc_plus_best_nt), (cc_worst_n1, cc_plus_worst_n1)]
+handles = [
+    cc_best,
+    cc_plus_best,
+    greedy,
+    (cc_worst_nt, cc_plus_best_nt),
+    greedy_worst_n1,
+    (cc_worst_n1, cc_plus_worst_n1),
+]
 plt.legend(
     handles=handles,
     labels=[h.get_label() if hasattr(h, "get_label") else "\n".join(h1.get_label() for h1 in h) for h in handles],
