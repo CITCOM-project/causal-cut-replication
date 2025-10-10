@@ -238,7 +238,8 @@ def format_latex(df, filename, **kwargs):
 
 print("=" * 40, "Cost efficiency", "=" * 40)
 print(df[[f"{t}_cost_efficiency" for t in TECHNIQUES]].max())
-print("MAX_DIFFERENCE", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).mean())
+print("MAX_DIFFERENCE median", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).median())
+print("MAX_DIFFERENCE mean", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).mean())
 
 print("=" * 40, "Spurious events", "=" * 40)
 print("Median percentage of spurious events removed")
