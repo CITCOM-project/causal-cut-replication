@@ -4,7 +4,6 @@ __pycache__
 *.pqt
 *.log
 *.zip
-*.pdf
 *.png
 *.pgf
 *.log
@@ -14,7 +13,6 @@ openaps_temp
 test/
 logs/
 tmp/
-figures/
 stats/
 *.egg-info
 build/
