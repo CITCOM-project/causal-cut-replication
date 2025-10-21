@@ -16,9 +16,9 @@ To ensure that the segments are long enough to perform causal estimation for eve
 Since interventions only happen every 15 seconds, we set the timeskip to 15.
 To perform the segmentation, run the following command.
 ```
-python long_format_data.py -t 210 -s 15 -o data/data-210.csv data/SWaT_dataset_attack_v0.xlsx
+python long_format_data.py -t 225 -s 15 -o data/data-225.csv data/SWaT_dataset_attack_v0.xlsx
 ```
-This will create a file called `data-210.csv` within the `data` directory.
+This will create a file called `data-225.csv` within the `data` directory.
 
 ## Running causal tests
 To run our causal tests, simply run the following command from the repository root directory, with the `tci` conda virtual environment activated.
