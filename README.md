@@ -34,9 +34,13 @@ Having done this, you will need to `cd` into `case-1-swat` and run `python long_
 
 Our second subject systems is a [simulator](https://github.com/CITCOM-project/APSDigitalTwin) for the OpenAPS/oref0 artificial pancreas system, which we redistribute as part of this replication package to make it self-contained.
 The data we collected from this system for our experiments is available from FIXME.
-However, to rerun our data collection scripts oref0 needs to be installed and on your `PATH`.
+We recommend you download this rather than recollecting it yourself.
+
+If you do choose to rerun our data collection scripts oref0 needs to be installed and on your `PATH`.
 To do this, please follow the instructions on the [oref0 GitHub repo](https://github.com/openaps/oref0).
 This project was executed with oref0 version 0.7.1.
+From an HPC system running `slurm`, you should simply be able to `cd` into `case-2-oref0` and run `bash scripts/submit_collect_fuzz_data.sh`.
+
 
 
 ## Running Causal Tests
