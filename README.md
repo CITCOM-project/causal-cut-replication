@@ -26,18 +26,23 @@ You will need to download the `SWaT_Dataset_Attack_v0.xlsx` dataset and place it
 Having done this, you will need to `cd` into `case-1-swat` and run `python long_format_data.py -t 225 -s 15 -o data/data-225.csv data/SWaT_dataset_attack_v0.xlsx` to convert the data to the correct format.
 
 ### OpenAPS
+> [!NOTE]
+> This step is optional.
+> Rerunning our data collection scripts requires over a month's worth of HPC time and will not produce the exact same traces as we used, since part of the simulation is stochastic.
+> This will potentially lead to different failures and different causal test outcomes, but should not affect the overall conclusions of the work.
+> Rather than rerunning the data collection, we recommend you [download and extract our data](ORDA) as specified, and skip to [Plotting](##Running Causal Tests).
+
 Our second subject systems is a [simulator](https://github.com/CITCOM-project/APSDigitalTwin) for the OpenAPS/oref0 artificial pancreas system, which we redistribute as part of this replication package to make it self-contained.
 The data we collected from this system for our experiments is available from FIXME.
 However, to rerun our data collection scripts oref0 needs to be installed and on your `PATH`.
 To do this, please follow the instructions on the [oref0 GitHub repo](https://github.com/openaps/oref0).
 This project was executed with oref0 version 0.7.1.
 
-> [!NOTE]
-> Rerunning our data collection scripts requires over a month's worth of HPC time and may not produce the exact same traces as we used, since part of the simulation is stochastic.
-> This will potentially lead to different failures and different causal test outcomes, but should not affect the overall conclusions of the work.
-> Rather than rerunning the data collection, we strongly recommend you download our dataset from FIXME.
 
 ## Running Causal Tests
+> [!NOTE]
+> This step is optional. All of our test execution data can be downloaded from (ORDA)[DOI].
+> To use this data, simply download and extract the data as specified, and skip to [Plotting](##Plotting)
 
 For each case (`case-1-swat` and `case-2-oref0`), simply run `bash setup_and_run.sh $case`.
 This will create a file `configurations.txt` in the case directory and execute `g_estimation.sh` with each of these of these configurations.
