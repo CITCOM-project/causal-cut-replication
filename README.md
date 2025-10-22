@@ -30,7 +30,7 @@ Having done this, you will need to `cd` into `case-1-swat` and run `python long_
 > This step is optional.
 > Rerunning our data collection scripts requires over a month's worth of HPC time and will not produce the exact same traces as we used, since part of the simulation is stochastic.
 > This will potentially lead to different failures and different causal test outcomes, but should not affect the overall conclusions of the work.
-> Rather than rerunning the data collection, we recommend you [download and extract our data](ORDA) as specified, and skip to [Running Causal Test Cases](#Running Causal Tests).
+> Rather than rerunning the data collection, we recommend you [download and extract our data](ORDA) as specified, and skip to [Running Causal Test Cases](#Running-Causal-Tests).
 
 Our second subject systems is a [simulator](https://github.com/CITCOM-project/APSDigitalTwin) for the OpenAPS/oref0 artificial pancreas system, which we redistribute as part of this replication package to make it self-contained.
 The data we collected from this system for our experiments is available from FIXME.
