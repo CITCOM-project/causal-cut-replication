@@ -24,7 +24,13 @@
     [225, "bolus", 45],
     [275, "bolus", 45],
     [290, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [225, "bolus", 1],
+    [275, "bolus", 1],
+    [290, "bolus", 1]
+  ],
+  "ddmin_executions": 7
 }, {
   "attack": [
     [115, "bolus", 1],
@@ -54,7 +60,14 @@
     [150, "bolus", 45],
     [155, "bolus", 45],
     [165, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [115, "bolus", 1],
+    [150, "bolus", 1],
+    [155, "bolus", 1],
+    [165, "bolus", 1]
+  ],
+  "ddmin_executions": 7
 }, {
   "attack": [
     [15, "bolus", 1],
@@ -80,7 +93,11 @@
   "attack_id": 14,
   "greedy_minimal": [
     [245, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [245, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [30, "bolus", 1],
@@ -105,7 +122,11 @@
   "attack_id": 16,
   "greedy_minimal": [
     [155, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [155, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [55, "bolus", 1],
@@ -132,7 +153,11 @@
   "attack_id": 18,
   "greedy_minimal": [
     [470, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [470, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -156,7 +181,11 @@
   "attack_id": 19,
   "greedy_minimal": [
     [110, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [110, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [85, "bolus", 1],
@@ -189,7 +218,15 @@
     [115, "bolus", 45],
     [125, "bolus", 45],
     [150, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [85, "bolus", 1],
+    [90, "bolus", 1],
+    [115, "bolus", 1],
+    [125, "bolus", 1],
+    [150, "bolus", 1]
+  ],
+  "ddmin_executions": 14
 }, {
   "attack": [
     [440, "bolus", 1],
@@ -213,7 +250,11 @@
   "attack_id": 42,
   "greedy_minimal": [
     [455, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [455, "light_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [10, "bolus", 1],
@@ -242,7 +283,11 @@
   "attack_id": 45,
   "greedy_minimal": [
     [230, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [230, "light_meal", 1]
+  ],
+  "ddmin_executions": 5
 }, {
   "attack": [
     [10, "light_meal", 1],
@@ -281,7 +326,14 @@
     [200, "bolus", 45],
     [205, "bolus", 45],
     [210, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [195, "bolus", 1],
+    [200, "bolus", 1],
+    [205, "bolus", 1],
+    [210, "bolus", 1]
+  ],
+  "ddmin_executions": 9
 }, {
   "attack": [
     [100, "bolus", 1],
@@ -310,7 +362,13 @@
     [155, "bolus", 45],
     [160, "bolus", 45],
     [165, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [155, "bolus", 1],
+    [160, "bolus", 1],
+    [165, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [65, "bolus", 1],
@@ -358,7 +416,13 @@
     [170, "bolus", 45],
     [175, "bolus", 45],
     [180, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [170, "bolus", 1],
+    [175, "bolus", 1],
+    [180, "bolus", 1]
+  ],
+  "ddmin_executions": 10
 }, {
   "attack": [
     [10, "bolus", 1],
@@ -383,7 +447,11 @@
   "attack_id": 68,
   "greedy_minimal": [
     [165, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [165, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [15, "bolus", 1],
@@ -412,7 +480,11 @@
   "attack_id": 70,
   "greedy_minimal": [
     [350, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [350, "light_meal", 1]
+  ],
+  "ddmin_executions": 5
 }, {
   "attack": [
     [60, "bolus", 1],
@@ -438,7 +510,11 @@
   "attack_id": 84,
   "greedy_minimal": [
     [225, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [225, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [125, "bolus", 1],
@@ -467,7 +543,13 @@
     [150, "bolus", 45],
     [155, "bolus", 45],
     [180, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [150, "bolus", 1],
+    [155, "bolus", 1],
+    [180, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [40, "bolus", 1],
@@ -493,7 +575,11 @@
   "attack_id": 105,
   "greedy_minimal": [
     [185, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [185, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [130, "bolus", 1],
@@ -523,7 +609,13 @@
     [200, "bolus", 45],
     [230, "bolus", 45],
     [245, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [200, "bolus", 1],
+    [230, "bolus", 1],
+    [245, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -553,7 +645,11 @@
   "attack_id": 116,
   "greedy_minimal": [
     [205, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [205, "light_meal", 1]
+  ],
+  "ddmin_executions": 5
 }, {
   "attack": [
     [65, "heavy_meal", 1],
@@ -579,7 +675,12 @@
   "greedy_minimal": [
     [210, "bolus", 45],
     [220, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [210, "bolus", 1],
+    [220, "bolus", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [125, "bolus", 1],
@@ -604,7 +705,11 @@
   "attack_id": 126,
   "greedy_minimal": [
     [255, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [255, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [85, "bolus", 1],
@@ -627,7 +732,11 @@
   "attack_id": 129,
   "greedy_minimal": [
     [230, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [230, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [215, "heavy_meal", 1],
@@ -652,7 +761,11 @@
   "attack_id": 130,
   "greedy_minimal": [
     [375, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [375, "bolus", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [145, "heavy_meal", 1]
@@ -673,7 +786,11 @@
   "attack_id": 131,
   "greedy_minimal": [
     [145, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [145, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 1
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -698,7 +815,11 @@
   "attack_id": 137,
   "greedy_minimal": [
     [125, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [125, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [55, "bolus", 1],
@@ -721,7 +842,11 @@
   "attack_id": 138,
   "greedy_minimal": [
     [245, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [245, "light_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [115, "bolus", 1],
@@ -746,7 +871,12 @@
   "greedy_minimal": [
     [130, "bolus", 45],
     [135, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [130, "bolus", 1],
+    [135, "bolus", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [10, "snack", 1]
@@ -767,7 +897,11 @@
   "attack_id": 145,
   "greedy_minimal": [
     [10, "snack", 80]
-  ]
+  ],
+  "ddmin": [
+    [10, "snack", 1]
+  ],
+  "ddmin_executions": 1
 }, {
   "attack": [
     [65, "bolus", 1],
@@ -802,7 +936,12 @@
     [245, "bolus", 45],
     [245, "light_meal", 171],
     [275, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [245, "light_meal", 1],
+    [275, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 6
 }, {
   "attack": [
     [45, "light_meal", 1],
@@ -824,7 +963,11 @@
   "attack_id": 163,
   "greedy_minimal": [
     [45, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [45, "light_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -855,7 +998,11 @@
   "attack_id": 164,
   "greedy_minimal": [
     [290, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [290, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 5
 }, {
   "attack": [
     [145, "bolus", 1],
@@ -884,7 +1031,13 @@
     [380, "bolus", 45],
     [385, "bolus", 45],
     [395, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [380, "bolus", 1],
+    [385, "bolus", 1],
+    [395, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [180, "snack", 1],
@@ -910,7 +1063,12 @@
   "greedy_minimal": [
     [375, "bolus", 45],
     [380, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [375, "bolus", 1],
+    [380, "bolus", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [100, "bolus", 1],
@@ -939,7 +1097,13 @@
     [125, "bolus", 45],
     [135, "bolus", 45],
     [140, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [125, "bolus", 1],
+    [135, "bolus", 1],
+    [140, "bolus", 1]
+  ],
+  "ddmin_executions": 15
 }, {
   "attack": [
     [15, "bolus", 1],
@@ -962,7 +1126,11 @@
   "attack_id": 182,
   "greedy_minimal": [
     [170, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [170, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [50, "bolus", 1],
@@ -984,7 +1152,11 @@
   "attack_id": 183,
   "greedy_minimal": [
     [195, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [195, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 2
 }, {
   "attack": [
     [105, "bolus", 1],
@@ -1013,7 +1185,13 @@
     [150, "bolus", 45],
     [175, "bolus", 45],
     [185, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [150, "bolus", 1],
+    [175, "bolus", 1],
+    [185, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [135, "bolus", 1],
@@ -1043,7 +1221,14 @@
     [155, "bolus", 45],
     [165, "bolus", 45],
     [180, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [135, "bolus", 1],
+    [155, "bolus", 1],
+    [165, "bolus", 1],
+    [180, "bolus", 1]
+  ],
+  "ddmin_executions": 7
 }, {
   "attack": [
     [5, "bolus", 1],
@@ -1067,7 +1252,11 @@
   "attack_id": 219,
   "greedy_minimal": [
     [335, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [335, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -1093,7 +1282,11 @@
   "attack_id": 220,
   "greedy_minimal": [
     [160, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [160, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -1118,7 +1311,11 @@
   "attack_id": 244,
   "greedy_minimal": [
     [135, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [135, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [155, "bolus", 1],
@@ -1142,7 +1339,11 @@
   "attack_id": 276,
   "greedy_minimal": [
     [380, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [380, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [85, "bolus", 1],
@@ -1166,7 +1367,11 @@
   "attack_id": 280,
   "greedy_minimal": [
     [125, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [125, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [30, "heavy_meal", 1],
@@ -1209,7 +1414,16 @@
     [280, "bolus", 45],
     [285, "bolus", 45],
     [290, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [260, "bolus", 1],
+    [265, "bolus", 1],
+    [270, "bolus", 1],
+    [275, "bolus", 1],
+    [280, "bolus", 1],
+    [285, "bolus", 1]
+  ],
+  "ddmin_executions": 19
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -1234,7 +1448,11 @@
   "attack_id": 289,
   "greedy_minimal": [
     [110, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [110, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [15, "bolus", 1],
@@ -1257,7 +1475,11 @@
   "attack_id": 292,
   "greedy_minimal": [
     [150, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [150, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [125, "bolus", 1],
@@ -1290,7 +1512,15 @@
     [155, "bolus", 45],
     [170, "bolus", 45],
     [190, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [125, "bolus", 1],
+    [140, "bolus", 1],
+    [155, "bolus", 1],
+    [170, "bolus", 1],
+    [190, "bolus", 1]
+  ],
+  "ddmin_executions": 14
 }, {
   "attack": [
     [65, "bolus", 1],
@@ -1315,7 +1545,11 @@
   "attack_id": 311,
   "greedy_minimal": [
     [470, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [470, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -1343,7 +1577,11 @@
   "attack_id": 333,
   "greedy_minimal": [
     [195, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [195, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -1369,7 +1607,11 @@
   "attack_id": 337,
   "greedy_minimal": [
     [230, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [230, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [5, "bolus", 1],
@@ -1427,7 +1669,18 @@
     [465, "bolus", 45],
     [470, "bolus", 45],
     [475, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [440, "bolus", 1],
+    [445, "bolus", 1],
+    [450, "bolus", 1],
+    [455, "bolus", 1],
+    [460, "bolus", 1],
+    [465, "bolus", 1],
+    [470, "bolus", 1],
+    [475, "bolus", 1]
+  ],
+  "ddmin_executions": 25
 }, {
   "attack": [
     [40, "bolus", 1],
@@ -1454,7 +1707,14 @@
     [45, "bolus", 45],
     [70, "bolus", 45],
     [80, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [40, "bolus", 1],
+    [45, "bolus", 1],
+    [70, "bolus", 1],
+    [80, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 7
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -1476,7 +1736,11 @@
   "attack_id": 363,
   "greedy_minimal": [
     [315, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [315, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 2
 }, {
   "attack": [
     [290, "bolus", 1]
@@ -1497,7 +1761,11 @@
   "attack_id": 364,
   "greedy_minimal": [
     [290, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [290, "bolus", 1]
+  ],
+  "ddmin_executions": 1
 }, {
   "attack": [
     [20, "bolus", 1],
@@ -1523,7 +1791,11 @@
   "attack_id": 379,
   "greedy_minimal": [
     [190, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [190, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [55, "bolus", 1],
@@ -1546,7 +1818,11 @@
   "attack_id": 381,
   "greedy_minimal": [
     [170, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [170, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -1570,7 +1846,12 @@
   "greedy_minimal": [
     [25, "bolus", 45],
     [30, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [25, "bolus", 1],
+    [30, "bolus", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [125, "bolus", 1],
@@ -1597,7 +1878,13 @@
     [125, "bolus", 45],
     [130, "bolus", 45],
     [145, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [125, "bolus", 1],
+    [130, "bolus", 1],
+    [145, "bolus", 1]
+  ],
+  "ddmin_executions": 7
 }, {
   "attack": [
     [25, "bolus", 1],
@@ -1619,7 +1906,11 @@
   "attack_id": 392,
   "greedy_minimal": [
     [30, "snack", 80]
-  ]
+  ],
+  "ddmin": [
+    [30, "snack", 1]
+  ],
+  "ddmin_executions": 2
 }, {
   "attack": [
     [190, "bolus", 1],
@@ -1644,7 +1935,11 @@
   "attack_id": 395,
   "greedy_minimal": [
     [225, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [225, "light_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [135, "bolus", 1],
@@ -1675,7 +1970,14 @@
     [230, "bolus", 45],
     [235, "bolus", 45],
     [280, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [170, "bolus", 1],
+    [230, "bolus", 1],
+    [235, "bolus", 1],
+    [280, "bolus", 1]
+  ],
+  "ddmin_executions": 13
 }, {
   "attack": [
     [30, "bolus", 1],
@@ -1706,7 +2008,11 @@
   "attack_id": 430,
   "greedy_minimal": [
     [180, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [180, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 5
 }, {
   "attack": [
     [30, "snack", 1],
@@ -1732,7 +2038,11 @@
   "attack_id": 445,
   "greedy_minimal": [
     [100, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [100, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [230, "bolus", 1],
@@ -1756,7 +2066,11 @@
   "attack_id": 448,
   "greedy_minimal": [
     [260, "light_meal", 171]
-  ]
+  ],
+  "ddmin": [
+    [260, "light_meal", 1]
+  ],
+  "ddmin_executions": 3
 }, {
   "attack": [
     [135, "bolus", 1],
@@ -1778,7 +2092,11 @@
   "attack_id": 451,
   "greedy_minimal": [
     [140, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [140, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 2
 }, {
   "attack": [
     [70, "bolus", 1],
@@ -1805,7 +2123,11 @@
   "attack_id": 456,
   "greedy_minimal": [
     [190, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [190, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [30, "bolus", 1],
@@ -1834,7 +2156,13 @@
     [85, "bolus", 45],
     [90, "bolus", 45],
     [95, "bolus", 45]
-  ]
+  ],
+  "ddmin": [
+    [85, "bolus", 1],
+    [90, "bolus", 1],
+    [95, "bolus", 1]
+  ],
+  "ddmin_executions": 8
 }, {
   "attack": [
     [30, "bolus", 1],
@@ -1861,7 +2189,11 @@
   "attack_id": 463,
   "greedy_minimal": [
     [200, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [200, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [60, "bolus", 1],
@@ -1888,7 +2220,11 @@
   "attack_id": 469,
   "greedy_minimal": [
     [235, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [235, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 4
 }, {
   "attack": [
     [175, "bolus", 1],
@@ -1911,5 +2247,9 @@
   "attack_id": 477,
   "greedy_minimal": [
     [185, "heavy_meal", 243]
-  ]
+  ],
+  "ddmin": [
+    [185, "heavy_meal", 1]
+  ],
+  "ddmin_executions": 3
 }]
