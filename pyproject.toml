@@ -16,3 +16,7 @@ dependencies = [
     "openpyxl==3.1.0",
     "cliffs_delta==1.0.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["plotting"]
+exclude = ["tmp*"]
