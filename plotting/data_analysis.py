@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from constants import BASELINE, TOOLNAME, RED, GREEN, MAGENTA
+from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, DDMIN
 from grouped_boxplot import plot_grouped_boxplot
 
 import warnings
@@ -120,7 +120,7 @@ df.rename(
 df["greedy_heuristic_executions"] = df["original_length"]
 # df["minimal_per_event"] = df["minimal"] / df["original_length"]
 
-TECHNIQUES = ["greedy_heuristic", "causal_cut", "causal_cut_plus_greedy_heuristic"]
+TECHNIQUES = ["greedy_heuristic", "ddmin", "causal_cut", "causal_cut_plus_greedy_heuristic"]
 
 for technique in ["minimal"] + TECHNIQUES:
     df[technique] = df[technique].apply(lambda a: len(tuple(map(tuple, a))))
@@ -183,8 +183,21 @@ x_labels = {
 x_ticks = {k: sorted(list(set(df[k]))) for k in FEATURES}
 technique_labels = {
     "greedy_heuristic": "\\greedy",
+    "ddmin": "\\ddmin",
     "causal_cut": "\\toolname",
     "causal_cut_plus_greedy_heuristic": "\\toolnamePlus",
+}
+technique_colours = {
+    "greedy_heuristic": RED,
+    "ddmin": BLUE,
+    "causal_cut": GREEN,
+    "causal_cut_plus_greedy_heuristic": MAGENTA,
+}
+technique_markers = {
+    "greedy_heuristic": "x",
+    "ddmin": "^",
+    "causal_cut": "o",
+    "causal_cut_plus_greedy_heuristic": "+",
 }
 
 
@@ -242,8 +255,12 @@ def format_latex(df, filename, **kwargs):
 
 print("=" * 40, "Cost efficiency", "=" * 40)
 print(df[[f"{t}_cost_efficiency" for t in TECHNIQUES]].max())
-print("MAX_DIFFERENCE median", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).median())
-print("MAX_DIFFERENCE mean", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).mean())
+print(
+    "MAX DIFFERENCE GREEDY median", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).median()
+)
+print("MAX DIFFERENCE GREEDY mean", (df["causal_cut_cost_efficiency"] - df["greedy_heuristic_cost_efficiency"]).mean())
+print("MAX DIFFERENCE DDmin median", (df["causal_cut_cost_efficiency"] - df["ddmin_cost_efficiency"]).median())
+print("MAX DIFFERENCE DDmin mean", (df["causal_cut_cost_efficiency"] - df["ddmin_cost_efficiency"]).mean())
 
 print("=" * 40, "Spurious events", "=" * 40)
 print("Median percentage of spurious events removed")
@@ -257,7 +274,6 @@ print(df[[f"{t}_executions_per_event" for t in TECHNIQUES]].median())
 print("Mean executions")
 print(df[[f"{t}_executions_per_event" for t in TECHNIQUES]].mean())
 print("=" * 80)
-
 
 # Estimable events in the dataset by sample size
 fig, ax = plt.subplots(figsize=(6.5, 4))
@@ -278,7 +294,7 @@ plt.hist(df["last_necessary_intervention"] / df["total_time"], bins=25, color=GR
 plt.savefig(f"{figures}/last_necessary.pdf")
 
 legend_args = {
-    "ncol": 3,
+    "ncol": 4,
     "loc": "upper center",
     "bbox_to_anchor": (0.5, 1.11),
     "columnspacing": 0.7,
@@ -291,9 +307,14 @@ df["minimal"] = df["minimal"] / df["original_length"]
 
 def plot_feature(feature, ax):
     if feature in {"estimable_per_event", "minimal"}:
-        ax.scatter(df[feature], df[f"causal_cut{outcome}"], color=GREEN, alpha=0.1)
-        ax.scatter(df[feature], df[f"causal_cut_plus_greedy_heuristic{outcome}"], color=MAGENTA, marker="+", alpha=0.1)
-        ax.scatter(df[feature], df[f"greedy_heuristic{outcome}"], color=RED, marker="x", alpha=0.1)
+        for technique in TECHNIQUES:
+            ax.scatter(
+                df[feature],
+                df[f"{technique}{outcome}"],
+                color=technique_colours[technique],
+                marker=technique_markers[technique],
+                alpha=0.1,
+            )
         # ax.set_xticklabels(x_ticks[feature])
         ax.set_xlabel(x_labels[feature])
         ax.set_xticks(np.linspace(0, 1, 11))
@@ -301,14 +322,10 @@ def plot_feature(feature, ax):
 
     else:
         plot_grouped_boxplot(
-            [
-                list(df.groupby(feature)[f"greedy_heuristic{outcome}"].apply(list)),
-                list(df.groupby(feature)[f"causal_cut{outcome}"].apply(list)),
-                list(df.groupby(feature)[f"causal_cut_plus_greedy_heuristic{outcome}"].apply(list)),
-            ],
+            [list(df.groupby(feature)[f"{technique}{outcome}"].apply(list)) for technique in TECHNIQUES],
             ax=ax,
             # labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-            colours=[RED, GREEN, MAGENTA],
+            colours=[technique_colours[technique] for technique in TECHNIQUES],
             xticklabels=x_ticks[feature],
             xlabel=x_labels[feature],
             ylabel=y_labels[outcome],
@@ -324,6 +341,7 @@ for rq, outcome in enumerate(OUTCOMES, 1):
     rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
     if rq > 1:
         df[f"greedy_heuristic{outcome}"] = df[f"greedy_heuristic{outcome}"] / df["original_length"]
+        df[f"ddmin{outcome}"] = df[f"ddmin{outcome}"] / df["original_length"]
         df[f"causal_cut{outcome}"] = df[f"causal_cut{outcome}"] / df["original_length"]
         df[f"causal_cut_plus_greedy_heuristic{outcome}"] = (
             df[f"causal_cut_plus_greedy_heuristic{outcome}"] / df["original_length"]
@@ -335,10 +353,11 @@ for rq, outcome in enumerate(OUTCOMES, 1):
     axs[1].legend(
         handles=[
             plt.scatter([None], [None], marker="x", color=RED),
+            plt.scatter([None], [None], marker="^", color=BLUE),
             plt.scatter([None], [None], marker="o", color=GREEN),
             plt.scatter([None], [None], marker="+", color=MAGENTA),
         ],
-        labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+        labels=[BASELINE, DDMIN, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
         **legend_args,
     )
     plt.savefig(f"{figures}/rq{rq}.pdf", bbox_inches="tight", pad_inches=0)
@@ -350,10 +369,11 @@ for rq, outcome in enumerate(OUTCOMES, 1):
         ax.legend(
             handles=[
                 plt.scatter([None], [None], marker="x", color=RED),
+                plt.scatter([None], [None], marker="^", color=BLUE),
                 plt.scatter([None], [None], marker="o", color=GREEN),
                 plt.scatter([None], [None], marker="+", color=MAGENTA),
             ],
-            labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+            labels=[BASELINE, DDMIN, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
             **legend_args,
         )
         plt.tight_layout()
