@@ -18,7 +18,7 @@ def ddmin(test: Callable, inp: Sequence[Any], *test_args: Any) -> Sequence:
     of `test(inp, *test_args)`, which should be `PASS`, `FAIL`, or `UNRESOLVED`.
     """
     assert test(inp, *test_args) != PASS
-    executions = 0
+    executions = 1
 
     n = 2  # Initial granularity
     while len(inp) >= 2:

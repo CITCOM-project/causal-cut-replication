@@ -8,6 +8,7 @@ Then run as `python scripts/delta_debug.py successful_attacks.json`
 
 import sys
 import json
+from multiprocessing import Pool
 
 from fault_finder import reproduce_fault
 from aps_digitaltwin.util import intervention_values
@@ -16,11 +17,7 @@ from plotting.ddmin import ddmin
 
 
 def dd_reproduce_fault(
-    interventions: list,
-    initial_carbs: float,
-    initial_bg: float,
-    initial_iob: float,
-    constants: list,
+    interventions: list, initial_carbs: float, initial_bg: float, initial_iob: float, constants: list, failure: str
 ):
     return (
         reproduce_fault(
@@ -31,7 +28,7 @@ def dd_reproduce_fault(
             interventions=[(t, v, intervention_values[v]) for t, v, _ in interventions],
             constants=constants,
         )[0]
-        == attack["failure"]
+        == failure
     )
 
 
@@ -40,17 +37,23 @@ assert len(sys.argv) == 2, "Please provide the attack file"
 with open(sys.argv[1]) as f:
     attacks = json.load(f)
 
-for attack in attacks:
 
-    minimal, executions = ddmin(
+def parallell_ddmin(attack):
+    return ddmin(
         dd_reproduce_fault,
         attack["attack"],
         attack["initial_carbs"],
         attack["initial_bg"],
         attack["initial_iob"],
         attack["constants"],
+        attack["failure"],
     )
 
+
+with Pool() as pool:
+    results = pool.map(parallell_ddmin, attacks)
+
+for (minimal, executions), attack in zip(results, attacks):
     attack["ddmin"] = minimal
     attack["ddmin_executions"] = executions
 
