@@ -55,17 +55,7 @@ for root, dirs, files in os.walk(logs):
             attack["sample_size"] = sample_size
             attack["ci_alpha"] = ci_alpha
             attack["original_length"] = len(attack["attack"])
-            latest_minimal_event = max(attack["minimal"])
             attack["necessary_prefix"] = find_necessary_prefix(attack["minimal"], attack["attack"])
-            # for test in [
-            #     "greedy_minimal",
-            #     "minimal",
-            #     "necessary_prefix",
-            #     "extended_interventions",
-            #     "reduced_extended_interventions",
-            # ]:
-            #     if test in attack:
-            #         attack[test] = len(set(map(tuple, attack[test])))
             if "error" in attack:
                 if "treatment_strategies" not in attack:
                     assert attack["error"] in [
@@ -116,9 +106,7 @@ df.rename(
     inplace=True,
 )
 
-# Add extra columns
 df["greedy_heuristic_executions"] = df["original_length"]
-# df["minimal_per_event"] = df["minimal"] / df["original_length"]
 
 TECHNIQUES = ["greedy_heuristic", "ddmin", "causal_cut", "causal_cut_plus_greedy_heuristic"]
 
@@ -140,6 +128,7 @@ for technique in ["minimal"] + TECHNIQUES:
         df[f"{technique}_cost_efficiency"] = df["minimal"] / (df[technique] * df[f"{technique}_executions"])
 
 df["estimated_interventions"] = df["estimated_interventions"].apply(len)
+
 
 if "case-1" in logs:
     df = df.query("sample_size <= 5000 | sample_size > 9000")
@@ -171,7 +160,12 @@ OUTCOMES = {
     "": ["original_length", "minimal", "sample_size"],  # RQ2
     "_executions": ["original_length", "minimal", "sample_size"],  # RQ3
 }
-y_labels = {"_cost_efficiency": "Cost efficiency", "": "Tool-minimised test length", "_executions": "Executions"}
+y_labels = {
+    "_cost_efficiency": "Cost efficiency",
+    "": "Tool-minimised test length",
+    "_executions": "Executions",
+    "_reinstatement": "Reinstatement rate",
+}
 FEATURES = ["original_length", "minimal", "sample_size", "ci_alpha", "estimable_per_event"]
 x_labels = {
     "original_length": "Original test length",
@@ -308,24 +302,33 @@ df["minimal"] = df["minimal"] / df["original_length"]
 def plot_feature(feature, ax):
     if feature in {"estimable_per_event", "minimal"}:
         for technique in TECHNIQUES:
-            ax.scatter(
-                df[feature],
-                df[f"{technique}{outcome}"],
-                color=technique_colours[technique],
-                marker=technique_markers[technique],
-                alpha=0.1,
-            )
-        # ax.set_xticklabels(x_ticks[feature])
+            if f"{technique}{outcome}" in df:
+                ax.scatter(
+                    df[feature],
+                    df[f"{technique}{outcome}"],
+                    color=technique_colours[technique],
+                    marker=technique_markers[technique],
+                    alpha=0.1,
+                )
         ax.set_xlabel(x_labels[feature])
         ax.set_xticks(np.linspace(0, 1, 11))
         ax.set_xlim(-0.01)
 
     else:
+        groups = [
+            list(df.groupby(feature)[f"{technique}{outcome}"].apply(list))
+            for technique in TECHNIQUES
+            if f"{technique}{outcome}" in df
+        ]
+        colours = (
+            [technique_colours[technique] for technique in TECHNIQUES]
+            if len(groups) == len(TECHNIQUES)
+            else [GREEN, MAGENTA]
+        )
         plot_grouped_boxplot(
-            [list(df.groupby(feature)[f"{technique}{outcome}"].apply(list)) for technique in TECHNIQUES],
+            groups,
             ax=ax,
-            # labels=[BASELINE, TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
-            colours=[technique_colours[technique] for technique in TECHNIQUES],
+            colours=colours,
             xticklabels=x_ticks[feature],
             xlabel=x_labels[feature],
             ylabel=y_labels[outcome],
@@ -340,12 +343,8 @@ def plot_feature(feature, ax):
 for rq, outcome in enumerate(OUTCOMES, 1):
     rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
     if rq > 1:
-        df[f"greedy_heuristic{outcome}"] = df[f"greedy_heuristic{outcome}"] / df["original_length"]
-        df[f"ddmin{outcome}"] = df[f"ddmin{outcome}"] / df["original_length"]
-        df[f"causal_cut{outcome}"] = df[f"causal_cut{outcome}"] / df["original_length"]
-        df[f"causal_cut_plus_greedy_heuristic{outcome}"] = (
-            df[f"causal_cut_plus_greedy_heuristic{outcome}"] / df["original_length"]
-        )
+        for technique in TECHNIQUES:
+            df[f"technique{outcome}"] = df[f"{technique}{outcome}"] / df["original_length"]
     fig, axs = plt.subplots(1, 3, sharey=True, figsize=(6.5 * 3, 4), gridspec_kw={"wspace": 0.05, "hspace": 0})
     for feature, ax in zip(OUTCOMES[outcome], axs.reshape(-1)):
         plot_feature(feature, ax)
@@ -390,3 +389,40 @@ for rq, outcome in enumerate(OUTCOMES, 1):
             )
         rq_stats.append(pd.DataFrame(stats))
     format_latex(pd.concat(rq_stats, axis=1), f"{stats_dir}/rq{rq}.tex", index=False, header=False)
+
+
+# Reinstatement ratio
+df["causal_cut_reinstatement"] = (df["causal_cut"] - df["estimated_interventions"]) / df["causal_cut"]
+df["causal_cut_plus_greedy_heuristic_reinstatement"] = (
+    df["causal_cut_plus_greedy_heuristic"] - df["estimated_interventions"]
+) / df["causal_cut_plus_greedy_heuristic"]
+outcome = "_reinstatement"
+rq = "2a"
+for feature in FEATURES:
+    fig, ax = plt.subplots(figsize=(6.5, 4))
+    plot_feature(feature, ax)
+    ax.set_ylabel(y_labels[outcome])
+    ax.legend(
+        handles=[
+            plt.scatter([None], [None], marker="o", color=GREEN),
+            plt.scatter([None], [None], marker="+", color=MAGENTA),
+        ],
+        labels=[TOOLNAME, f"{TOOLNAME} + {BASELINE}"],
+        **legend_args,
+    )
+    ax.set_yticks([x / 10 for x in range(0, 11, 2)])
+    ax.set_ylim(-0.01, 1.01)
+    plt.tight_layout()
+    plt.savefig(f"{figures}/rq{rq}-{feature}.pdf", bbox_inches="tight", pad_inches=0)
+
+    stats = []
+    for technique in [f"{t}{outcome}" for t in ["causal_cut", "causal_cut_plus_greedy_heuristic"]]:
+        raw_stat, raw_p_value = spearmanr(df[feature], df[technique])
+        stats.append(
+            {
+                f"{feature}_stat": round_format(raw_stat),
+                f"{feature}_p_value": bold_if_significant(raw_p_value),
+            }
+        )
+    rq_stats.append(pd.DataFrame(stats))
+format_latex(pd.concat(rq_stats, axis=1), f"{stats_dir}/rq{rq}.tex", index=False, header=False)
