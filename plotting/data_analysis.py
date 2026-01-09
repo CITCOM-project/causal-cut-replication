@@ -344,7 +344,7 @@ for rq, outcome in enumerate(OUTCOMES, 1):
     rq_stats = [pd.DataFrame({"technique": [technique_labels[t] for t in TECHNIQUES]})]
     if rq > 1:
         for technique in TECHNIQUES:
-            df[f"technique{outcome}"] = df[f"{technique}{outcome}"] / df["original_length"]
+            df[f"{technique}{outcome}"] = df[f"{technique}{outcome}"] / df["original_length"]
     fig, axs = plt.subplots(1, 3, sharey=True, figsize=(6.5 * 3, 4), gridspec_kw={"wspace": 0.05, "hspace": 0})
     for feature, ax in zip(OUTCOMES[outcome], axs.reshape(-1)):
         plot_feature(feature, ax)
