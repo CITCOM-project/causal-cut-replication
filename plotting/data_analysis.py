@@ -168,7 +168,7 @@ OUTCOMES = {
 }
 y_labels = {
     "_cost_efficiency": "Cost efficiency",
-    "": "Tool-minimised test length",
+    "": "Reduced test length",
     "_executions": "Executions",
     "_reinstatement": "Reinstatement rate",
 }
@@ -186,7 +186,7 @@ technique_labels_latex = {
     "ddmin": "\\ddmin",
     "causal_cut": "\\toolname",
     "causal_cut_plus_greedy_heuristic": "\\toolnamePlus",
-    "estimated_interventions": "Phase 1",
+    "estimated_interventions": f"{TOOLNAME} Phase 1",
 }
 technique_labels_plain = {
     "greedy_heuristic": BASELINE,
