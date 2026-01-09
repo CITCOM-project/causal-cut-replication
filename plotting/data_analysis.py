@@ -288,13 +288,24 @@ print("=" * 40, "Reinstatement rate", "=" * 40)
 print("Mean Reinstatement")
 print("Phase 1 length", (df["estimated_interventions"] / df["original_length"]).mean())
 print("Phase 2 length", (df["causal_cut"] / df["original_length"]).mean())
+print(
+    "Phase 2 length reinstatement", ((df["causal_cut"] - df["estimated_interventions"]) / df["original_length"]).mean()
+)
 print("CC+ length", (df["causal_cut_plus_greedy_heuristic"] / df["original_length"]).mean())
+print(
+    "CC+ reinstatement reduction",
+    (
+        (
+            df["original_length"]
+            - df["estimated_interventions"]  # phase 1
+            - (df["causal_cut"] - df["causal_cut_plus_greedy_heuristic"])  # Greedy remain
+        )
+        / df["original_length"]
+    ).mean(),
+)
 print("Minimal length", (df["minimised_extended_interventions"] / df["original_length"]).mean())
-print("Median Reinstatement")
-print("Phase 1 length", (df["estimated_interventions"] / df["original_length"]).median())
-print("Phase 2 length", (df["causal_cut"] / df["original_length"]).median())
-print("CC+ length", (df["causal_cut_plus_greedy_heuristic"] / df["original_length"]).median())
-print("Minimal length", (df["minimised_extended_interventions"] / df["original_length"]).median())
+print("Greedy length", (df["greedy_heuristic"] / df["original_length"]).mean())
+print("DDmin length", (df["ddmin"] / df["original_length"]).mean())
 print("=" * 80)
 
 # Estimable events in the dataset by sample size
