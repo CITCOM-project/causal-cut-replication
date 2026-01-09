@@ -128,7 +128,7 @@ for technique in ["minimal"] + TECHNIQUES:
         df[f"{technique}_cost_efficiency"] = df["minimal"] / (df[technique] * df[f"{technique}_executions"])
 
 df["estimated_interventions"] = df["estimated_interventions"].apply(len)
-df["estimated_interventions"] = df["estimated_interventions"] / df["original_length"]
+# df["estimated_interventions"] = df["estimated_interventions"] / df["original_length"]
 df["estimated_interventions_executions"] = 0
 
 df["minimised_extended_interventions"] = [
@@ -286,12 +286,12 @@ print(df[[f"{t}_executions_per_event" for t in TECHNIQUES]].mean())
 
 print("=" * 40, "Reinstatement rate", "=" * 40)
 print("Mean Reinstatement")
-print("Phase 1 length", (df["estimated_interventions"]).mean())
+print("Phase 1 length", (df["estimated_interventions"] / df["original_length"]).mean())
 print("Phase 2 length", (df["causal_cut"] / df["original_length"]).mean())
 print("CC+ length", (df["causal_cut_plus_greedy_heuristic"]).mean())
 print("Minimal length", (df["minimised_extended_interventions"] / df["original_length"]).mean())
 print("Median Reinstatement")
-print("Phase 1 length", (df["estimated_interventions"]).median())
+print("Phase 1 length", (df["estimated_interventions"] / df["original_length"]).median())
 print("Phase 2 length", (df["causal_cut"] / df["original_length"]).median())
 print("CC+ length", (df["causal_cut_plus_greedy_heuristic"] / df["original_length"]).median())
 print("Minimal length", (df["minimised_extended_interventions"] / df["original_length"]).median())
