@@ -110,6 +110,48 @@ df["greedy_heuristic_executions"] = df["original_length"]
 
 TECHNIQUES = ["greedy_heuristic", "ddmin", "causal_cut", "causal_cut_plus_greedy_heuristic"]
 
+
+def get_actuator_category(actuator):
+    if "case-1" in logs:
+        return re.match(f"([A-Z]+)\d+", actuator).group(1)
+    return actuator
+
+
+print("=" * 40, "Removed interventions by category", "=" * 40)
+total_interventions = (
+    df["attack"]
+    # Categorise actuator types, e.g. P401 -> P
+    .apply(lambda events: Counter(get_actuator_category(actuator) for _, actuator, _ in events))
+).sum()
+removed_by_category = [total_interventions | {"label": "total"}]
+
+df["reinstated"] = df[["causal_cut", "estimated_interventions"]].apply(
+    lambda row: [i for i in row["causal_cut"] if i not in row["estimated_interventions"]], axis=1
+)
+
+for technique in TECHNIQUES + ["estimated_interventions", "minimal", "reinstated"]:
+    removed_interventions = (
+        df[["attack", technique]]
+        # Get the interventions in the original attack that were pruned
+        # Need to strip the value off to account for mismatch between binary and continuous interventions
+        .apply(
+            lambda row: {(time, intervention) for time, intervention, _ in row["attack"]}
+            - {(time, intervention) for time, intervention, _ in row[technique]},
+            axis=1,
+        )
+        # Categorise actuator types, e.g. P401 -> P
+        .apply(lambda events: Counter(get_actuator_category(actuator) for _, actuator in events))
+    ).sum()
+    remaining_interventions = (
+        df[technique]
+        # Categorise actuator types, e.g. P401 -> P
+        .apply(lambda events: Counter(get_actuator_category(actuator) for _, actuator, _ in events))
+    ).sum()
+    removed_by_category.append(removed_interventions | {"label": f"{technique}_removed"})
+    removed_by_category.append(remaining_interventions | {"label": f"{technique}_remaining"})
+removed_by_category = pd.DataFrame(removed_by_category).set_index("label")
+print(removed_by_category.apply(lambda col: col / removed_by_category.sum(axis=1) * 100).round(2))
+
 for technique in ["minimal"] + TECHNIQUES:
     df[technique] = df[technique].apply(lambda a: len(tuple(map(tuple, a))))
     df[f"{technique}_per_event"] = df[technique] / df["original_length"]
@@ -306,6 +348,7 @@ print(
 print("Minimal length", (df["minimised_extended_interventions"] / df["original_length"]).mean())
 print("Greedy length", (df["greedy_heuristic"] / df["original_length"]).mean())
 print("DDmin length", (df["ddmin"] / df["original_length"]).mean())
+
 print("=" * 80)
 
 # Estimable events in the dataset by sample size
