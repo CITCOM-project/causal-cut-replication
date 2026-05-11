@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from constants import BASELINE, TOOLNAME, RED, GREEN, BLUE, MAGENTA, DDMIN
+from constants import *
 from grouped_boxplot import plot_grouped_boxplot
 
 import warnings
@@ -117,19 +117,19 @@ def get_actuator_category(actuator):
     return actuator
 
 
-print("=" * 40, "Removed interventions by category", "=" * 40)
+print("=" * 30, "Removed interventions by category", "=" * 30)
 total_interventions = (
     df["attack"]
     # Categorise actuator types, e.g. P401 -> P
     .apply(lambda events: Counter(get_actuator_category(actuator) for _, actuator, _ in events))
 ).sum()
-removed_by_category = [total_interventions | {"label": "total"}]
+removed_by_category = [total_interventions | {"label": "Original tests"}]
 
 df["reinstated"] = df[["causal_cut", "estimated_interventions"]].apply(
     lambda row: [i for i in row["causal_cut"] if i not in row["estimated_interventions"]], axis=1
 )
 
-for technique in TECHNIQUES + ["estimated_interventions", "minimal", "reinstated"]:
+for technique in TECHNIQUES + ["estimated_interventions", "reinstated"]:
     removed_interventions = (
         df[["attack", technique]]
         # Get the interventions in the original attack that were pruned
@@ -147,10 +147,13 @@ for technique in TECHNIQUES + ["estimated_interventions", "minimal", "reinstated
         # Categorise actuator types, e.g. P401 -> P
         .apply(lambda events: Counter(get_actuator_category(actuator) for _, actuator, _ in events))
     ).sum()
-    removed_by_category.append(removed_interventions | {"label": f"{technique}_removed"})
-    removed_by_category.append(remaining_interventions | {"label": f"{technique}_remaining"})
+    # removed_by_category.append(removed_interventions | {"label": f"{technique_labels_latex[technique]} removed"})
+    removed_by_category.append(remaining_interventions | {"label": technique_labels_latex[technique]})
 removed_by_category = pd.DataFrame(removed_by_category).set_index("label")
-print(removed_by_category.apply(lambda col: col / removed_by_category.sum(axis=1) * 100).round(2))
+removed_by_category = removed_by_category.apply(lambda col: col / removed_by_category.sum(axis=1) * 100).round(2)
+removed_by_category.to_latex(f"{stats_dir}/removed_by_category.tex")
+print(removed_by_category)
+
 
 for technique in ["minimal"] + TECHNIQUES:
     df[technique] = df[technique].apply(lambda a: len(tuple(map(tuple, a))))
@@ -202,55 +205,7 @@ ORIGINAL_TEST_LENGTHS = sorted(list(set(df.original_length)))
 NECESSARY_INTERVENTIONS = sorted(list(set(df.minimal)))
 SAMPLE_SIZES = sorted(list(set(df.sample_size)))
 CONFIDENCE_INTERVALS = [80, 90]
-
-OUTCOMES = {
-    "_cost_efficiency": ["original_length", "minimal", "estimable_per_event"],  # RQ1
-    "": ["original_length", "minimal", "sample_size"],  # RQ2
-    "_executions": ["original_length", "minimal", "sample_size"],  # RQ3
-}
-y_labels = {
-    "_cost_efficiency": "Cost efficiency",
-    "": "Reduced test length",
-    "_executions": "Executions",
-    "_reinstatement": "Reinstatement rate",
-}
-FEATURES = ["original_length", "minimal", "sample_size", "ci_alpha", "estimable_per_event"]
-x_labels = {
-    "original_length": "Original test length",
-    "minimal": "Proportion of necessary interventions",
-    "sample_size": "Executions available",
-    "estimable_per_event": "Proportion of estimable interventions",
-    "ci_alpha": "CI alpha",
-}
 x_ticks = {k: sorted(list(set(df[k]))) for k in FEATURES}
-technique_labels_latex = {
-    "greedy_heuristic": "\\greedy",
-    "ddmin": "\\ddmin",
-    "causal_cut": "\\toolname",
-    "causal_cut_plus_greedy_heuristic": "\\toolnamePlus",
-    "estimated_interventions": f"{TOOLNAME} Phase 1",
-}
-technique_labels_plain = {
-    "greedy_heuristic": BASELINE,
-    "ddmin": "DDmin",
-    "causal_cut": TOOLNAME,
-    "causal_cut_plus_greedy_heuristic": f"{TOOLNAME} + {BASELINE}",
-    "estimated_interventions": f"{TOOLNAME} Phase 1",
-}
-technique_colours = {
-    "greedy_heuristic": RED,
-    "ddmin": BLUE,
-    "causal_cut": GREEN,
-    "causal_cut_plus_greedy_heuristic": MAGENTA,
-    "estimated_interventions": "orange",
-}
-technique_markers = {
-    "greedy_heuristic": "x",
-    "ddmin": "^",
-    "causal_cut": "o",
-    "causal_cut_plus_greedy_heuristic": "+",
-    "estimated_interventions": "*",
-}
 
 
 # Original and gold standard attack lengths (Table 1)
