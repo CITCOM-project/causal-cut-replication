@@ -23,6 +23,6 @@ For this study, we used `$SEED=0`, `1`, and `2`.
 ## Running causal tests
 To run our causal tests, simply run the following command from the repository root directory, with the `tci` conda virtual environment activated.
 ```
-bash case_2_submissions.sh
+bash setup_and_run_case.sh case-2-oref0
 ```
 This will create a directory called `logs` within `case-2-swat` where all of the results will be saved.

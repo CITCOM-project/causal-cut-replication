@@ -1,3 +1,7 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=64,<82", "setuptools_scm[toml]>=6.2", "wheel"]
+
 [project]
 name = "causal_minimisation"
 description = "Test case minimisation with causal inference"
@@ -18,5 +22,22 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["plotting"]
+include = ["plotting", "scripts", "case-1-swat", "case-2-oref0"]
 exclude = ["tmp*"]
+
+[tool.uv.workspace]
+members = [
+    ".",
+    ".",
+    ".",
+    ".",
+    ".",
+]
+
+[tool.uv.sources]
+causal-minimisation = { workspace = true, editable = true }
+
+[dependency-groups]
+dev = [
+    "causal-minimisation",
+]

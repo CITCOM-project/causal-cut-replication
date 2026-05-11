@@ -6,7 +6,7 @@ This repository contains the replication package for our paper entitled "Causali
 1. We use a python virtualenv.
 This is not strictly necessary, but you will need Python>=3.10, and may need to adapt the setup and replication instructions accordingly.
 ```
-virtualenv -p python3.10 venv
+virtualenv -p python3.11 --download venv
 ```
 1. Activate the virtual environment:
 ```

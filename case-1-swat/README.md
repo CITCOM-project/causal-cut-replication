@@ -23,6 +23,6 @@ This will create a file called `data-225.csv` within the `data` directory.
 ## Running causal tests
 To run our causal tests, simply run the following command from the repository root directory, with the `tci` conda virtual environment activated.
 ```
-bash case_1_submissions.sh
+bash setup_and_run_case.sh case-1-swat
 ```
 This will create a directory called `logs` within `case-1-swat` where all of the results will be saved.
